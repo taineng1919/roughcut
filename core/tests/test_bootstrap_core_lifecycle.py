@@ -19,6 +19,13 @@ CURRENT_HEALTH = {
 }
 
 
+@pytest.fixture(autouse=True)
+def unrecorded_source_fixture(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Existing lifecycle cases isolate version/schema behavior from Git discovery.
+    # The staged-revision case below overrides this with explicit A/B identities.
+    monkeypatch.setattr(bootstrap_script, "current_core_source_commit", lambda: None)
+
+
 def _write_launchers(install_dir: Path) -> tuple[Path, Path]:
     bin_path = bootstrap_script.venv_bin(install_dir / "venv")
     bin_path.mkdir(parents=True, exist_ok=True)
