@@ -82,7 +82,7 @@ provider, or expose exception text. Each result labels its origin as exactly one
 `Roughcut runtime binding 未配置` and `next_action: component_plan`; it does not
 probe an assumed default FunASR directory.
 
-## M2.7 platform release split and current Core `0.2.8` provider
+## M2.7 platform release split and retained Correlation provider
 
 The fixed candidate `a81d36aff0d813419b40bcf3cc1ccd94a9dc0a73`, with core
 version `0.1.13`, passed the one-time macOS source-checkout platform-slice
@@ -92,7 +92,7 @@ PyPI package, or GitHub Release was published. The first `0.1.14` M3.4
 implementation batch completed, but project-owner page acceptance failed; the
 subsequent `0.1.15` candidate also failed its bounded acceptance/release
 evidence. The unpublished `0.1.16` experiment and `0.2.0` are historical identities;
-the current macOS trial Core is `0.2.8`. Its production writer is pinned Audalign
+the macOS trial Core at that stage was `0.2.8`. Its production writer is pinned Audalign
 1.3.1 `CorrelationRecognizer`; old Fingerprint, waveform, and BBC artifacts remain
 exact-ID readback only. This is not cross-platform M2.7
 completion. Windows M2.7 is deferred. On
@@ -647,7 +647,7 @@ The next WorkBuddy proof must be written to a new report file and separate:
 Neither proof may use user media, download FunASR, invoke real FFmpeg, or perform
 a formal Render.
 
-## Multicam surface (schema-30 feature retained by 32; Core `0.2.8` Correlation production route)
+## Multicam surface (schema-30 feature retained by 32; Correlation production route)
 
 Tool schema 29 entries above remain unchanged; schema 30 adds the closed
 `source_pairs` input described at the top of this contract. The multicamera public surface is supported on the verified macOS scope. Windows M2.7 entries and automatic continuation fail closed, and natural real multi-file behavior is unverified. This section

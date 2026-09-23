@@ -49,7 +49,7 @@ heartbeat、PID lease、自动重试、续跑、worker 恢复、算法 registry 
 
 ## 2. Audalign 与 runtime 冻结
 
-### 2.0 当前 Core 0.2.8 Correlation writer
+### 2.0 当前 Correlation writer
 
 当前新写入唯一使用持久 RuntimeBinding 中通过同一 `validate_audalign_selection` 的
 `audalign==1.3.1`、upstream commit
@@ -1093,7 +1093,7 @@ runtime manager；需要 queue/daemon/retry/worker recovery；需要绕过 pure 
 平行 Render；或必须猜测 missing/uncertain/conflict 才能获得可接受覆盖。用户明确选择的
 synchronization group 与 exact source pairs 是已批准的输入边界，不属于机器推断。
 
-## 9. 当前用户已明确选择同步组后的 Correlation 生产对轨（Core 0.2.8）
+## 9. 当前用户已明确选择同步组后的 Correlation 生产对轨
 
 本节是当前生产 writer 的规范覆盖。`align_multicam` 新写入只接受 persistent managed
 Audalign 1.3.1 selection，并固定 algorithm `audalign_correlation`、profile
