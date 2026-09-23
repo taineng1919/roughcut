@@ -861,6 +861,12 @@ def test_bootstrap_cli_installs_and_reuses_core_from_local_wheel(
         core_source,
         ignore=shutil.ignore_patterns("build", "dist", "*.egg-info", "__pycache__"),
     )
+    from scripts.build_core_release import _render_build_identity
+
+    (core_source / "src/roughcut/_build_identity.py").write_text(
+        _render_build_identity(bootstrap_script.current_core_source_commit()),
+        encoding="utf-8",
+    )
     build_argv = [
         sys.executable,
         "-m",
