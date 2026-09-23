@@ -10,9 +10,10 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pytest
 from scripts import bootstrap as bootstrap_script
 
+CURRENT_VERSION = bootstrap_script.core_version()
 CURRENT_HEALTH = {
     "schema_version": 1,
-    "core_version": "0.2.8",
+    "core_version": CURRENT_VERSION,
     "tool_schema_version": 32,
     "ok": True,
 }
@@ -32,14 +33,14 @@ def _write_launchers(install_dir: Path) -> tuple[Path, Path]:
 def _write_wheel(
     root: Path,
     *,
-    filename: str = "roughcut-0.2.8-py3-none-any.whl",
+    filename: str = f"roughcut-{CURRENT_VERSION}-py3-none-any.whl",
     name: str = "roughcut",
-    version: str = "0.2.8",
+    version: str = CURRENT_VERSION,
 ) -> Path:
     path = root / filename
     with ZipFile(path, "w", compression=ZIP_DEFLATED) as archive:
         archive.writestr(
-            "roughcut-0.2.8.dist-info/METADATA",
+            f"roughcut-{CURRENT_VERSION}.dist-info/METADATA",
             f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n",
         )
     return path
@@ -100,7 +101,7 @@ def test_empty_install_creates_core_then_verifies_installed_health(
     result = bootstrap_script.bootstrap(install_dir)
 
     assert result["schema_version"] == 1
-    assert result["core_version"] == "0.2.8"
+    assert result["core_version"] == CURRENT_VERSION
     assert result["core_action"] == "installed"
     assert result["installed"] is True
     assert calls[0][1:4] == ["-m", "venv", "--without-pip"]
@@ -147,9 +148,9 @@ def test_core_wheel_install_uses_a_validated_offline_local_wheel(
         "0.2.4",
         "0.2.5",
         "0.2.6",
-        # 0.2.7 is now an occupied historical identity: it is the upgrade source
-        # for the current 0.2.8 candidate and must be updated, never reused.
         "0.2.7",
+        # 0.2.8 is a historical identity and must be updated, never reused.
+        "0.2.8",
     ]
 )
 def test_existing_old_core_is_updated_and_reverified(
@@ -167,7 +168,7 @@ def test_existing_old_core_is_updated_and_reverified(
     result = bootstrap_script.bootstrap(install_dir, core_wheel=wheel)
 
     assert result["core_action"] == "updated"
-    assert result["core_version"] == "0.2.8"
+    assert result["core_version"] == CURRENT_VERSION
     assert result["installed"] is False
     pip_call = next(call for call in calls if call[1:3] == ["-m", "pip"])
     assert "--no-deps" in pip_call
@@ -399,13 +400,13 @@ def test_invalid_core_wheel_fails_closed_before_environment_or_component_work(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     install_dir = tmp_path / "roughcut install"
-    wheel = tmp_path / "roughcut-0.2.8-py3-none-any.whl"
+    wheel = tmp_path / f"roughcut-{CURRENT_VERSION}-py3-none-any.whl"
     if kind == "directory":
         wheel.mkdir()
     elif kind == "wrong-filename":
         wheel = _write_wheel(
             tmp_path,
-            filename="other-0.2.8-py3-none-any.whl",
+            filename=f"other-{CURRENT_VERSION}-py3-none-any.whl",
         )
     elif kind == "wrong-name":
         _write_wheel(tmp_path, name="other")
