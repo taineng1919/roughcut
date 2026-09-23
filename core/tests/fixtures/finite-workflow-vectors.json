@@ -1,0 +1,2699 @@
+{
+  "schema_version": 1,
+  "contract": "finite-workflow-contract",
+  "contract_schema_version": 1,
+  "description": "Golden vectors for the M2.6 W5 finite workflow contract, third-stage executable action/input/participant closure, and its core-owned basis, binding sync, arbitrary selectable pre-Decision scope target, Draft rebase-anchor commit/recovery, Draft Brief/section revision, export claim/partial reentry, and closed-status P1 repairs. These are contract fixtures, not evidence of a production implementation.",
+  "action_input_vector_scope": "action_input_vectors validate closed-schema parsing and canonical projection only; vectors validate workflow state, subject, dependency, commit, and recovery behavior.",
+  "action_input_fixtures": {
+    "approve_scope": {
+      "schema_version": 1,
+      "confirmation_basis": {
+        "basis_id": "wfb_scope_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "source_authorizations": [
+        {
+          "source_id": "src_a",
+          "transcribe": true,
+          "speaker_diarization": true
+        },
+        {
+          "source_id": "src_b",
+          "transcribe": false,
+          "speaker_diarization": false
+        }
+      ]
+    },
+    "confirm_brief": {
+      "schema_version": 1,
+      "confirmation_basis": {
+        "basis_id": "wfb_brief_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "theme": "校园探访",
+      "target_duration_ticks": 7200000,
+      "focus": [
+        "学习空间",
+        "人物表达"
+      ],
+      "allow_reorder": false,
+      "speaker_resolution_waivers": []
+    },
+    "submit_outline": {
+      "schema_version": 1,
+      "title": "从学习空间认识校园",
+      "opening": "主持人原话直接进入主题",
+      "sections": [
+        {
+          "section_id": "section_1",
+          "title": "开场",
+          "summary": "主持人说明探访目标",
+          "target_duration_ticks": 1200000
+        },
+        {
+          "section_id": "section_2",
+          "title": "图书馆",
+          "summary": "介绍学习空间",
+          "target_duration_ticks": 1200000
+        },
+        {
+          "section_id": "section_3",
+          "title": "实验室",
+          "summary": "介绍设备与课程",
+          "target_duration_ticks": 1200000
+        },
+        {
+          "section_id": "section_4",
+          "title": "结尾",
+          "summary": "主持人总结体验",
+          "target_duration_ticks": 1200000
+        }
+      ],
+      "ending": "主持人原话总结",
+      "required_content_coverage": [
+        {
+          "requirement": "必须保留图书馆",
+          "covered": true,
+          "evidence_refs": [
+            {
+              "source_id": "src_a",
+              "transcript_version_id": "tr_a_1",
+              "segment_id": "seg_2",
+              "start_ticks": 120000,
+              "end_ticks": 240000
+            }
+          ]
+        }
+      ],
+      "narration_status": "none"
+    },
+    "approve_outline": {
+      "schema_version": 1,
+      "outline_ref": {
+        "artifact_id": "outline_cccccccccccccccc",
+        "schema_version": 1,
+        "content_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    "submit_draft": {
+      "schema_version": 1,
+      "parent_draft_ref": null,
+      "display_title": "从学习空间认识校园",
+      "source_bindings": [
+        {
+          "source_id": "src_a",
+          "transcript_version_id": "tr_a_1"
+        }
+      ],
+      "brief_ref": {
+        "artifact_id": "brief_current",
+        "schema_version": 1,
+        "content_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "context_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "blocks": [
+        {
+          "block_id": "heading_block_1",
+          "kind": "section_title",
+          "title": "开场"
+        },
+        {
+          "block_id": "block_1",
+          "kind": "source_excerpt",
+          "refs": [
+            {
+              "source_id": "src_a",
+              "transcript_version_id": "tr_a_1",
+              "segment_id": "seg_1",
+              "start_ticks": 0,
+              "end_ticks": 120000
+            }
+          ],
+          "canonical_text": "欢迎来到校园。"
+        }
+      ],
+      "scoped_mutable_block_ids": []
+    },
+    "approve_draft": {
+      "schema_version": 1,
+      "content_draft_ref": {
+        "artifact_id": "draft_current",
+        "schema_version": 1,
+        "content_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "return_to_draft": {
+      "schema_version": 1,
+      "current_subject_ref": {
+        "kind": "proposal",
+        "artifact_id": "proposal_current",
+        "schema_version": 2,
+        "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "confirmed_content_draft_ref": {
+        "artifact_id": "draft_confirmed",
+        "schema_version": 1,
+        "content_hash": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    },
+    "adopt_roughcut": {
+      "schema_version": 1,
+      "proposal_ref": {
+        "artifact_id": "proposal_current",
+        "schema_version": 2,
+        "content_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    },
+    "approve_export": {
+      "schema_version": 1,
+      "export_ref": {
+        "artifact_id": "export_4444444444444444",
+        "schema_version": 1,
+        "content_hash": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    }
+  },
+  "action_input_vectors": [
+    {
+      "id": "FWI-001",
+      "action": "approve_scope",
+      "input_fixture": "approve_scope",
+      "expect": {
+        "ok": true,
+        "schema": "ApproveScopeInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-002",
+      "action": "approve_scope",
+      "input_fixture": "approve_scope",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "expected_scope_subject_hash",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-003",
+      "action": "confirm_brief",
+      "input_fixture": "confirm_brief",
+      "expect": {
+        "ok": true,
+        "schema": "ConfirmBriefInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-004",
+      "action": "confirm_brief",
+      "input_fixture": "confirm_brief",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "expected_brief_request_hash",
+        "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-005",
+      "action": "submit_outline",
+      "input_fixture": "submit_outline",
+      "expect": {
+        "ok": true,
+        "schema": "SubmitOutlineInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-006",
+      "action": "submit_outline",
+      "input_fixture": "submit_outline",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "unexpected",
+        "value": true
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-007",
+      "action": "approve_outline",
+      "input_fixture": "approve_outline",
+      "expect": {
+        "ok": true,
+        "schema": "ApproveOutlineInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-008",
+      "action": "approve_outline",
+      "input_fixture": "approve_outline",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "unexpected",
+        "value": true
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-009",
+      "action": "submit_draft",
+      "input_fixture": "submit_draft",
+      "expect": {
+        "ok": true,
+        "schema": "SubmitDraftInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-010",
+      "action": "submit_draft",
+      "input_fixture": "submit_draft",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "unexpected",
+        "value": true
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-011",
+      "action": "approve_draft",
+      "input_fixture": "approve_draft",
+      "expect": {
+        "ok": true,
+        "schema": "ApproveDraftInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-012",
+      "action": "approve_draft",
+      "input_fixture": "approve_draft",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "unexpected",
+        "value": true
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-013",
+      "action": "return_to_draft",
+      "input_fixture": "return_to_draft",
+      "expect": {
+        "ok": true,
+        "schema": "ReturnToDraftInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-014",
+      "action": "return_to_draft",
+      "input_fixture": "return_to_draft",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "unexpected",
+        "value": true
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-015",
+      "action": "adopt_roughcut",
+      "input_fixture": "adopt_roughcut",
+      "expect": {
+        "ok": true,
+        "schema": "AdoptRoughcutInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-016",
+      "action": "adopt_roughcut",
+      "input_fixture": "adopt_roughcut",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "unexpected",
+        "value": true
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-017",
+      "action": "approve_export",
+      "input_fixture": "approve_export",
+      "expect": {
+        "ok": true,
+        "schema": "ApproveExportInputV1",
+        "canonical_projection": "entire_closed_input"
+      }
+    },
+    {
+      "id": "FWI-018",
+      "action": "approve_export",
+      "input_fixture": "approve_export",
+      "input_mutation": {
+        "operation": "add_top_level_field",
+        "field": "unexpected",
+        "value": true
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid"
+      }
+    },
+    {
+      "id": "FWI-019",
+      "action": "confirm_brief",
+      "input_fixture": "confirm_brief",
+      "input_mutations": [
+        {
+          "operation": "append",
+          "path": "/speaker_resolution_waivers",
+          "value": {
+            "source_id": "src_a",
+            "transcript_version_id": "tr_a_1",
+            "local_speaker_id": "spk_0"
+          }
+        },
+        {
+          "operation": "remove",
+          "path": "/speaker_resolution_waivers/0/transcript_version_id"
+        }
+      ],
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid",
+        "invalid_path": "/speaker_resolution_waivers/0/transcript_version_id"
+      }
+    },
+    {
+      "id": "FWI-020",
+      "action": "confirm_brief",
+      "input_fixture": "confirm_brief",
+      "input_mutations": [
+        {
+          "operation": "append",
+          "path": "/speaker_resolution_waivers",
+          "value": {
+            "source_id": "src_a",
+            "transcript_version_id": "tr_a_1",
+            "local_speaker_id": "spk_0",
+            "person_id": "person_guess"
+          }
+        }
+      ],
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid",
+        "invalid_path": "/speaker_resolution_waivers/0/person_id"
+      }
+    }
+  ],
+  "vectors": [
+    {
+      "id": "FWV-001",
+      "title": "protected write without an active run fails closed",
+      "setup": {
+        "project_id": "proj_alpha",
+        "project_schema_version": 1,
+        "active_run": null,
+        "legacy_artifacts_readable": true
+      },
+      "request": {
+        "entrypoint": "render_roughcut",
+        "edit_version_id": "edit_current",
+        "expected_revision": 12
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_required",
+        "domain_mutation_count": 0,
+        "transition_count": 0
+      }
+    },
+    {
+      "id": "FWV-002",
+      "title": "one action cannot cross two approval gates",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "lifecycle": "active"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+                "action_id": "act_cross_gates",
+                "action": "approve_draft",
+                "input": {
+                    "schema_version": 1,
+                    "content_draft_ref": {
+                        "artifact_id": "draft_candidate",
+                        "schema_version": 1,
+                        "content_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    },
+                    "also_actions": [
+                        "adopt_roughcut",
+                        "approve_export"
+          ]
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid",
+        "domain_mutation_count": 0,
+        "transition_count": 0,
+        "receipt_created": false
+      }
+    },
+    {
+      "id": "FWV-003",
+      "title": "equal segment IDs in different bindings remain different subjects",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "roughcut_review",
+        "lifecycle": "active",
+        "ordered_bindings": [
+          {
+            "source_id": "src_a",
+            "transcript_version_id": "tr_a",
+            "transcript_content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "source_id": "src_b",
+            "transcript_version_id": "tr_b",
+            "transcript_content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+                "current_proposal_ref": {
+                    "artifact_id": "proposal_current",
+                    "schema_version": 2,
+                    "content_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+                },
+                "proposal_clip_binding": {
+                    "source_id": "src_b",
+                    "transcript_version_id": "tr_a",
+                    "segment_id": "seg_shared"
+                }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+                "action_id": "act_wrong_binding",
+                "action": "adopt_roughcut",
+                "input": {
+                    "schema_version": 1,
+                    "proposal_ref": {
+                        "artifact_id": "proposal_current",
+                        "schema_version": 2,
+                        "content_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+                    }
+                }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "domain_mutation_count": 0,
+        "transition_count": 0
+      }
+    },
+    {
+      "id": "FWV-004",
+      "title": "unrelated revision change does not make an unchanged dependency stale",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "outline_review",
+        "lifecycle": "active",
+        "approval_id": "appr_outline",
+        "issued_project_revision": 41,
+        "current_project_revision": 42,
+        "revision_change": "project display name changed",
+        "issued_dependency_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "current_dependency_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "outline_content_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+                "action_id": "act_approve_outline",
+                "action": "approve_outline",
+                "input": {
+                    "schema_version": 1,
+                    "outline_ref": {
+                        "artifact_id": "outline_dddddddddddddddd",
+                        "schema_version": 1,
+                        "content_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                    }
+                }
+      },
+      "expect": {
+        "ok": true,
+        "stage": "draft_review",
+        "project_revision": 42,
+        "domain_mutation_count": 0,
+        "transition_count": 1,
+        "receipt_created": true
+      }
+    },
+    {
+      "id": "FWV-005",
+      "title": "a real Transcript dependency change makes downstream approval stale",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "draft_approval_id": "appr_draft",
+        "issued_dependency_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "issued_binding": {
+          "source_id": "src_a",
+          "transcript_version_id": "tr_a1",
+          "transcript_content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "current_binding": {
+          "source_id": "src_a",
+          "transcript_version_id": "tr_a2",
+          "transcript_content_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+                "action_id": "act_approve_stale_draft",
+                "action": "approve_draft",
+                "input": {
+                    "schema_version": 1,
+                    "content_draft_ref": {
+                        "artifact_id": "draft_candidate",
+                        "schema_version": 1,
+                        "content_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    }
+                }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_stale",
+        "domain_mutation_count": 0,
+        "transition_count": 0,
+        "effective_approval_status": "stale"
+      }
+    },
+    {
+      "id": "FWV-006",
+      "title": "same action ID and same input return the original receipt",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage_after_first_call": "draft_review",
+        "lifecycle": "active",
+        "existing_receipt": {
+          "action_id": "act_submit_draft",
+                    "input_hash": "dd71c27ef34f2e6cd6adc48ee2f597c1b0df1b0bc4dedaf88c317db8b8775d84",
+          "artifact_id": "draft_once"
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+                "run_id": "wfr_alpha",
+                "action_id": "act_submit_draft",
+                "action": "submit_draft",
+                "input_fixture": "submit_draft"
+      },
+      "expect": {
+        "ok": true,
+        "receipt_readback": true,
+        "artifact_id": "draft_once",
+        "domain_mutation_count": 0,
+        "transition_count": 0,
+        "new_receipt_created": false
+      }
+    },
+    {
+      "id": "FWV-007",
+      "title": "same action ID with different input is a conflict",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "existing_receipt": {
+          "action_id": "act_submit_draft",
+                    "input_hash": "dd71c27ef34f2e6cd6adc48ee2f597c1b0df1b0bc4dedaf88c317db8b8775d84"
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+                "run_id": "wfr_alpha",
+                "action_id": "act_submit_draft",
+                "action": "submit_draft",
+                "input_fixture": "submit_draft",
+                "input_mutation": {
+                    "operation": "replace",
+                    "path": "/display_title",
+                    "value": "另一版标题"
+                }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_conflict",
+        "domain_mutation_count": 0,
+        "transition_count": 0
+      }
+    },
+    {
+      "id": "FWV-008",
+      "title": "stage advance prevents a second adoption of the same proposal",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "export_review",
+        "lifecycle": "active",
+        "current_proposal_id": "proposal_once",
+        "approval_id": "appr_adopt_once",
+        "first_mutation": {
+          "decision_id": "edit_once",
+          "count": 1
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+                "action_id": "act_adopt_second",
+                "action": "adopt_roughcut",
+                "input": {
+                    "schema_version": 1,
+                    "proposal_ref": {
+                        "artifact_id": "proposal_once",
+                        "schema_version": 2,
+                        "content_hash": "3333333333333333333333333333333333333333333333333333333333333333"
+                    }
+                }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_transition_not_allowed",
+        "decision_id": "edit_once",
+        "total_domain_mutation_count": 1,
+        "transition_count_for_second_call": 0
+      }
+    },
+    {
+      "id": "FWV-009",
+      "title": "retry after a lost success response reads back the committed result",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "response_lost_after_receipt_fsync": true,
+        "existing_receipt": {
+          "action_id": "act_approve_draft_lost",
+                    "input_hash": "048ccabddddf05707bf0db5e4aaef6669fdb2c2cf0a59dcd5a6dc5b80c1290ed",
+          "artifact_id": "draft_confirmed_once",
+          "after_stage": "roughcut_review",
+          "after_project_revision": 13
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+                "run_id": "wfr_alpha",
+                "action_id": "act_approve_draft_lost",
+                "action": "approve_draft",
+                "input_fixture": "approve_draft"
+      },
+      "expect": {
+        "ok": true,
+        "receipt_readback": true,
+        "artifact_id": "draft_confirmed_once",
+        "stage": "roughcut_review",
+        "project_revision": 13,
+        "domain_mutation_count_during_retry": 0
+      }
+    },
+    {
+      "id": "FWV-010",
+      "title": "the project lock serializes concurrent adoption attempts",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "roughcut_review",
+        "lifecycle": "active",
+        "approval_id": "appr_concurrent",
+        "concurrent_action_ids": [
+          "act_concurrent_a",
+          "act_concurrent_b"
+        ]
+      },
+      "request": {
+                "entrypoint": "workflow_action",
+                "action": "adopt_roughcut",
+                "input_fixture": "adopt_roughcut",
+                "run_in_two_processes": true
+      },
+      "expect": {
+        "success_count": 1,
+        "failure_count": 1,
+        "failure_error_code": "workflow_transition_not_allowed",
+        "decision_count": 1,
+        "project_revision_increment_count": 1,
+        "receipt_count": 1
+      }
+    },
+    {
+      "id": "FWV-011",
+      "title": "a run copied into another Project is rejected",
+      "setup": {
+        "filesystem_project_id": "proj_beta",
+        "run_file_project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "run_file_is_byte_for_byte_copy": true
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-012",
+      "title": "legacy Project remains readable and must explicitly start its first normal write flow",
+      "setup": {
+        "project_id": "proj_legacy",
+        "project_schema_version": 1,
+        "workflow_directory_exists": false,
+        "legacy_created_by_user": true,
+        "legacy_confirmed_by_user": true,
+        "legacy_mp4_exists": true
+      },
+      "steps": [
+        {
+          "request": {
+            "entrypoint": "project_open"
+          },
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "request": {
+            "entrypoint": "content_draft_confirm",
+            "content_draft_id": "draft_legacy"
+          },
+          "expect": {
+            "ok": false,
+            "error_code": "workflow_required"
+          }
+        },
+        {
+          "request": {
+                        "entrypoint": "workflow_start",
+                        "run_id": "wfr_legacy_new",
+                        "ordered_source_ids": []
+          },
+          "expect": {
+            "ok": true,
+            "project_schema_changed": false,
+            "project_revision_changed": false,
+            "derived_approval_count": 0,
+            "stage": "scope_review"
+          }
+        }
+      ]
+    },
+    {
+      "id": "FWV-013",
+      "title": "path escape and symlinked workflow storage fail closed",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "dotdot_escape",
+        "workflow_runs_directory_is_symlink": true,
+        "symlink_target": "outside-project"
+      },
+            "request": {
+                "entrypoint": "workflow_status",
+                "run_id": "dotdot_escape"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "path_followed": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-014",
+      "title": "unknown workflow schema fails closed without migration",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_future",
+        "run_schema_version": 99,
+        "run_lifecycle": "active"
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_future"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "automatic_migration": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-015",
+      "title": "direct lower-level call is rejected when the canonical Skill is not loaded",
+      "setup": {
+        "project_id": "proj_alpha",
+        "canonical_skill_loaded": false,
+        "agent_calls_cli_directly": true,
+        "active_run": null,
+        "historical_decision_id": "edit_historical",
+        "historical_render_id": "render_historical"
+      },
+      "request": {
+        "entrypoint": "render_roughcut",
+        "edit_version_id": "edit_historical",
+        "expected_revision": 24
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_required",
+        "historical_approval_inferred": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-016",
+      "title": "approved per-source ASR authorization survives process restart",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "scope_review",
+        "lifecycle": "active",
+        "ordered_bindings": [
+          {
+            "source_id": "src_a",
+            "transcript_version_id": null,
+            "transcript_content_hash": null
+          },
+          {
+            "source_id": "src_b",
+            "transcript_version_id": null,
+            "transcript_content_hash": null
+          }
+        ],
+        "scope_authorizations": [
+          {
+            "source_id": "src_a",
+            "transcribe": true,
+            "speaker_diarization": true
+          },
+          {
+            "source_id": "src_b",
+            "transcribe": false,
+            "speaker_diarization": false
+          }
+        ],
+        "scope_approval_current": true,
+        "process_restarted": true
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "ok": true,
+        "scope_authorizations_preserved": true,
+        "src_a_transcribe_authorized": true,
+        "src_a_speaker_diarization_authorized": true,
+        "src_b_transcribe_authorized": false,
+        "authorization_inferred_from_transcript": false
+      }
+    },
+    {
+      "id": "FWV-017",
+      "title": "cancel response loss replays one canceled receipt",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "project_revision": 17
+      },
+      "steps": [
+        {
+          "request": {
+            "entrypoint": "workflow_cancel",
+            "run_id": "wfr_alpha",
+            "action_id": "act_cancel"
+          },
+          "expect": {
+            "ok": true,
+            "stage": "draft_review",
+            "lifecycle": "canceled",
+            "project_revision": 17,
+            "receipt_action": "workflow_cancel",
+            "input_projection": {},
+            "input_hash": "efb32a0b5d6e2b60a86f116e76af0bbd47f96cfdc87c9ca76f270c9ce0369363",
+            "domain_mutation_count": 0
+          }
+        },
+        {
+          "setup": {
+            "first_response_lost": true
+          },
+          "request": {
+            "entrypoint": "workflow_cancel",
+            "run_id": "wfr_alpha",
+            "action_id": "act_cancel"
+          },
+          "expect": {
+            "ok": true,
+            "receipt_readback": true,
+            "new_receipt_created": false,
+            "transition_count": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "FWV-018",
+      "title": "process death before receipt rolls the workflow action back",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "action_id": "act_approve_scope",
+        "transaction_marker_exists": true,
+        "receipt_exists": false,
+        "child_process_exit_code": 91,
+        "project_hash": "after_hash",
+        "run_hash": "after_hash",
+        "exact_before_payloads_valid": true
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "ok": true,
+        "recovery": "rolled_back",
+        "project_restored_to_before": true,
+        "run_restored_to_before": true,
+        "scope_approval_current": false,
+        "pending_receipt_visible": false,
+        "allowed_actions_derived_after_recovery": true,
+        "action_reexecuted": false
+      }
+    },
+    {
+      "id": "FWV-019",
+      "title": "recovery refuses to overwrite state outside marker before and after",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "transaction_marker_exists": true,
+        "receipt_exists": false,
+        "project_hash": "unrelated_concurrent_hash",
+        "run_hash": "after_hash",
+        "exact_before_payloads_valid": true
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_recovery_conflict",
+        "project_overwritten": false,
+        "run_overwritten": false,
+        "allowed_actions": [],
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-020",
+      "title": "same action ID and semantically equal key orders have one canonical input hash",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha"
+      },
+      "requests": [
+        {
+          "entrypoint": "workflow_action",
+          "run_id": "wfr_alpha",
+          "action_id": "act_brief_canonical",
+          "action": "confirm_brief",
+          "input": {
+            "schema_version": 1,
+            "confirmation_basis": {
+              "basis_id": "wfb_brief_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "theme": "校园探访",
+            "target_duration_ticks": 7200000,
+            "focus": [
+              "学习空间",
+              "人物表达"
+            ],
+            "allow_reorder": false,
+            "speaker_resolution_waivers": []
+          }
+        },
+        {
+          "entrypoint": "workflow_action",
+          "run_id": "wfr_alpha",
+          "action_id": "act_brief_canonical",
+          "action": "confirm_brief",
+          "input": {
+            "speaker_resolution_waivers": [],
+            "allow_reorder": false,
+            "focus": [
+              "学习空间",
+              "人物表达"
+            ],
+            "target_duration_ticks": 7200000,
+            "theme": "校园探访",
+            "confirmation_basis": {
+              "basis_id": "wfb_brief_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "schema_version": 1
+          }
+        }
+      ],
+      "expect": {
+        "input_hashes_equal": true,
+        "expected_input_hash": "be9ce1ac5df6a828be7d81592031dd14c7d862f73582c9c05aa65cc20f19120a",
+        "second_call_receipt_readback": true,
+        "second_call_domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-021",
+      "title": "same action ID with one changed business field conflicts",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha"
+      },
+      "requests": [
+        {
+          "entrypoint": "workflow_action",
+          "run_id": "wfr_alpha",
+          "action_id": "act_brief_conflict",
+          "action": "confirm_brief",
+          "input_fixture": "confirm_brief"
+        },
+        {
+          "entrypoint": "workflow_action",
+          "run_id": "wfr_alpha",
+          "action_id": "act_brief_conflict",
+          "action": "confirm_brief",
+          "input_fixture": "confirm_brief",
+          "input_mutation": {
+            "operation": "replace",
+            "path": "/theme",
+            "value": "另一主题"
+          }
+        }
+      ],
+      "expect": {
+        "first_input_hash": "24e32e246ee86abde704fb34c20510e8ef21e45b6e294b5f9ff76bfb772e88cb",
+        "second_input_hash": "ec4b2292f54dac496feb0bf6bad95bf3ca17d32a56f142cf647f33c1e4b664cc",
+        "input_hashes_equal": false,
+        "second_error_code": "workflow_action_conflict",
+        "second_call_domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-022",
+      "title": "confirm brief rejects caller supplied generated brief ID",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "scope_review"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_brief_with_id",
+        "action": "confirm_brief",
+        "input_fixture": "confirm_brief",
+        "input_mutation": {
+          "operation": "add_top_level_field",
+          "field": "brief_id",
+          "value": "brief_caller_guess"
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_action_invalid",
+        "prepare_called": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-023",
+      "title": "scope approval rejects authorization outside the effective ordered scope",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "scope_review",
+        "effective_ordered_scope": [
+          "src_a",
+          "src_b"
+        ]
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_extra_source",
+        "action": "approve_scope",
+        "input_fixture": "approve_scope",
+        "input_mutation": {
+          "operation": "append",
+          "path": "/source_authorizations",
+          "value": {
+            "source_id": "src_c",
+            "transcribe": true,
+            "speaker_diarization": false
+          }
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "authorization_persisted": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-024",
+      "title": "approve draft rejects a non-current content draft ref or hash",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "current_content_draft_ref_fixture": "approve_draft.content_draft_ref"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_wrong_draft_ref",
+        "action": "approve_draft",
+        "input_fixture": "approve_draft",
+        "input_mutation": {
+          "operation": "replace",
+          "path": "/content_draft_ref/content_hash",
+          "value": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "prepare_called": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-025",
+      "title": "adopt roughcut rejects a non-current proposal ref or hash",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "roughcut_review",
+        "current_proposal_ref_fixture": "adopt_roughcut.proposal_ref"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_wrong_proposal_ref",
+        "action": "adopt_roughcut",
+        "input_fixture": "adopt_roughcut",
+        "input_mutation": {
+          "operation": "replace",
+          "path": "/proposal_ref/artifact_id",
+          "value": "proposal_other"
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "prepare_called": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-026",
+      "title": "approve export rejects a non-current export ref or hash",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "export_review",
+        "current_export_ref_fixture": "approve_export.export_ref"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_wrong_export_ref",
+        "action": "approve_export",
+        "input_fixture": "approve_export",
+        "input_mutation": {
+          "operation": "replace",
+          "path": "/export_ref/content_hash",
+          "value": "7777777777777777777777777777777777777777777777777777777777777777"
+        }
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "render_staging_started": false,
+        "domain_mutation_count": 0
+      }
+    },
+    {
+      "id": "FWV-027",
+      "title": "hard exit after prepare and before marker leaves zero business writes",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "action": "confirm_brief",
+        "prepared_result": "PreparedBrief",
+        "hard_exit_point": "prepare_complete_before_marker",
+        "child_process_exit_code": 92
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "project_bytes_unchanged": true,
+        "run_bytes_unchanged": true,
+        "candidate_count": 0,
+        "approval_count": 0,
+        "receipt_count": 0,
+        "transaction_marker_count": 0
+      }
+    },
+    {
+      "id": "FWV-028",
+      "title": "hard exit after marker and before first candidate restores exact before",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "action": "confirm_brief",
+        "transaction_marker_exists": true,
+        "hard_exit_point": "marker_fsynced_before_candidate",
+        "receipt_exists": false
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "ok": true,
+        "recovery": "rolled_back",
+        "project_restored_to_exact_before": true,
+        "run_restored_to_exact_before": true,
+        "owned_candidates_deleted": true,
+        "owned_approvals_deleted": true,
+        "action_reexecuted": false
+      }
+    },
+    {
+      "id": "FWV-029",
+      "title": "every fixed publish node is recoverable or committed",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "action": "approve_draft",
+        "cases": [
+          {
+            "hard_exit_point": "candidates_published",
+            "receipt_exists": false,
+            "expected_recovery": "rolled_back"
+          },
+          {
+            "hard_exit_point": "project_published",
+            "receipt_exists": false,
+            "expected_recovery": "rolled_back"
+          },
+          {
+            "hard_exit_point": "run_published",
+            "receipt_exists": false,
+            "expected_recovery": "rolled_back"
+          },
+          {
+            "hard_exit_point": "receipt_published_before_marker_cleanup",
+            "receipt_exists": true,
+            "expected_recovery": "receipt_committed"
+          }
+        ]
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "all_cases_project_run_consistent": true,
+        "receipt_absent_cases_restore_exact_before": true,
+        "receipt_present_case_readback_exact_receipt": true,
+        "half_state_exposed": false
+      }
+    },
+    {
+      "id": "FWV-030",
+      "title": "render staging interruption leaves workflow business state unchanged",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "export_review",
+        "hard_exit_point": "render_staging_mp4_partial",
+        "transaction_marker_exists": false
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "project_bytes_unchanged": true,
+        "run_bytes_unchanged": true,
+        "approval_count_change": 0,
+        "receipt_count_change": 0,
+        "formal_render_count_change": 0,
+        "only_owned_staging_may_remain": true
+      }
+    },
+    {
+      "id": "FWV-031",
+      "title": "completed render staging is discarded when the re-locked export basis is stale",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "export_review",
+        "staging_plan_mp4_manifest_complete": true,
+        "basis_change_before_relock": "active Decision content hash changed"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_export_stale_after_staging",
+        "action": "approve_export",
+        "input_fixture": "approve_export"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_stale",
+        "owned_staging_deleted": true,
+        "transaction_marker_created": false,
+        "formal_render_published": false,
+        "project_run_approval_receipt_unchanged": true
+      }
+    },
+    {
+      "id": "FWV-032",
+      "title": "render publish interruption uses the existing recovery reconciler",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "export_review",
+        "cases": [
+          {
+            "hard_exit_point": "formal_manifest_published_before_receipt",
+            "receipt_exists": false,
+            "expected_recovery": "rolled_back"
+          },
+          {
+            "hard_exit_point": "receipt_published_before_marker_cleanup",
+            "receipt_exists": true,
+            "expected_recovery": "receipt_committed"
+          }
+        ]
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "receipt_absent_case_restores_exact_before": true,
+        "receipt_absent_case_deletes_hash_matching_owned_render_files": true,
+        "receipt_present_case_reads_original_receipt": true,
+        "render_reexecuted": false,
+        "half_state_exposed": false
+      }
+    },
+    {
+      "id": "FWV-033",
+      "title": "authorized transcription completion synchronizes only its exact run binding",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "scope_review",
+        "scope_authorizations": [
+          {
+            "source_id": "src_a",
+            "transcribe": true,
+            "speaker_diarization": false
+          },
+          {
+            "source_id": "src_b",
+            "transcribe": false,
+            "speaker_diarization": false
+          }
+        ],
+        "completed_source_id": "src_a",
+        "project_active_transcript": {
+          "transcript_version_id": "tr_a_2",
+          "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "binding_sync_state": "repaired",
+        "binding_sync_source_ids": ["src_a"],
+        "other_bindings_unchanged": true,
+        "stage_unchanged": true,
+        "approval_count_change": 0,
+        "authorization_inferred": false
+      }
+    },
+    {
+      "id": "FWV-034",
+      "title": "explicit active Transcript switch synchronizes identity without inferring authorization",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "source_id": "src_a",
+        "scope_authorization": {
+          "transcribe": false,
+          "speaker_diarization": false
+        },
+        "old_binding": {
+          "transcript_version_id": "tr_a_1",
+          "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "project_active_transcript": {
+          "transcript_version_id": "tr_a_2",
+          "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "activation_was_explicit": true
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "binding_sync_state": "repaired",
+        "exact_source_binding_updated": true,
+        "scope_authorization_unchanged": true,
+        "stage_unchanged": true,
+        "new_approval_created": false,
+        "downstream_dependency_status": "stale"
+      }
+    },
+    {
+      "id": "FWV-035",
+      "title": "status repairs a crash after Project Transcript activation and before run synchronization",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "hard_exit_point": "project_active_transcript_committed_before_run_replace",
+        "project_active_transcript_valid": true,
+        "run_binding_is_previous_version": true
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "ok": true,
+        "binding_sync_state": "repaired",
+        "run_binding_equals_verified_project_active_transcript": true,
+        "stage_unchanged": true,
+        "approval_created": false,
+        "half_synchronized_state_returned": false
+      }
+    },
+    {
+      "id": "FWV-036",
+      "title": "Transcript binding synchronization is idempotent across pre and post replace exits",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "cases": [
+          {
+            "hard_exit_point": "before_project_active_transcript_commit",
+            "project_active_transcript_changed": false,
+            "expected_sync_state": "unchanged"
+          },
+          {
+            "hard_exit_point": "before_run_binding_replace",
+            "project_active_transcript_changed": true,
+            "expected_sync_state": "repaired"
+          },
+          {
+            "hard_exit_point": "after_run_binding_replace",
+            "project_active_transcript_changed": true,
+            "expected_sync_state": "unchanged"
+          }
+        ]
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "all_cases_exact_source_only": true,
+        "all_cases_stage_unchanged": true,
+        "all_cases_approval_count_change": 0,
+        "second_status_is_noop": true
+      }
+    },
+    {
+      "id": "FWV-037",
+      "title": "scope approval rejects a binding with neither active Transcript nor transcribe authorization",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "scope_review",
+        "source_id": "src_b",
+        "valid_active_transcript": false
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_missing_transcript",
+        "action": "approve_scope",
+        "input_fixture": "approve_scope"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_not_ready",
+        "detail": "scope_binding_without_active_transcript_or_transcribe",
+        "approval_created": false,
+        "run_unchanged": true
+      }
+    },
+    {
+      "id": "FWV-038",
+      "title": "scope review may reconfirm unchanged Brief fields with a new exact speaker waiver",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "scope_review",
+        "brief_approval_status": "current",
+        "project_revision": 12,
+        "brief_confirmation_basis": {
+          "basis_id": "wfb_brief_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "new_eligible_waiver": {
+          "source_id": "src_a",
+          "transcript_version_id": "tr_a_2",
+          "local_speaker_id": "spk_1"
+        },
+        "status_allowed_actions": ["confirm_brief"],
+        "status_next_action": "confirm_brief"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_brief_add_waiver",
+        "action": "confirm_brief",
+        "input_fixture": "confirm_brief",
+        "input_mutation": {
+          "operation": "append",
+          "path": "/speaker_resolution_waivers",
+          "value": {
+            "source_id": "src_a",
+            "transcript_version_id": "tr_a_2",
+            "local_speaker_id": "spk_1"
+          }
+        }
+      },
+      "expect": {
+        "ok": true,
+        "business_fields_may_equal_previous_brief": true,
+        "new_immutable_brief_created": true,
+        "project_revision": 13,
+        "new_brief_approval_created": true,
+        "stage": "scope_review",
+        "same_action_same_input_readback_revision_delta": 0,
+        "same_action_different_waiver_error": "workflow_action_conflict"
+      }
+    },
+    {
+      "id": "FWV-039",
+      "title": "Draft page delete move and insert children stay under the exact workflow anchor",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "draft_anchor_ref": {
+          "artifact_id": "draft_anchor",
+          "schema_version": 1,
+          "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "cases": [
+          {
+            "operation": "delete",
+            "child_id": "draft_deleted"
+          },
+          {
+            "operation": "move",
+            "child_id": "draft_moved"
+          },
+          {
+            "operation": "insert",
+            "child_id": "draft_inserted"
+          }
+        ]
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "all_children_immutable": true,
+        "all_parent_chains_reach_exact_anchor": true,
+        "draft_anchor_unchanged": true,
+        "directory_order_used": false,
+        "latest_guessed": false
+      }
+    },
+    {
+      "id": "FWV-040",
+      "title": "Draft branch approval uses the exact viewed descendant and never directory latest",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "draft_anchor_id": "draft_anchor",
+        "siblings": [
+          {
+            "artifact_id": "draft_branch_a",
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "artifact_id": "draft_branch_b",
+            "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "directory_last_entry": "draft_branch_b",
+        "review_presented_candidate": "draft_branch_a"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_approve_branch_a",
+        "action": "approve_draft",
+        "input": {
+          "schema_version": 1,
+          "content_draft_ref": {
+            "artifact_id": "draft_branch_a",
+            "schema_version": 1,
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      },
+      "expect": {
+        "ok": true,
+        "approved_subject_id": "draft_branch_a",
+        "sibling_selected": false,
+        "directory_order_used": false
+      }
+    },
+    {
+      "id": "FWV-041",
+      "title": "confirmed child mapping preserves the viewed unconfirmed approval subject without immediate stale",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "draft_anchor_id": "draft_anchor",
+        "viewed_unconfirmed_id": "draft_candidate",
+        "prepared_confirmed_id": "draft_confirmed",
+        "confirmed_parent_id": "draft_candidate"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_confirm_exact_candidate",
+        "action": "approve_draft",
+        "input": {
+          "schema_version": 1,
+          "content_draft_ref": {
+            "artifact_id": "draft_candidate",
+            "schema_version": 1,
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      },
+      "expect": {
+        "approval_subject_id": "draft_candidate",
+        "project_active_content_draft_id": "draft_confirmed",
+        "run_draft_anchor_id": "draft_confirmed",
+        "confirmed_mapping_exact": true,
+        "draft_approval_status_after_commit": "current"
+      }
+    },
+    {
+      "id": "FWV-042",
+      "title": "return to draft retains the confirmed workflow anchor and clears only current roughcut outputs",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "export_review",
+        "confirmed_draft_anchor_id": "draft_confirmed",
+        "proposal_ref_present": true,
+        "decision_ref_present": true,
+        "render_ref_present": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_return_anchor",
+        "action": "return_to_draft",
+        "input_fixture": "return_to_draft"
+      },
+      "expect": {
+        "stage": "draft_review",
+        "draft_anchor_id": "draft_confirmed",
+        "proposal_ref": null,
+        "decision_ref": null,
+        "render_ref": null,
+        "historical_artifacts_deleted": false,
+        "next_new_draft_must_descend_from_anchor": true
+      }
+    },
+    {
+      "id": "FWV-043",
+      "title": "Draft confirm crash rolls back anchor Project and deterministic child pair together",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "action": "approve_draft",
+        "cases": [
+          {
+            "hard_exit_point": "confirmed_child_published",
+            "receipt_exists": false
+          },
+          {
+            "hard_exit_point": "project_active_draft_published",
+            "receipt_exists": false
+          },
+          {
+            "hard_exit_point": "run_confirmed_anchor_published",
+            "receipt_exists": false
+          }
+        ]
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "all_cases_restore_exact_project_before": true,
+        "all_cases_restore_exact_run_anchor_before": true,
+        "owned_confirmed_child_and_proposal_deleted": true,
+        "viewed_unconfirmed_subject_preserved": true,
+        "half_mapping_exposed": false
+      }
+    },
+    {
+      "id": "FWV-044",
+      "title": "same export action concurrency is serialized by the per-Project claim",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "first_action_id": "act_export_same",
+        "second_action_id": "act_export_same",
+        "same_input": true,
+        "first_claim_live": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_export_same",
+        "action": "approve_export",
+        "input_fixture": "approve_export"
+      },
+      "expect": {
+        "second_error_code": "workflow_export_in_progress",
+        "render_invocation_count": 1,
+        "second_staging_created": false
+      }
+    },
+    {
+      "id": "FWV-045",
+      "title": "different export action concurrency cannot start a second render",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "first_action_id": "act_export_a",
+        "second_action_id": "act_export_b",
+        "first_claim_live": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_export_b",
+        "action": "approve_export",
+        "input_fixture": "approve_export"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_export_in_progress",
+        "render_invocation_count": 1,
+        "formal_render_count_change": 0
+      }
+    },
+    {
+      "id": "FWV-046",
+      "title": "hard exit while writing MP4 leaves a controlled partial owned by the action",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "action_id": "act_export_retry",
+        "input_hash": "b35058454fa13e61df3b8489dcd8dd90f15d4c679ff748a69337c13f08277589",
+        "hard_exit_point": "staging_mp4_partial",
+        "export_claim_released_by_process_exit": true,
+        "owner_json_closed_and_valid": true,
+        "owner_writing_kind": "mp4",
+        "partial_mp4_not_in_completed_files": true,
+        "partial_filename_is_fixed": true,
+        "partial_is_regular_single_link": true,
+        "staging_tree_has_no_extra_nodes": true
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "project_run_approval_receipt_unchanged": true,
+        "transaction_marker_created": false,
+        "formal_render_published": false,
+        "orphan_confined_to_export_staging_root": true,
+        "partial_owned_by_exact_action": true,
+        "eligible_for_explicit_reentry_cleanup": true,
+        "automatic_render_restart": false
+      }
+    },
+    {
+      "id": "FWV-047",
+      "title": "explicit re-entry safely removes the owned partial and starts exactly one new render",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "owner_action_id": "act_export_retry",
+        "owner_input_hash": "b35058454fa13e61df3b8489dcd8dd90f15d4c679ff748a69337c13f08277589",
+        "orphan_owner_identity_matches": true,
+        "owner_writing_kind": "mp4",
+        "partial_filename_is_fixed": true,
+        "partial_is_contained_regular_single_link": true,
+        "staging_tree_has_no_extra_nodes": true,
+        "claim_is_free": true,
+        "receipt_exists": false,
+        "transaction_marker_exists": false
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_export_retry",
+        "action": "approve_export",
+        "input_fixture": "approve_export"
+      },
+      "expect": {
+        "partial_and_owner_staging_deleted": true,
+        "basis_revalidated_after_cleanup": true,
+        "new_render_invocation_count": 1,
+        "total_render_invocation_count_for_reentry": 1,
+        "background_retry": false,
+        "unknown_files_deleted": false
+      }
+    },
+    {
+      "id": "FWV-048",
+      "title": "invalid export staging ownership fails closed and preserves evidence",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "cases": [
+          {
+            "invalidity": "owner_json_corrupt"
+          },
+          {
+            "invalidity": "unexpected_extra_staging_node"
+          },
+          {
+            "invalidity": "owner_or_staging_symlink"
+          },
+          {
+            "invalidity": "partial_or_owner_hardlink"
+          },
+          {
+            "invalidity": "project_run_action_input_basis_or_fixed_filename_identity_mismatch"
+          }
+        ],
+        "claim_is_free": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_export_after_orphan",
+        "action": "approve_export",
+        "input_fixture": "approve_export"
+      },
+      "expect": {
+        "all_cases_error_code": "workflow_recovery_conflict",
+        "all_cases_orphan_preserved": true,
+        "all_cases_render_started": false,
+        "user_or_historical_files_deleted": false
+      }
+    },
+    {
+      "id": "FWV-049",
+      "title": "workflow status accepts exactly the closed schema 1 success payload",
+      "setup": {
+        "status_payload_fixture": "finite-workflow-contract-section-13",
+        "pending_marker": false,
+        "binding_sync_required": false
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "ok": true,
+        "schema_version": 1,
+        "closed_schema_valid": true,
+        "ordinary_user_technical_hashes_visible": false
+      }
+    },
+    {
+      "id": "FWV-050",
+      "title": "workflow status rejects a missing top-level field",
+      "setup": {
+        "status_payload_fixture": "finite-workflow-contract-section-13",
+        "payload_mutation": {
+          "operation": "remove",
+          "path": "/confirmation_bases"
+        }
+      },
+      "request": {
+        "operation": "parse_workflow_status_response"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "invalid_path": "/confirmation_bases"
+      }
+    },
+    {
+      "id": "FWV-051",
+      "title": "workflow status rejects an unknown top-level field",
+      "setup": {
+        "status_payload_fixture": "finite-workflow-contract-section-13",
+        "payload_mutation": {
+          "operation": "add",
+          "path": "/debug_hash",
+          "value": "not-public"
+        }
+      },
+      "request": {
+        "operation": "parse_workflow_status_response"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "invalid_path": "/debug_hash"
+      }
+    },
+    {
+      "id": "FWV-052",
+      "title": "workflow status rejects a missing readiness member",
+      "setup": {
+        "status_payload_fixture": "finite-workflow-contract-section-13",
+        "payload_mutation": {
+          "operation": "remove",
+          "path": "/readiness/speaker_resolution_ready_or_waived"
+        }
+      },
+      "request": {
+        "operation": "parse_workflow_status_response"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "invalid_path": "/readiness/speaker_resolution_ready_or_waived"
+      }
+    },
+    {
+      "id": "FWV-053",
+      "title": "workflow status rejects an unknown confirmation basis member",
+      "setup": {
+        "status_payload_fixture": "finite-workflow-contract-section-13",
+        "payload_mutation": {
+          "operation": "add",
+          "path": "/confirmation_bases/scope/basis/content_hash",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "request": {
+        "operation": "parse_workflow_status_response"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "invalid_path": "/confirmation_bases/scope/basis/content_hash"
+      }
+    },
+    {
+      "id": "FWV-054",
+      "title": "workflow status rejects a missing presented-subject member",
+      "setup": {
+        "status_payload_fixture": "finite-workflow-contract-section-13",
+        "payload_mutation": {
+          "operation": "remove",
+          "path": "/presented_subjects/draft_anchor_ref"
+        }
+      },
+      "request": {
+        "operation": "parse_workflow_status_response"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_integrity_error",
+        "invalid_path": "/presented_subjects/draft_anchor_ref"
+      }
+    },
+    {
+      "id": "FWV-055",
+      "title": "pre-Decision scope reapproval explicitly adds a narration Source and returns to scope review",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "first_decision_published": false,
+        "returned_scope_basis_id": "wfb_scope_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_ordered_source_ids": ["src_a"],
+        "selectable_source_ids": ["src_a", "src_narration"],
+        "src_a_valid_active_transcript": true,
+        "draft_anchor_id": "draft_old_anchor",
+        "current_downstream_refs_present": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_add_narration",
+        "action": "approve_scope",
+        "input": {
+          "schema_version": 1,
+          "confirmation_basis": {
+            "basis_id": "wfb_scope_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "source_authorizations": [
+            {
+              "source_id": "src_a",
+              "transcribe": false,
+              "speaker_diarization": false
+            },
+            {
+              "source_id": "src_narration",
+              "transcribe": true,
+              "speaker_diarization": false
+            }
+          ]
+        }
+      },
+      "expect": {
+        "ok": true,
+        "stage": "scope_review",
+        "ordered_binding_source_ids": ["src_a", "src_narration"],
+        "scope_authorizations_persisted_exactly": true,
+        "brief_outline_draft_roughcut_export_approval_refs_cleared": true,
+        "brief_outline_proposal_decision_render_refs_cleared": true,
+        "draft_rebase_anchor_id": "draft_old_anchor",
+        "historical_artifacts_deleted": false,
+        "new_business_action_added": false
+      }
+    },
+    {
+      "id": "FWV-056",
+      "title": "scope reapproval rejects a stale core-owned selectable-source basis before mutation",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "first_decision_published": false,
+        "returned_basis_id": "wfb_scope_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_basis_id": "wfb_scope_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "basis_change": "selectable Source snapshot changed"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_stale_basis",
+        "action": "approve_scope",
+        "input_fixture": "approve_scope"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "approval_created": false,
+        "run_unchanged": true,
+        "historical_artifacts_deleted": false
+      }
+    },
+    {
+      "id": "FWV-057",
+      "title": "first Draft binding rebase uses the exact old anchor and preserves unmodified blocks",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "draft_rebase_anchor": {
+          "artifact_id": "draft_old_anchor",
+          "schema_version": 1,
+          "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "prepared_rebase_child_id": "draft_rebase_child",
+        "new_ordered_bindings": [
+          {
+            "source_id": "src_a",
+            "transcript_version_id": "tr_a_1"
+          },
+          {
+            "source_id": "src_narration",
+            "transcript_version_id": "tr_n_1"
+          }
+        ],
+        "old_blocks_preserved_exactly": ["block_1"],
+        "new_block_ids": ["block_narration"]
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_draft_binding_rebase",
+        "action": "submit_draft",
+        "input_case": "complete_additive_binding_rebase_child",
+        "parent_draft_ref": {
+          "artifact_id": "draft_old_anchor",
+          "schema_version": 1,
+          "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "scoped_mutable_block_ids": []
+      },
+      "expect": {
+        "ok": true,
+        "parent_is_exact_old_anchor": true,
+        "source_bindings_equal_run_ordered_bindings": true,
+        "unmodified_old_block_fields_and_order_equal": true,
+        "directory_latest_scanned": false,
+        "new_immutable_child_created": true,
+        "submit_draft_receipt_published": true,
+        "workflow_anchor_is_new_unconfirmed_rebase_child": true,
+        "workflow_anchor_id": "draft_rebase_child",
+        "old_anchor_and_parent_chain_immutable": true,
+        "draft_approval_created": false
+      }
+    },
+    {
+      "id": "FWV-058",
+      "title": "scope expansion is rejected after the run has published its first Decision",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "current_decision_ref": null,
+        "return_to_draft_completed": true,
+        "successful_adopt_roughcut_receipt_exists": true,
+        "first_decision_published": true,
+        "selectable_new_source_id": "src_narration"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_after_decision",
+        "action": "approve_scope",
+        "input_case": "target_scope_adds_src_narration"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_transition_not_allowed",
+        "run_unchanged": true,
+        "approval_created": false,
+        "new_rebaseline_required": true
+      }
+    },
+    {
+      "id": "FWV-059",
+      "title": "scope reapproval publish crash restores exact prior stage refs approvals and anchor",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "action": "approve_scope",
+        "before_stage": "draft_review",
+        "before_draft_anchor_id": "draft_old_anchor",
+        "cases": [
+          {
+            "hard_exit_point": "scope_approval_published_before_run"
+          },
+          {
+            "hard_exit_point": "run_reapproval_published_before_receipt"
+          }
+        ],
+        "receipt_exists": false
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "all_cases_restore_exact_run_before": true,
+        "stage": "draft_review",
+        "draft_anchor_id": "draft_old_anchor",
+        "downstream_refs_and_approval_refs_restored": true,
+        "owned_new_scope_approval_deleted": true,
+        "historical_artifacts_deleted": false,
+        "action_reexecuted": false
+      }
+    },
+    {
+      "id": "FWV-060",
+      "title": "draft review may explicitly change Brief fields and return to scope review",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "scope_approval_status": "current",
+        "old_brief_id": "brief_old",
+        "old_outline_id": "outline_old",
+        "old_draft_anchor_id": "draft_old_anchor",
+        "project_revision": 20
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_brief_from_draft",
+        "action": "confirm_brief",
+        "input_fixture": "confirm_brief",
+        "input_mutations": [
+          {
+            "operation": "replace",
+            "path": "/theme",
+            "value": "人物成长"
+          },
+          {
+            "operation": "replace",
+            "path": "/allow_reorder",
+            "value": true
+          }
+        ]
+      },
+      "expect": {
+        "ok": true,
+        "stage": "scope_review",
+        "project_revision": 21,
+        "new_immutable_brief_created": true,
+        "current_outline_ref": null,
+        "draft_rebase_anchor_id": "draft_old_anchor",
+        "downstream_approval_refs_cleared": true,
+        "old_brief_outline_draft_deleted": false
+      }
+    },
+    {
+      "id": "FWV-061",
+      "title": "scoped Draft revision may change a named heading block",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "parent_draft_id": "draft_parent",
+        "mutable_block_ids": ["heading_block_2"],
+        "requested_change": {
+          "heading_block_id": "heading_block_2",
+          "title_before": "图书馆",
+          "title_after": "学习空间"
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_draft_section_scoped",
+        "action": "submit_draft",
+        "input_case": "complete_scoped_child_with_block_2_section_change"
+      },
+      "expect": {
+        "ok": true,
+        "new_immutable_child_created": true,
+        "heading_block_2_title_changed": true,
+        "unnamed_blocks_all_fields_and_order_unchanged": true,
+        "approve_draft_still_required": true
+      }
+    },
+    {
+      "id": "FWV-062",
+      "title": "scoped Draft revision rejects section metadata changes on an unnamed block",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "parent_draft_id": "draft_parent",
+        "mutable_block_ids": ["heading_block_2"],
+        "unauthorized_change": {
+          "block_id": "heading_block_1",
+          "field": "title"
+        }
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_draft_unnamed_section",
+        "action": "submit_draft",
+        "input_case": "child_changes_unnamed_block_section_metadata"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "candidate_created": false,
+        "run_unchanged": true,
+        "unnamed_block_preserved": true
+      }
+    },
+    {
+      "id": "FWV-063",
+      "title": "full Draft structure rewrite requires the explicit empty-scope form and final approve draft gate",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "parent_draft_id": "draft_parent",
+        "user_explicit_full_rewrite_instruction": true
+      },
+      "steps": [
+        {
+          "request": {
+            "entrypoint": "workflow_action",
+            "run_id": "wfr_alpha",
+            "action_id": "act_draft_full_rewrite",
+            "action": "submit_draft",
+            "input_case": "complete_child_parent_non_null_scoped_mutable_ids_empty"
+          },
+          "expect": {
+            "ok": true,
+            "classified_as_full_rewrite": true,
+            "new_immutable_child_created": true,
+            "stage": "draft_review",
+            "draft_approval_created": false
+          }
+        },
+        {
+          "request": {
+            "entrypoint": "workflow_action",
+            "run_id": "wfr_alpha",
+            "action_id": "act_approve_full_rewrite",
+            "action": "approve_draft",
+            "input_case": "exact_viewed_full_rewrite_child_ref"
+          },
+          "expect": {
+            "ok": true,
+            "stage": "roughcut_review",
+            "final_structure_confirmation_gate_crossed_once": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "FWV-064",
+      "title": "pre-Decision scope reapproval may delete a mistakenly selected Source",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "first_decision_published": false,
+        "current_ordered_source_ids": ["src_a", "src_mistake"],
+        "selectable_source_ids": ["src_a", "src_mistake", "src_c"],
+        "src_a_valid_active_transcript": true,
+        "draft_anchor_id": "draft_old_anchor",
+        "draft_block_ids_referencing_src_mistake": ["block_mistake"]
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_remove_mistake",
+        "action": "approve_scope",
+        "input": {
+          "schema_version": 1,
+          "confirmation_basis": {
+            "basis_id": "wfb_scope_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "source_authorizations": [
+            {
+              "source_id": "src_a",
+              "transcribe": false,
+              "speaker_diarization": false
+            }
+          ]
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ordered_binding_source_ids": ["src_a"],
+        "removed_source_ids": ["src_mistake"],
+        "stage": "scope_review",
+        "draft_rebase_anchor_id": "draft_old_anchor",
+        "next_rebase_requires_mutable_block_ids": ["block_mistake"],
+        "historical_artifacts_deleted": false
+      }
+    },
+    {
+      "id": "FWV-065",
+      "title": "pre-Decision scope reapproval may replace one Source with a new selectable Source",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "outline_review",
+        "first_decision_published": false,
+        "current_ordered_source_ids": ["src_a", "src_old"],
+        "selectable_source_ids": ["src_a", "src_old", "src_new"],
+        "src_a_valid_active_transcript": true,
+        "src_new_valid_active_transcript": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_replace_source",
+        "action": "approve_scope",
+        "input": {
+          "schema_version": 1,
+          "confirmation_basis": {
+            "basis_id": "wfb_scope_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "source_authorizations": [
+            {
+              "source_id": "src_a",
+              "transcribe": false,
+              "speaker_diarization": false
+            },
+            {
+              "source_id": "src_new",
+              "transcribe": false,
+              "speaker_diarization": false
+            }
+          ]
+        }
+      },
+      "expect": {
+        "ok": true,
+        "ordered_binding_source_ids": ["src_a", "src_new"],
+        "replacement_equals_remove_then_add": {
+          "removed_source_ids": ["src_old"],
+          "added_source_ids": ["src_new"]
+        },
+        "stage": "scope_review",
+        "historical_artifacts_deleted": false
+      }
+    },
+    {
+      "id": "FWV-066",
+      "title": "scope target containing a Source outside the opaque selectable basis is rejected with zero writes",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "first_decision_published": false,
+        "current_ordered_source_ids": ["src_a"],
+        "selectable_source_ids": ["src_a", "src_b"],
+        "outside_source_id": "src_outside"
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_outside_basis",
+        "action": "approve_scope",
+        "input_case": "target_contains_src_outside"
+      },
+      "expect": {
+        "ok": false,
+        "error_code": "workflow_subject_mismatch",
+        "domain_mutation_count": 0,
+        "approval_created": false,
+        "run_unchanged": true,
+        "transaction_marker_created": false
+      }
+    },
+    {
+      "id": "FWV-067",
+      "title": "binding removal or replacement remains forbidden after the first Decision receipt",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "first_decision_published": true,
+        "successful_adopt_roughcut_receipt_exists": true,
+        "current_ordered_source_ids": ["src_a", "src_b"],
+        "selectable_source_ids": ["src_a", "src_b", "src_c"],
+        "cases": [
+          {
+            "target_source_ids": ["src_a"],
+            "change": "remove_src_b"
+          },
+          {
+            "target_source_ids": ["src_a", "src_c"],
+            "change": "replace_src_b_with_src_c"
+          }
+        ]
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_scope_change_after_decision",
+        "action": "approve_scope"
+      },
+      "expect": {
+        "all_cases_ok": false,
+        "all_cases_error_code": "workflow_transition_not_allowed",
+        "all_cases_domain_mutation_count": 0,
+        "run_unchanged": true,
+        "historical_artifacts_deleted": false
+      }
+    },
+    {
+      "id": "FWV-068",
+      "title": "rebase submit crash before receipt restores the exact old anchor and removes the owned child",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "old_anchor_id": "draft_old_anchor",
+        "prepared_rebase_child_id": "draft_rebase_child",
+        "cases": [
+          {
+            "hard_exit_point": "rebase_candidate_published_before_run"
+          },
+          {
+            "hard_exit_point": "rebase_run_published_before_receipt"
+          }
+        ],
+        "receipt_exists": false
+      },
+      "request": {
+        "entrypoint": "workflow_status",
+        "run_id": "wfr_alpha"
+      },
+      "expect": {
+        "all_cases_recovery_state": "rolled_back",
+        "all_cases_workflow_anchor_id": "draft_old_anchor",
+        "owned_rebase_child_deleted": true,
+        "old_anchor_and_parent_chain_immutable": true,
+        "action_reexecuted": false
+      }
+    },
+    {
+      "id": "FWV-069",
+      "title": "lost response after rebase receipt reads back the committed unconfirmed anchor",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "action_id": "act_rebase_response_lost",
+        "response_lost_after_receipt_publish": true,
+        "receipt_exists": true,
+        "committed_rebase_child_id": "draft_rebase_child",
+        "transaction_marker_exists": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_rebase_response_lost",
+        "action": "submit_draft",
+        "input_case": "same_complete_rebase_input"
+      },
+      "expect": {
+        "ok": true,
+        "receipt_readback": true,
+        "workflow_anchor_id": "draft_rebase_child",
+        "workflow_anchor_confirmed": false,
+        "new_child_created_on_retry": false,
+        "residual_marker_cleaned": true
+      }
+    },
+    {
+      "id": "FWV-070",
+      "title": "ordinary same-basis Draft child does not automatically replace the workflow anchor",
+      "setup": {
+        "project_id": "proj_alpha",
+        "run_id": "wfr_alpha",
+        "stage": "draft_review",
+        "workflow_anchor_id": "draft_rebase_child",
+        "parent_draft_id": "draft_rebase_child",
+        "basis_matches_anchor": true
+      },
+      "request": {
+        "entrypoint": "workflow_action",
+        "run_id": "wfr_alpha",
+        "action_id": "act_same_basis_child",
+        "action": "submit_draft",
+        "input_case": "ordinary_complete_scoped_child"
+      },
+      "expect": {
+        "ok": true,
+        "new_immutable_child_created": true,
+        "receipt_published": true,
+        "workflow_anchor_id": "draft_rebase_child",
+        "anchor_changed": false,
+        "directory_latest_scanned": false
+      }
+    }
+  ]
+}

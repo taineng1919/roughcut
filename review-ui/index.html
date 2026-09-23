@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roughcut 审阅</title>
+  </head>
+  <body>
+    <main id="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">粗剪审阅</p>
+          <h1 id="project-name">正在载入…</h1>
+          <p id="revision" class="muted"></p>
+        </div>
+      </header>
+
+      <section id="status" class="status" aria-live="polite">正在读取审阅数据…</section>
+
+      <section id="workflow-review" class="workflow-review" hidden>
+        <section id="draft-editor-shell" class="draft-editor-shell" aria-label="初稿编辑区">
+          <nav class="draft-mobile-tabs" aria-label="初稿工作区">
+            <button type="button" data-draft-pane="draft" aria-selected="true">初稿</button>
+            <button type="button" data-draft-pane="source" aria-selected="false">原始转录稿</button>
+            <button type="button" data-draft-pane="player" aria-selected="false">播放</button>
+          </nav>
+
+          <div class="draft-editor-toolbar" aria-label="初稿编辑工具">
+            <div class="draft-toolbar-actions">
+              <button id="draft-delete" class="draft-danger" type="button" disabled>删除所选</button>
+              <button id="draft-section-split" class="secondary" type="button" disabled>从这里开始新章节</button>
+              <span class="draft-mode-tabs" role="tablist" aria-label="初稿视图">
+                <button id="draft-mode-body" class="is-active" type="button" role="tab" aria-selected="true">正文</button>
+                <button id="draft-mode-sections" type="button" role="tab" aria-selected="false">章节</button>
+              </span>
+              <span class="draft-toolbar-divider" aria-hidden="true"></span>
+              <button id="draft-undo" type="button" disabled>撤销</button>
+              <button id="draft-redo" type="button" disabled>重做</button>
+            </div>
+            <p id="draft-toolbar-help" aria-live="polite">拖选高亮内容后，从高亮区域开始拖动；原稿选段可直接拖入正文。</p>
+          </div>
+
+          <div id="draft-degraded" class="draft-degraded" role="alertdialog" hidden>
+            <div>
+              <strong>所选内容缺少足够精确的句内时码</strong>
+              <p id="draft-degraded-copy"></p>
+            </div>
+            <div class="draft-degraded-actions">
+              <button id="draft-degraded-cancel" type="button">取消</button>
+              <button id="draft-degraded-accept" class="primary" type="button">接受完整原话</button>
+            </div>
+          </div>
+
+          <section class="draft-player" data-draft-panel="player" data-expanded="false" aria-label="选段试听">
+            <div class="draft-player-bar">
+              <div class="draft-player-copy">
+                <strong>选段试听</strong>
+                <span id="draft-player-caption">选择有时码的文字后可播放</span>
+              </div>
+              <button id="draft-player-toggle" type="button" aria-expanded="false">展开播放器</button>
+            </div>
+            <div id="draft-player-expanded" class="draft-player-expanded" hidden>
+              <video id="draft-player" controls preload="none"></video>
+            </div>
+            <p id="draft-media-error" class="error" hidden></p>
+          </section>
+
+          <div id="draft-stale" class="draft-stale" role="alert" hidden>
+            <strong
+              data-stale="项目内容已在别处更新"
+              data-uncertain="拖放请求状态不明确"
+            >项目内容已在别处更新</strong>
+            <span
+              data-stale="本页已转为只读，请重新打开初稿。当前已载入内容仍可查看。"
+              data-uncertain="本页已转为只读，请重新打开初稿后确认请求是否已生效。"
+            >本页已转为只读，请重新打开初稿。当前已载入内容仍可查看。</span>
+          </div>
+
+          <div class="draft-editor-workspace">
+            <section class="draft-editor-pane draft-document-pane" data-draft-panel="draft" aria-labelledby="draft-document-title">
+              <header class="draft-pane-header">
+                <h2 id="draft-document-title">初稿</h2>
+                <button class="draft-find-open" data-draft-find="draft" type="button">查找</button>
+              </header>
+              <section class="draft-find" data-draft-find-panel="draft" hidden>
+                <label><span class="sr-only">在初稿中查找</span><input type="search" placeholder="查找初稿内容" /></label>
+                <output>0 / 0</output>
+                <button data-draft-find-prev type="button">上一个</button>
+                <button data-draft-find-next type="button">下一个</button>
+                <button data-draft-find-close type="button">关闭</button>
+                <details><summary>查看全部结果</summary><ol data-draft-find-results></ol></details>
+              </section>
+              <article class="draft-paper">
+                <header class="draft-paper-heading">
+                  <p id="draft-theme-kicker">初稿调整</p>
+                  <h2 id="draft-theme"></h2>
+                </header>
+                <div id="draft-sections" class="draft-sections" hidden aria-label="章节列表"></div>
+                <div id="draft-document" class="draft-continuous-copy" tabindex="0"></div>
+              </article>
+              <footer class="draft-confirm-bar">
+                <div>
+                  <strong id="draft-confirm-heading">确认初稿并生成粗剪预览</strong>
+                  <p id="draft-confirm-copy">确认后生成待审阅粗剪；不会自动采用、正式渲染或导出。</p>
+                </div>
+                <div class="draft-confirm-actions">
+                  <div class="draft-agent-handoff">
+                    <button id="draft-agent-copy" class="secondary" type="button">复制给 Agent 调整</button>
+                    <p id="draft-agent-copy-status" aria-live="polite" hidden></p>
+                  </div>
+                  <button id="draft-confirm" class="primary" type="button">确认初稿并生成粗剪预览</button>
+                </div>
+              </footer>
+            </section>
+
+            <aside class="draft-editor-pane draft-source-pane" data-draft-panel="source" aria-labelledby="draft-source-title">
+              <header class="draft-pane-header">
+                <h2 id="draft-source-title">原始转录稿</h2>
+                <label class="draft-source-picker">切换素材
+                  <select id="draft-source-select"></select>
+                </label>
+                <div id="draft-correspondence-nav" class="draft-correspondence-nav" hidden>
+                  <button id="draft-correspondence-prev" type="button" aria-label="上一处对应原稿">‹</button>
+                  <span id="draft-correspondence-label"></span>
+                  <button id="draft-correspondence-next" type="button" aria-label="下一处对应原稿">›</button>
+                </div>
+                <button class="draft-find-open" data-draft-find="source" type="button">查找</button>
+              </header>
+              <section class="draft-find" data-draft-find-panel="source" hidden>
+                <label><span class="sr-only">在全部原稿中查找</span><input type="search" placeholder="查找全部原稿" /></label>
+                <output>0 / 0</output>
+                <button data-draft-find-prev type="button">上一个</button>
+                <button data-draft-find-next type="button">下一个</button>
+                <button data-draft-find-close type="button">关闭</button>
+                <details><summary>查看全部素材中的结果</summary><ol data-draft-find-results></ol></details>
+              </section>
+              <div id="draft-source-document" class="draft-continuous-copy" tabindex="0"></div>
+            </aside>
+          </div>
+        </section>
+
+      </section>
+
+      <section id="artifact-review" hidden></section>
+      <template id="roughcut-review-template">
+        <div class="roughcut-review">
+        <nav class="roughcut-mobile-tabs" aria-label="粗剪工作区">
+          <button type="button" data-roughcut-pane="preview" aria-selected="true">预览</button>
+          <button type="button" data-roughcut-pane="manuscript" aria-selected="false">文稿</button>
+        </nav>
+
+        <div id="roughcut-stale" class="roughcut-stale" role="alert" hidden>
+          <strong>项目内容已在别处更新</strong>
+          <span>本页已转为只读，请重新打开粗剪预览。当前已载入内容仍可查看。</span>
+        </div>
+
+        <div class="roughcut-layout">
+          <section class="roughcut-preview-pane" data-roughcut-panel="preview" aria-labelledby="roughcut-preview-title">
+            <header class="roughcut-section-heading">
+              <div>
+                <p class="eyebrow">粗剪预览</p>
+                <h2 id="roughcut-preview-title">播放并核对当前粗剪</h2>
+              </div>
+              <span>Virtual Timeline</span>
+            </header>
+            <video id="roughcut-player" preload="metadata"></video>
+            <div class="roughcut-transport" aria-label="粗剪成片播放控制">
+              <button id="roughcut-transport-play" type="button" aria-label="播放粗剪">播放</button>
+              <span id="roughcut-current-time">00:00.000</span>
+              <input
+                id="roughcut-transport-seek"
+                type="range"
+                min="0"
+                max="1"
+                step="1000"
+                value="0"
+                aria-label="粗剪成片位置"
+              />
+              <span id="roughcut-total-time">00:00.000</span>
+              <span id="roughcut-transport-state" role="status">已暂停</span>
+            </div>
+            <p id="roughcut-media-error" class="error" hidden></p>
+            <div class="roughcut-now-playing">
+              <strong id="roughcut-current-clip">尚未播放</strong>
+              <span id="roughcut-current-source"></span>
+            </div>
+          </section>
+
+          <article class="roughcut-manuscript-pane" data-roughcut-panel="manuscript" aria-labelledby="roughcut-manuscript-title">
+            <header class="roughcut-section-heading">
+              <div>
+                <p class="eyebrow">连续文稿</p>
+                <h2 id="roughcut-manuscript-title">当前粗剪内容</h2>
+              </div>
+            </header>
+            <div id="roughcut-manuscript" class="roughcut-manuscript"></div>
+          </article>
+        </div>
+
+        <section class="roughcut-adopt" aria-labelledby="roughcut-adopt-title">
+          <div>
+            <h2 id="roughcut-adopt-title">采用当前粗剪</h2>
+            <p id="roughcut-adopt-copy">采用后会保存为当前确认版本，但不会正式渲染或导出。</p>
+          </div>
+          <div class="roughcut-adopt-actions">
+            <button id="roughcut-return-draft" class="secondary" type="button">返回初稿调整</button>
+            <button id="roughcut-adopt-open" class="primary" type="button" disabled>采用这个粗剪版本</button>
+          </div>
+          <div id="roughcut-adopt-confirmation" class="roughcut-adopt-confirmation" role="alertdialog" hidden>
+            <p id="roughcut-adopt-confirmation-copy"></p>
+            <div>
+              <button id="roughcut-adopt-cancel" type="button">取消</button>
+              <button id="roughcut-adopt-confirm" class="primary" type="button">确认采用</button>
+            </div>
+          </div>
+        </section>
+        </div>
+      </template>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

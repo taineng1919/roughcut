@@ -1,0 +1,193 @@
+audio-offset-finder==0.5.5 \
+    --hash=sha256:f3eac17ba242ddd86bee03272ecd49776b2f2b5368a0428449f38a910f5bc4cd
+# via direct
+# from https://pypi.org/simple
+
+audioread==3.1.0 \
+    --hash=sha256:b30d1df6c5d3de5dcef0fb0e256f6ea17bdcf5f979408df0297d8a408e2971b4
+# via librosa
+# from https://pypi.org/simple
+
+certifi==2026.7.22 \
+    --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775
+# via requests
+# from https://pypi.org/simple
+
+cffi==2.1.1 \
+    --hash=sha256:42f6930c31dc7f50732c9ae793c2786c7b6b044195967bbdde40bb9be81c4cc0
+# via soundfile
+# from https://pypi.org/simple
+
+charset-normalizer==3.5.1 \
+    --hash=sha256:f9b1e28d0e8dbfa858abdba91d6b547beaf2df1a59bec6da6faae7b96a4991a9
+# via requests
+# from https://pypi.org/simple
+
+contourpy==1.3.3 \
+    --hash=sha256:3519428f6be58431c56581f1694ba8e50626f2dd550af225f82fb5f5814d2a42
+# via matplotlib
+# from https://pypi.org/simple
+
+cycler==0.12.1 \
+    --hash=sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30
+# via matplotlib
+# from https://pypi.org/simple
+
+decorator==5.3.1 \
+    --hash=sha256:f47fe6fdbd2edd623ecfe36875d37aba411624e2670dd395dddae1358689bb3c
+# via librosa
+# from https://pypi.org/simple
+
+fonttools==4.63.0 \
+    --hash=sha256:063e08bd17bd5a90127a14123de0d6a952dbc847695fd98b63c043d58057f90c
+# via matplotlib
+# from https://pypi.org/simple
+
+idna==3.19 \
+    --hash=sha256:815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4
+# via requests
+# from https://pypi.org/simple
+
+joblib==1.5.3 \
+    --hash=sha256:5fc3c5039fc5ca8c0276333a188bbd59d6b7ab37fe6632daa76bc7f9ec18e713
+# via librosa
+# via scikit-learn
+# from https://pypi.org/simple
+
+kiwisolver==1.5.0 \
+    --hash=sha256:beb7f344487cdcb9e1efe4b7a29681b74d34c08f0043a327a74da852a6749e7b
+# via matplotlib
+# from https://pypi.org/simple
+
+lazy-loader==0.5 \
+    --hash=sha256:ab0ea149e9c554d4ffeeb21105ac60bed7f3b4fd69b1d2360a4add51b170b005
+# via librosa
+# from https://pypi.org/simple
+
+librosa==0.11.0 \
+    --hash=sha256:0b6415c4fd68bff4c29288abe67c6d80b587e0e1e2cfb0aad23e4559504a7fa1
+# via audio-offset-finder
+# from https://pypi.org/simple
+
+llvmlite==0.49.0 \
+    --hash=sha256:6a5b06c1b5fc4ae4c9b169b065f42b719448ef1f873687ef224ef69969b75ec3
+# via numba
+# from https://pypi.org/simple
+
+matplotlib==3.11.1 \
+    --hash=sha256:7f33a781e12b1e53b278deb2f5373c2e55ec4f10727be3440c0cfb5cda9f944f
+# via audio-offset-finder
+# from https://pypi.org/simple
+
+msgpack==1.2.1 \
+    --hash=sha256:2eda0b7ebb1283a98d3e4492ac933c8af6aff59fd3df1c3ed024f536af4b1dc8
+# via librosa
+# from https://pypi.org/simple
+
+narwhals==2.25.0 \
+    --hash=sha256:1f0f403e8c7e4463cde9bfe78b12fdd809e3ae3dda6d9b2f802934fb9c7a6a8f
+# via scikit-learn
+# from https://pypi.org/simple
+
+numba==0.67.0 \
+    --hash=sha256:cfba1ac34f0363fb1a250a10e97240780d11e05227892f7286b26fbfd0ad58ce
+# via librosa
+# from https://pypi.org/simple
+
+numpy==1.26.4 \
+    --hash=sha256:cd25bcecc4974d09257ffcd1f098ee778f7834c3ad767fe5db785be9a4aa9cb2
+# via audio-offset-finder
+# via contourpy
+# via librosa
+# via matplotlib
+# via numba
+# via scikit-learn
+# via scipy
+# via soundfile
+# via soxr
+# from https://pypi.org/simple
+
+packaging==26.3 \
+    --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
+# via lazy-loader
+# via matplotlib
+# via pooch
+# from https://pypi.org/simple
+
+pillow==12.3.0 \
+    --hash=sha256:8e95e1385e4998ae9694eeaa4730ba5457ff61185b3a55e2e7bea0880aef452a
+# via matplotlib
+# from https://pypi.org/simple
+
+platformdirs==4.11.3 \
+    --hash=sha256:5ed065d443751de711da036041a7a214122efc4a4de393b3f4137ba5576540e7
+# via pooch
+# from https://pypi.org/simple
+
+pooch==1.9.0 \
+    --hash=sha256:f265597baa9f760d25ceb29d0beb8186c243d6607b0f60b83ecf14078dbc703b
+# via librosa
+# from https://pypi.org/simple
+
+pycparser==3.0 \
+    --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
+# via cffi
+# from https://pypi.org/simple
+
+pyparsing==3.3.2 \
+    --hash=sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d
+# via matplotlib
+# from https://pypi.org/simple
+
+python-dateutil==2.9.0.post0 \
+    --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
+# via matplotlib
+# from https://pypi.org/simple
+
+requests==2.34.2 \
+    --hash=sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0
+# via pooch
+# from https://pypi.org/simple
+
+scikit-learn==1.9.0 \
+    --hash=sha256:5dc1818c77575d149e25fce9ef82dd7b7263ae372f03494158668ad632a69759
+# via librosa
+# from https://pypi.org/simple
+
+scipy==1.17.1 \
+    --hash=sha256:d30e57c72013c2a4fe441c2fcb8e77b14e152ad48b5464858e07e2ad9fbfceff
+# via audio-offset-finder
+# via librosa
+# via scikit-learn
+# from https://pypi.org/simple
+
+six==1.17.0 \
+    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274
+# via python-dateutil
+# from https://pypi.org/simple
+
+soundfile==0.14.0 \
+    --hash=sha256:299491d3499460fb1b74bb4bd78b57ffc2d243a5fafa7b6ec1b264875c78453e
+# via librosa
+# from https://pypi.org/simple
+
+soxr==1.1.0 \
+    --hash=sha256:ae30c48ac795378cf23ba3c7c640b8ff794af714ac388b9fd6b31a40b39e6e86
+# via librosa
+# from https://pypi.org/simple
+
+threadpoolctl==3.6.0 \
+    --hash=sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb
+# via scikit-learn
+# from https://pypi.org/simple
+
+typing-extensions==4.16.0 \
+    --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
+# via librosa
+# via soundfile
+# from https://pypi.org/simple
+
+urllib3==2.7.0 \
+    --hash=sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897
+# via requests
+# from https://pypi.org/simple

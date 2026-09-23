@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roughcut"
+version = "0.2.9"
+description = "Local, agent-native transcript rough-cut tools"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "mypy>=1.11",
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+roughcut = "roughcut.cli:main"
+roughcut-mcp = "roughcut.mcp:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+roughcut = [
+  "component_catalog/*",
+  "component_catalog/python/*",
+  "component_catalog/audalign/*",
+  "component_catalog/audio-offset-finder/*",
+  "review/static/*",
+  "review/static/assets/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]

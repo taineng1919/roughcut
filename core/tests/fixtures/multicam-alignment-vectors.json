@@ -1,0 +1,813 @@
+{
+  "schema_version": 1,
+  "contract": "multicam-alignment-contract-schema-1",
+  "ticks_per_second": 120000,
+  "static_invariants": {
+    "only_ticks_per_second": 120000,
+    "seconds_to_ticks_rounding": "nearest_ties_away_from_zero_decimal",
+    "candidate_group_diameter_ticks": 12000,
+    "verification_window_ticks": 1440000,
+    "verification_window_count": 3,
+    "minimum_verified_overlap_ticks": 4320000,
+    "maximum_local_error_ticks": 12000,
+    "current_vector_count": 37,
+    "phase_vector_counts": {"phase2": 22, "phase3": 15},
+    "profile2_vector_count": 13,
+    "profile2_vector_owners": ["phase4_profile2_alignment_domain_compatibility", "phase4_profile2_historical_readback_input_projection_compatibility", "phase4_profile2_alignment_schedule_unit", "phase4_profile2_alignment_media_integration", "phase4_profile2_alignment_operation_process_integration"],
+    "prepare_identity_basis": ["exact_closed_plan_basis"],
+    "prepare_id_basis": ["plan_basis_hash"],
+    "parallel_render_identity_basis": ["exact_prepare_ref", "start_operation_id"],
+    "parallel_succeeded_minimum_camera_success_count": 1,
+    "parallel_all_failed_final_publish_count": 0,
+    "parallel_all_failed_code_not_overwritten_by_cleanup_failure": true,
+    "summary_equation": "mapped_ticks + missing_ticks + uncertain_ticks + conflict_ticks == total_main_ticks * camera_count",
+    "forbid_answer_oracle_fields": true,
+    "forbid_prepare_or_output_answers_inside_the_input_of_the_owner_that_must_derive_them": true
+  },
+  "closed_error_unions": {
+    "alignment_per_camera": ["auxiliary_probe_failed", "auxiliary_decode_failed", "auxiliary_recognition_failed", "auxiliary_verification_failed", "auxiliary_audio_stream_unsupported"],
+    "alignment_terminal": ["alignment_disk_budget_exceeded", "alignment_memory_budget_exceeded", "alignment_time_budget_exceeded", "alignment_main_decode_failed", "alignment_main_index_failed", "alignment_basis_changed_during_run", "alignment_runtime_changed_during_run", "alignment_store_integrity_error", "alignment_publish_conflict", "alignment_publish_failed", "alignment_interrupted"],
+    "parallel_prepare": ["parallel_render_prepare_revision_conflict", "parallel_render_decision_not_adopted", "parallel_render_alignment_not_deliverable", "parallel_render_camera_not_deliverable", "parallel_render_source_stale"],
+    "parallel_per_camera": ["parallel_camera_encode_failed", "parallel_camera_verify_failed"],
+    "parallel_terminal": ["parallel_render_disk_budget_exceeded", "parallel_render_all_cameras_failed", "parallel_render_basis_changed_during_run", "parallel_render_runtime_changed_during_run", "parallel_render_staging_failed", "parallel_render_final_conflict", "parallel_render_publish_failed", "parallel_render_interrupted"]
+  },
+  "parallel_operation_error_mapping": [
+    {"code": "parallel_render_disk_budget_exceeded", "responsibility": "roughcut_core", "action": "validate_parallel_render_basis", "message_code": "parallel_render_failed"},
+    {"code": "parallel_render_all_cameras_failed", "responsibility": "roughcut_core", "action": "render_parallel_cameras", "message_code": "parallel_render_failed"},
+    {"code": "parallel_render_basis_changed_during_run", "responsibility": "roughcut_core", "action": "revalidate_parallel_render_basis", "message_code": "parallel_render_failed"},
+    {"code": "parallel_render_runtime_changed_during_run", "responsibility": "roughcut_core", "action": "revalidate_parallel_render_basis", "message_code": "parallel_render_failed"},
+    {"code": "parallel_render_staging_failed", "responsibility": "roughcut_core", "action": "manage_parallel_render_staging", "message_code": "parallel_render_failed"},
+    {"code": "parallel_render_final_conflict", "responsibility": "roughcut_core", "action": "publish_parallel_render", "message_code": "parallel_render_failed"},
+    {"code": "parallel_render_publish_failed", "responsibility": "roughcut_core", "action": "publish_parallel_render", "message_code": "parallel_render_failed"},
+    {"code": "parallel_render_interrupted", "responsibility": "host", "action": "interrupt_media_operation", "message_code": "parallel_render_interrupted"},
+    {"code": "parallel_render_interrupted", "responsibility": "user_input", "action": "interrupt_media_operation", "message_code": "parallel_render_interrupted"},
+    {"code": "parallel_render_interrupted", "responsibility": "roughcut_core", "action": "recover_abandoned_media_operation", "message_code": "parallel_render_interrupted"}
+  ],
+  "owner_policy": "Each execution_owner must run the named application/store/media semantics; parsing this file or searching source text is not execution evidence.",
+  "vectors": [
+    {
+      "id": "MAV-001-continuous-one-to-one",
+      "execution_owner": "phase2_alignment_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 4, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 14400000, "fingerprint": {"size": 12001, "mtime_ns": 101, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+          {"source_id": "src_aux_1", "duration_ticks": 14910000, "fingerprint": {"size": 12427, "mtime_ns": 102, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000001", "alignment_id": "aln_continuous", "expected_revision": 4, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "audalign_commit": "d5955ae8a85b1cd480dadd005c3f88986f4ebbef", "accuracy": 2, "num_processors": 1, "ffmpeg_version": "fixture-8.1.1", "ffprobe_version": "fixture-8.1.1"},
+        "synthetic_media": {"shared_event": "cross-chain-event-a", "main_start_ticks": 0, "auxiliary_start_ticks": 510000, "processing_chains_differ": true}
+      },
+      "expected": {"operation_status": "succeeded", "camera_status": "complete", "producer_operation_id_matches": true, "intervals": [{"classification": "mapped", "main": ["src_main_1", 0, 14400000], "auxiliary": ["src_aux_1", 510000, 14910000]}], "summary": {"total_main_ticks": 14400000, "camera_count": 1, "mapped_ticks": 14400000, "missing_ticks": 0, "uncertain_ticks": 0, "conflict_ticks": 0}, "artifact_published": true},
+      "forbidden_side_effects": ["project_mutation", "decision_binding", "float_seconds_in_artifact", "secondary_algorithm"]
+    },
+    {
+      "id": "MAV-002-main-one-aux-many",
+      "execution_owner": "phase2_alignment_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 4, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 21600000, "fingerprint": {"size": 18001, "mtime_ns": 201, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"}},
+          {"source_id": "src_aux_1", "duration_ticks": 8400000, "fingerprint": {"size": 7001, "mtime_ns": 202, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb1"}},
+          {"source_id": "src_aux_2", "duration_ticks": 9600000, "fingerprint": {"size": 8001, "mtime_ns": 203, "sha256_head_tail": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc1"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000002", "alignment_id": "aln_one_many", "expected_revision": 4, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1", "src_aux_2"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "audalign_commit": "d5955ae8a85b1cd480dadd005c3f88986f4ebbef", "accuracy": 2, "num_processors": 1},
+        "synthetic_media": {"relations": [["src_main_1", 1200000, 9600000, "src_aux_1", 0, 8400000], ["src_main_1", 11400000, 21000000, "src_aux_2", 0, 9600000]]}
+      },
+      "expected": {"operation_status": "succeeded", "camera_status": "partial", "classifications": {"mapped": 2, "missing": 3, "uncertain": 0, "conflict": 0}, "direct_relation_count": 2, "artifact_published": true},
+      "forbidden_side_effects": ["file_pair_request", "scene_group_creation", "global_match_graph", "drop_safe_mapping"]
+    },
+    {
+      "id": "MAV-003-main-many-aux-one",
+      "execution_owner": "phase2_alignment_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 5, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 7200000, "fingerprint": {"size": 6001, "mtime_ns": 301, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2"}},
+          {"source_id": "src_main_2", "duration_ticks": 7200000, "fingerprint": {"size": 6002, "mtime_ns": 302, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3"}},
+          {"source_id": "src_aux_1", "duration_ticks": 18000000, "fingerprint": {"size": 15001, "mtime_ns": 303, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000003", "alignment_id": "aln_many_one", "expected_revision": 5, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1", "src_main_2"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "audalign_commit": "d5955ae8a85b1cd480dadd005c3f88986f4ebbef", "accuracy": 2, "num_processors": 1},
+        "synthetic_media": {"relations": [["src_main_1", 0, 7200000, "src_aux_1", 1200000, 8400000], ["src_main_2", 0, 7200000, "src_aux_1", 9600000, 16800000]]}
+      },
+      "expected": {"operation_status": "succeeded", "camera_status": "complete", "classifications": {"mapped": 2, "missing": 0, "uncertain": 0, "conflict": 0}, "direct_relation_count": 2, "artifact_published": true},
+      "forbidden_side_effects": ["main_source_concatenation_as_truth", "auxiliary_chain_truth", "decision_mutation"]
+    },
+    {
+      "id": "MAV-004-many-to-many",
+      "execution_owner": "phase2_alignment_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 6, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 9600000, "fingerprint": {"size": 5001, "mtime_ns": 401, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4"}},
+          {"source_id": "src_main_2", "duration_ticks": 6000000, "fingerprint": {"size": 5002, "mtime_ns": 402, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5"}},
+          {"source_id": "src_aux_1", "duration_ticks": 4800000, "fingerprint": {"size": 4001, "mtime_ns": 403, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb3"}},
+          {"source_id": "src_aux_2", "duration_ticks": 10800000, "fingerprint": {"size": 7002, "mtime_ns": 404, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb4"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000004", "alignment_id": "aln_many_many", "expected_revision": 6, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1", "src_main_2"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1", "src_aux_2"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "audalign_commit": "d5955ae8a85b1cd480dadd005c3f88986f4ebbef", "accuracy": 2, "num_processors": 1},
+        "synthetic_media": {"relations": [["src_main_1", 0, 4800000, "src_aux_1", 0, 4800000], ["src_main_1", 4800000, 9600000, "src_aux_2", 0, 4800000], ["src_main_2", 0, 6000000, "src_aux_2", 4800000, 10800000]]}
+      },
+      "expected": {"operation_status": "succeeded", "camera_status": "complete", "classifications": {"mapped": 3, "missing": 0, "uncertain": 0, "conflict": 0}, "direct_relation_count": 3, "artifact_published": true},
+      "forbidden_side_effects": ["scene_group_creation", "graph_persistence", "variable_speed_mapping"]
+    },
+    {
+      "id": "MAV-005-stop-restart-missing",
+      "execution_owner": "phase2_alignment_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 4, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 14400000, "fingerprint": {"size": 12003, "mtime_ns": 501, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6"}},
+          {"source_id": "src_aux_1", "duration_ticks": 5400000, "fingerprint": {"size": 4501, "mtime_ns": 502, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb5"}},
+          {"source_id": "src_aux_2", "duration_ticks": 5400000, "fingerprint": {"size": 4502, "mtime_ns": 503, "sha256_head_tail": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc5"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000005", "alignment_id": "aln_restart_missing", "expected_revision": 4, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1", "src_aux_2"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "accuracy": 2, "num_processors": 1},
+        "synthetic_media": {"independent_auxiliary_sources": true, "relations": [["src_main_1", 0, 5400000, "src_aux_1", 0, 5400000], ["src_main_1", 9000000, 14400000, "src_aux_2", 0, 5400000]], "derive_coverage_from_verified_offsets_and_source_durations": true}
+      },
+      "expected": {"operation_status": "succeeded", "camera_status": "partial", "ordered_partition": ["mapped", "missing", "mapped"], "missing_ticks": 3600000, "artifact_published": true},
+      "forbidden_side_effects": ["gap_interpolation", "guessed_mapping", "drop_safe_mapping"]
+    },
+    {
+      "id": "MAV-006-low-evidence-uncertain",
+      "execution_owner": "phase2_alignment_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 4, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 7200000, "fingerprint": {"size": 6003, "mtime_ns": 601, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7"}},
+          {"source_id": "src_aux_1", "duration_ticks": 7200000, "fingerprint": {"size": 6004, "mtime_ns": 602, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb6"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000006", "alignment_id": "aln_uncertain", "expected_revision": 4, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "accuracy": 2, "num_processors": 1},
+        "synthetic_media": {"shared_short_event_ticks": 2400000, "different_processing_chains": true, "valid_overlap_ticks": 3600000, "expected_execution": "run_public_api_and_three_window_profile"}
+      },
+      "expected": {"operation_status": "succeeded", "camera_status": "omitted", "classification": "uncertain", "auxiliary": null, "artifact_published": true},
+      "forbidden_side_effects": ["mapped_result", "threshold_reduction", "confidence_as_probability"]
+    },
+    {
+      "id": "MAV-007-equivalent-candidates-conflict",
+      "execution_owner": "phase2_alignment_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 4, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 10800000, "fingerprint": {"size": 9002, "mtime_ns": 701, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa8"}},
+          {"source_id": "src_aux_1", "duration_ticks": 4320000, "fingerprint": {"size": 36004, "mtime_ns": 702, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb7"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000007", "alignment_id": "aln_conflict", "expected_revision": 4, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "accuracy": 2, "num_processors": 1},
+        "synthetic_media": {"same_36_second_sequence_main_positions_ticks": [360000, 6120000], "sequence_pcm_identical_at_both_positions": true, "expected_execution": "run_public_api_and_verify_each_candidate"}
+      },
+      "expected": {"operation_status": "succeeded", "camera_status": "omitted", "classification": "conflict", "validated_offset_group_count": 2, "auxiliary": null, "artifact_published": true},
+      "forbidden_side_effects": ["choose_first", "choose_highest_confidence", "mapped_result"]
+    },
+    {
+      "id": "MAV-008-auxiliary-failure-isolated",
+      "execution_owner": "phase2_alignment_operation_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 5, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 7200000, "fingerprint": {"size": 6005, "mtime_ns": 801, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa9"}},
+          {"source_id": "src_aux_good", "duration_ticks": 7200000, "fingerprint": {"size": 6006, "mtime_ns": 802, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb8"}},
+          {"source_id": "src_aux_bad", "duration_ticks": 7200000, "fingerprint": {"size": 6007, "mtime_ns": 803, "sha256_head_tail": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc2"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000008", "alignment_id": "aln_isolation", "expected_revision": 5, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-good", "ordered_source_ids": ["src_aux_good"]}, {"camera_id": "aux-bad", "ordered_source_ids": ["src_aux_bad"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "accuracy": 2, "num_processors": 1},
+        "fault_injection": {"src_aux_bad": "ffmpeg_decode_failed", "src_aux_good": "none"}
+      },
+      "expected": {"operation_status": "succeeded", "camera_statuses": {"aux-good": "complete", "aux-bad": "failed"}, "good_mapped_retained": true, "bad_errors": [{"code": "auxiliary_decode_failed", "source_id": "src_aux_bad"}], "artifact_published": true},
+      "forbidden_side_effects": ["global_failure", "drop_good_result", "path_in_error", "decode_error_as_missing"]
+    },
+    {
+      "id": "MAV-009-existing-same-request-readback",
+      "execution_owner": "phase2_alignment_operation_integration",
+      "input": {
+        "existing_operation": {"schema_version": 2, "operation_id": "op_00000000000040008000000000000009", "operation_type": "align_multicam", "request_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "input_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "status": "succeeded", "result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_existing", "schema_version": 1, "content_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}},
+        "request": {"operation_id": "op_00000000000040008000000000000009", "request_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
+        "current_state_faults": ["project_missing", "runtime_missing", "source_changed"]
+      },
+      "expected": {"operation_readback": true, "operation_status": "succeeded", "record_exactly_equal": true},
+      "forbidden_side_effects": ["current_preflight", "worker_start", "workspace_create", "artifact_publish", "project_mutation"]
+    },
+    {
+      "id": "MAV-010-existing-different-request-conflict",
+      "execution_owner": "phase2_alignment_operation_integration",
+      "input": {
+        "existing_operation": {"schema_version": 2, "operation_id": "op_00000000000040008000000000000010", "operation_type": "align_multicam", "request_hash": "1111111111111111111111111111111111111111111111111111111111111111", "input_hash": "2222222222222222222222222222222222222222222222222222222222222222", "status": "succeeded", "result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_existing", "schema_version": 1, "content_hash": "3333333333333333333333333333333333333333333333333333333333333333"}},
+        "request": {"operation_id": "op_00000000000040008000000000000010", "request_hash": "4444444444444444444444444444444444444444444444444444444444444444"}
+      },
+      "expected": {"error_code": "operation_input_conflict", "operation_record_unchanged": true},
+      "forbidden_side_effects": ["current_preflight", "worker_start", "workspace_create", "artifact_publish", "project_mutation"]
+    },
+    {
+      "id": "MAV-011-missing-operation-stale-basis",
+      "execution_owner": "phase2_alignment_operation_integration",
+      "input": {
+        "existing_operation": null,
+        "request": {"operation_id": "op_00000000000040008000000000000011", "alignment_id": "aln_stale", "expected_revision": 7, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-1", "ordered_source_ids": ["src_aux_1"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "approved_basis": {"project_revision": 7, "source_ids": ["src_main_1", "src_aux_1"], "source_fingerprint_hash": "4444444444444444444444444444444444444444444444444444444444444444", "runtime_binding_hash": "6666666666666666666666666666666666666666666666666666666666666666"},
+        "stale_cases": [
+          {"case": "source_missing", "current_project_revision": 7, "current_source_ids": ["src_main_1"], "current_source_fingerprint_hash": "4444444444444444444444444444444444444444444444444444444444444444", "current_runtime_binding_hash": "6666666666666666666666666666666666666666666666666666666666666666"},
+          {"case": "fingerprint_changed", "current_project_revision": 7, "current_source_ids": ["src_main_1", "src_aux_1"], "current_source_fingerprint_hash": "5555555555555555555555555555555555555555555555555555555555555555", "current_runtime_binding_hash": "6666666666666666666666666666666666666666666666666666666666666666"},
+          {"case": "runtime_changed", "current_project_revision": 7, "current_source_ids": ["src_main_1", "src_aux_1"], "current_source_fingerprint_hash": "4444444444444444444444444444444444444444444444444444444444444444", "current_runtime_binding_hash": "5555555555555555555555555555555555555555555555555555555555555555"}
+        ]
+      },
+      "expected": {"each_stale_case_error_code": "alignment_input_stale", "operation_record": null, "artifact_published": false},
+      "forbidden_side_effects": ["pending_record", "worker_start", "workspace_create", "source_read_after_failure", "project_mutation"]
+    },
+    {
+      "id": "MAV-012-decision-change-reuses-alignment",
+      "execution_owner": "phase3_parallel_prepare_application",
+      "input": {
+        "project_current": {"project_id": "project_fixture", "revision": 9, "active_edit_version_id": "edit_after"},
+        "alignment_artifact": {"producer_operation_id": "op_00000000000040008000000000000012", "result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_reusable", "schema_version": 1, "content_hash": "7777777777777777777777777777777777777777777777777777777777777777"}, "decision_ref_present": false},
+        "alignment_producer_record": {"schema_version": 2, "operation_id": "op_00000000000040008000000000000012", "operation_type": "align_multicam", "status": "succeeded", "result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_reusable", "schema_version": 1, "content_hash": "7777777777777777777777777777777777777777777777777777777777777777"}, "error": null},
+        "decision_before": {"edit_version_id": "edit_before", "clips": [["src_main_1", 0, 1200000], ["src_main_1", 2400000, 3600000]]},
+        "decision_after": {"edit_version_id": "edit_after", "schema_version": 1, "content_hash": "1212121212121212121212121212121212121212121212121212121212121212", "clips": [["src_main_1", 2400000, 3600000], ["src_main_1", 600000, 1200000]]},
+        "decision_adoption": {"run_id": "run_after", "receipt_action": "adopt_roughcut", "receipt_decision_content_hash": "1212121212121212121212121212121212121212121212121212121212121212", "roughcut_approval_subject_matches": true},
+        "request": {"project_path": "fixture-project", "edit_version_id": "edit_after", "alignment_ref": {"kind": "multicam_alignment", "alignment_id": "aln_reusable", "schema_version": 1, "content_hash": "7777777777777777777777777777777777777777777777777777777777777777"}, "auxiliary_camera_ids": ["aux-1"], "expected_revision": 9}
+      },
+      "expected": {"prepare_succeeds": true, "alignment_ref_reused_exactly": true, "slots_follow_decision_after": true, "align_operation_count": 0},
+      "forbidden_side_effects": ["alignment_rewrite", "audalign_worker_start", "decision_mutation", "project_mutation"]
+    },
+    {
+      "id": "MAV-013-stale-prepare-ref-rejected",
+      "execution_owner": "phase3_parallel_operation_integration",
+      "input": {
+        "prepare_ref": {"schema_version": 1, "prepare_id": "mpr_01e018eb75f62ca9b2bd11f38debdaf7", "project_id": "project_fixture", "project_revision": 9, "decision_ref": {"kind": "decision", "edit_version_id": "edit_a", "schema_version": 1, "content_hash": "8888888888888888888888888888888888888888888888888888888888888888"}, "decision_adoption": {"run_id": "run_a", "receipt_ref": {"action_id": "action_adopt_a", "receipt_schema_version": 1, "receipt_hash": "1212121212121212121212121212121212121212121212121212121212121212"}, "approval_ref": {"approval_id": "approval_a", "record_schema_version": 1, "record_hash": "3434343434343434343434343434343434343434343434343434343434343434"}}, "alignment_ref": {"kind": "multicam_alignment", "alignment_id": "aln_reusable", "schema_version": 1, "content_hash": "7777777777777777777777777777777777777777777777777777777777777777"}, "alignment_producer": {"operation_id": "op_00000000000040008000000000000012", "operation_type": "align_multicam", "result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_reusable", "schema_version": 1, "content_hash": "7777777777777777777777777777777777777777777777777777777777777777"}}, "auxiliary_camera_ids": ["aux-1"], "output_settings_hash": "9999999999999999999999999999999999999999999999999999999999999999", "plan_basis_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"},
+        "request": {"operation_id": "op_00000000000040008000000000000013"},
+        "current_state": {"project_revision": 10, "edit_version_id": "edit_b", "decision_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc"}
+      },
+      "expected": {"error_code": "parallel_render_prepare_stale", "operation_record": null},
+      "forbidden_side_effects": ["pending_record", "ffmpeg_start", "staging_create", "output_publish", "workflow_mutation"]
+    },
+    {
+      "id": "MAV-014-slot-boundaries-and-quotas",
+      "execution_owner": "phase3_parallel_render_media_integration",
+      "input": {
+        "decision": {"edit_version_id": "edit_slots", "total_ticks": 1440000, "output_frame_rate": [25, 1], "audio_sample_rate": 48000, "clips": [["src_main_1", 0, 1440000]]},
+        "alignment_partition": [
+          {"classification": "mapped", "main_ticks": [0, 360000], "auxiliary": ["src_aux_1", 120000, 480000]},
+          {"classification": "missing", "main_ticks": [360000, 600000], "auxiliary": null},
+          {"classification": "mapped", "main_ticks": [600000, 960000], "auxiliary": ["src_aux_1", 720000, 1080000]},
+          {"classification": "uncertain", "main_ticks": [960000, 1200000], "auxiliary": null},
+          {"classification": "conflict", "main_ticks": [1200000, 1440000], "auxiliary": null}
+        ],
+        "prepare_ref": {"schema_version": 1, "prepare_id": "mpr_bb8492f0c6e06dffec4e15cc12389be8", "plan_basis_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+      },
+      "expected": {"slot_count": 5, "total_ticks": 1440000, "video_frame_quota": 300, "audio_sample_quota": 576000, "mapped_slots_use_auxiliary_audio_video": true, "nonmapped_slots": {"video": "black", "audio": "digital_silence"}, "manifest_discloses": ["missing", "uncertain", "conflict"]},
+      "forbidden_side_effects": ["per_slot_rounding_accumulation", "main_audio_mix", "guessed_auxiliary", "approve_export_mutation"]
+    },
+    {
+      "id": "MAV-015-response-lost-readback",
+      "execution_owner": "phase2_alignment_operation_integration",
+      "input": {
+        "first_start": {"operation_id": "op_00000000000040008000000000000015", "request_hash": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddde", "response_delivery": "lost_after_succeeded_publish"},
+        "status_request": {"project_path": "fixture-project", "operation_id": "op_00000000000040008000000000000015"},
+        "stored_record": {"status": "succeeded", "result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_response_lost", "schema_version": 1, "content_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeef"}}
+      },
+      "expected": {"status": "succeeded", "record_exactly_equal": true, "artifact_publish_count": 1},
+      "forbidden_side_effects": ["automatic_retry", "new_operation_id", "worker_start", "artifact_republish"]
+    },
+    {
+      "id": "MAV-016-hard-exit-child-convergence",
+      "execution_owner": "phase2_alignment_operation_process_integration",
+      "input": {
+        "operation": {"operation_id": "op_00000000000040008000000000000016", "status": "running", "phase": "alignment_processing_auxiliary"},
+        "fault_injection": {"parent_exit": "hard", "child_state_before_status": "terminated_and_waited", "writer_lock": "released_after_child_exit"}
+      },
+      "expected": {"status_after_status_read": "interrupted", "error_code": "alignment_interrupted", "artifact_published": false, "workspace_preserved": true, "status_cleanup_count": 0},
+      "forbidden_side_effects": ["orphan_child", "worker_resume", "automatic_retry", "success_inference", "status_workspace_cleanup"]
+    },
+    {
+      "id": "MAV-017-writer-disappears-closed-status",
+      "execution_owner": "phase2_media_operation_status_integration",
+      "input": {
+        "stored_record": {"schema_version": 2, "operation_id": "op_00000000000040008000000000000017", "operation_type": "align_multicam", "status": "running", "phase_message_code": "alignment_indexing_main"},
+        "writer_lock": "not_held",
+        "child_processes": "none",
+        "status_request": {"project_path": "fixture-project", "operation_id": "op_00000000000040008000000000000017"}
+      },
+      "expected": {"status": "interrupted", "phase_message_code": "alignment_interrupted", "terminal": true},
+      "forbidden_side_effects": ["artifact_scan", "workspace_scan", "worker_start", "retry", "project_mutation"]
+    },
+    {
+      "id": "MAV-018-store-link-and-escape-rejection",
+      "execution_owner": "phase2_alignment_store_integration",
+      "input": {
+        "project_root": "fixture-project",
+        "alignment_id": "aln_store_attack",
+        "attack_matrix": [
+          {"kind": "symlink", "target": "artifacts/multicam-alignments/aln_store_attack.json"},
+          {"kind": "hardlink", "nlink": 2, "target": "artifacts/multicam-alignments/aln_store_attack.json"},
+          {"kind": "path_escape", "alignment_id": "../outside"}
+        ],
+        "artifact_bytes_hash": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+      },
+      "expected": {"each_error_code": "alignment_store_integrity_error", "outside_bytes_unchanged": true, "artifact_published": false},
+      "forbidden_side_effects": ["follow_symlink", "overwrite_hardlink", "outside_project_write", "directory_scan"]
+    },
+    {
+      "id": "MAV-019-atomic-publish-race",
+      "execution_owner": "phase2_alignment_store_concurrency_integration",
+      "input": {
+        "project_root": "fixture-project",
+        "alignment_id": "aln_race",
+        "writer_a": {"canonical_bytes_hash": "1111111111111111111111111111111111111111111111111111111111111112"},
+        "writer_b": {"canonical_bytes_hash": "2222222222222222222222222222222222222222222222222222222222222223"},
+        "target_initially_missing": true
+      },
+      "expected": {"successful_publish_count": 1, "loser_error_code": "alignment_publish_conflict", "final_hash_in": ["1111111111111111111111111111111111111111111111111111111111111112", "2222222222222222222222222222222222222222222222222222222222222223"], "final_exact_readback": true, "directory_fsync": true},
+      "forbidden_side_effects": ["last_writer_wins", "partial_json", "orphan_temp", "target_overwrite"]
+    },
+    {
+      "id": "MAV-020-same-camera-partial-decode-uncertain",
+      "execution_owner": "phase2_alignment_operation_media_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 10, "sources": [
+          {"source_id": "src_main_1", "duration_ticks": 14400000, "fingerprint": {"size": 12020, "mtime_ns": 2001, "sha256_head_tail": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa20"}},
+          {"source_id": "src_aux_good", "duration_ticks": 6000000, "fingerprint": {"size": 5020, "mtime_ns": 2002, "sha256_head_tail": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb20"}},
+          {"source_id": "src_aux_bad", "duration_ticks": 6000000, "fingerprint": {"size": 5021, "mtime_ns": 2003, "sha256_head_tail": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc20"}},
+          {"source_id": "src_other", "duration_ticks": 14400000, "fingerprint": {"size": 12021, "mtime_ns": 2004, "sha256_head_tail": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd20"}}
+        ]},
+        "request": {"operation_id": "op_00000000000040008000000000000020", "alignment_id": "aln_partial_decode", "expected_revision": 10, "main_camera": {"camera_id": "main", "ordered_source_ids": ["src_main_1"]}, "auxiliary_cameras": [{"camera_id": "aux-partial", "ordered_source_ids": ["src_aux_good", "src_aux_bad"]}, {"camera_id": "aux-other", "ordered_source_ids": ["src_other"]}], "main_audio_stable": true, "max_temporary_disk_bytes": 536870912, "max_analysis_memory_bytes": 4294967296, "max_runtime_seconds": 1800},
+        "runtime": {"binding_schema_version": 2, "audalign": "1.3.1", "accuracy": 2, "num_processors": 1},
+        "synthetic_media": {"relations": [["src_main_1", 0, 6000000, "src_aux_good", 0, 6000000], ["src_main_1", 0, 14400000, "src_other", 0, 14400000]]},
+        "fault_injection": {"src_aux_bad": "ffmpeg_decode_failed"}
+      },
+      "expected": {"operation_status": "succeeded", "camera_statuses": {"aux-partial": "partial", "aux-other": "complete"}, "aux_partial_partition": [{"classification": "mapped", "ticks": 6000000}, {"classification": "uncertain", "ticks": 8400000}], "aux_partial_missing_ticks": 0, "errors": [{"code": "auxiliary_decode_failed", "source_id": "src_aux_bad"}], "summary": {"total_main_ticks": 14400000, "camera_count": 2, "mapped_ticks": 20400000, "missing_ticks": 0, "uncertain_ticks": 8400000, "conflict_ticks": 0}},
+      "forbidden_side_effects": ["decode_failure_as_missing", "drop_safe_mapping", "block_other_camera", "global_failure"]
+    },
+    {
+      "id": "MAV-021-positive-offset-nonzero-extraction",
+      "execution_owner": "phase2_alignment_fixed_offset_media_integration",
+      "input": {"synthetic_media": {"main_source_duration_ticks": 14400000, "auxiliary_source_duration_ticks": 14400000, "main_excerpt_start_ticks": 2400000, "auxiliary_excerpt_start_ticks": 3600000, "source_relation_b_ticks": -1169850, "independent_processing_chains": true}, "runtime": {"audalign": "1.3.1", "accuracy": 2, "num_processors": 1}, "verification_profile": {"name": "roughcut_audalign_fixed_offset", "version": 1}},
+      "expected": {"public_api_roles": {"target": "auxiliary_excerpt", "against": "main_reference"}, "audalign_offset_seconds_near": 0.25125, "converted_source_relation_b_ticks": -1169850, "classification": "mapped", "three_windows_executed": true},
+      "forbidden_side_effects": ["ground_truth_in_classification", "offset_sign_flip", "zero_extraction_assumption", "secondary_matcher"]
+    },
+    {
+      "id": "MAV-022-negative-offset-nonzero-extraction",
+      "execution_owner": "phase2_alignment_fixed_offset_media_integration",
+      "input": {"synthetic_media": {"main_source_duration_ticks": 14400000, "auxiliary_source_duration_ticks": 14400000, "main_excerpt_start_ticks": 4800000, "auxiliary_excerpt_start_ticks": 1200000, "source_relation_b_ticks": 3569850, "independent_processing_chains": true}, "runtime": {"audalign": "1.3.1", "accuracy": 2, "num_processors": 1}, "verification_profile": {"name": "roughcut_audalign_fixed_offset", "version": 1}},
+      "expected": {"public_api_roles": {"target": "auxiliary_excerpt", "against": "main_reference"}, "audalign_offset_seconds_near": -0.25125, "converted_source_relation_b_ticks": 3569850, "classification": "mapped", "three_windows_executed": true},
+      "forbidden_side_effects": ["ground_truth_in_classification", "offset_sign_flip", "zero_extraction_assumption", "secondary_matcher"]
+    },
+    {
+      "id": "MAV-023-signed-rounding-boundaries",
+      "execution_owner": "phase2_alignment_fixed_offset_conversion_unit",
+      "input": {"decimal_seconds": ["0.000004166666666666666666666666667", "-0.000004166666666666666666666666667", "0.0000125", "-0.0000125"], "call_production_seconds_to_ticks": true},
+      "expected": {"ticks": [1, -1, 2, -2], "rounding": "nearest_ties_away_from_zero_decimal"},
+      "forbidden_side_effects": ["binary_float_pre_rounding", "bankers_rounding", "metadata_only_assertion"]
+    },
+    {
+      "id": "MAV-024-parallel-hard-exit-before-publish",
+      "execution_owner": "phase3_parallel_operation_process_integration",
+      "input": {"operation_id": "op_00000000000040008000000000000024", "prepare_ref": {"schema_version": 1, "prepare_id": "mpr_9fc08dd0add0e9c43ea9db861ab5d0e4", "plan_basis_hash": "2424242424242424242424242424242424242424242424242424242424242424"}, "fault_boundary": "after_staging_verified_before_directory_publish", "child_state_before_status": "terminated_and_waited", "writer_lock": "released_after_child_exit"},
+      "expected": {"parallel_render_id_derived_from_exact_prepare_ref_and_operation_id": true, "manifest_producer": {"operation_id": "op_00000000000040008000000000000024", "operation_type": "render_multicam_parallel"}, "record_status": "interrupted", "error_code": "parallel_render_interrupted", "final_directory_exists": false, "staging_preserved": true, "status_cleanup_count": 0},
+      "forbidden_side_effects": ["partial_final_visibility", "status_staging_cleanup", "success_inference", "worker_recovery"]
+    },
+    {
+      "id": "MAV-025-parallel-hard-exit-after-directory-publish",
+      "execution_owner": "phase3_parallel_operation_process_integration",
+      "input": {"operation_id": "op_00000000000040008000000000000025", "prepare_ref": {"schema_version": 1, "prepare_id": "mpr_ba86478d853fbe30a38c68a7b73ef0b4", "plan_basis_hash": "2525252525252525252525252525252525252525252525252525252525252525"}, "parallel_render_id": "mpr_22222222222222222222222222222222", "fault_boundary": "after_atomic_directory_publish_before_record_succeeded", "published_tree": {"strictly_verified": true, "manifest_producer": {"operation_id": "op_00000000000040008000000000000025", "operation_type": "render_multicam_parallel"}}},
+      "expected": {"parallel_render_id_derived_from_exact_prepare_ref_and_operation_id": true, "record_status": "interrupted", "error_code": "parallel_render_interrupted", "result_ref": null, "final_directory_exists": true, "final_tree_complete": true, "status_success_inference": false, "status_cleanup_count": 0},
+      "forbidden_side_effects": ["adopt_final_as_success", "delete_final", "automatic_retry", "worker_recovery"]
+    },
+    {
+      "id": "MAV-026-parallel-succeeded-response-lost",
+      "execution_owner": "phase3_parallel_operation_integration",
+      "input": {"operation_id": "op_00000000000040008000000000000026", "request_hash": "2626262626262626262626262626262626262626262626262626262626262626", "response_delivery": "lost_after_succeeded_record", "stored_record": {"status": "succeeded", "request_hash": "2626262626262626262626262626262626262626262626262626262626262626", "result_ref": {"kind": "multicam_parallel_render", "parallel_render_id": "mpr_33333333333333333333333333333333", "schema_version": 1, "manifest_content_hash": "3333333333333333333333333333333333333333333333333333333333333333"}}, "repeated_start": {"operation_id": "op_00000000000040008000000000000026", "request_hash": "2626262626262626262626262626262626262626262626262626262626262626"}},
+      "expected": {"existing_first_readback": true, "same_final_identity": true, "record_exactly_equal": true, "directory_publish_count": 1, "worker_start_count": 0},
+      "forbidden_side_effects": ["automatic_retry", "new_operation_id", "directory_republish", "final_scan"]
+    },
+    {
+      "id": "MAV-027-parallel-final-directory-race",
+      "execution_owner": "phase3_parallel_store_concurrency_integration",
+      "input": {"exact_final_identity": {"parallel_render_id": "mpr_44444444444444444444444444444444", "prepare_ref_hash": "6666666666666666666666666666666666666666666666666666666666666666", "operation_id": "op_00000000000040008000000000000027"}, "writer_a": {"operation_id": "op_00000000000040008000000000000027", "verified_tree_hash": "4444444444444444444444444444444444444444444444444444444444444444"}, "writer_b": {"operation_id": "op_00000000000040008000000000000027", "verified_tree_hash": "5555555555555555555555555555555555555555555555555555555555555555"}, "target_initially_missing": true},
+      "expected": {"successful_directory_publish_count": 1, "loser_error_code": "parallel_render_final_conflict", "final_tree_hash_in": ["4444444444444444444444444444444444444444444444444444444444444444", "5555555555555555555555555555555555555555555555555555555555555555"], "final_tree_exact_readback": true},
+      "forbidden_side_effects": ["different_final_identity_race", "last_writer_wins", "per_file_final_publish", "partial_final_tree", "target_overwrite"]
+    },
+    {
+      "id": "MAV-028-parallel-explicit-rerun-new-final",
+      "execution_owner": "phase3_parallel_operation_store_integration",
+      "input": {"prepare_ref": {"schema_version": 1, "prepare_id": "mpr_222e86167efc4805ae21c093765ed821", "plan_basis_hash": "2828282828282828282828282828282828282828282828282828282828282828"}, "old_operation": {"operation_id": "op_00000000000040008000000000000028", "status": "interrupted", "fault_boundary": "after_atomic_directory_publish_before_record_succeeded", "parallel_render_id": "mpr_77777777777777777777777777777777", "final_tree_hash": "7777777777777777777777777777777777777777777777777777777777777777"}, "explicit_user_approval": true, "new_operation_id": "op_00000000000040008000000000000029"},
+      "expected": {"new_operation_status": "succeeded", "new_parallel_render_id_differs_from_old": true, "old_final_preserved_exactly": true, "new_final_published": true, "final_directory_count": 2, "automatic_retry_count": 0, "old_directory_scan_count": 0, "old_directory_cleanup_count": 0},
+      "forbidden_side_effects": ["old_final_adoption", "old_final_reuse", "old_final_delete", "old_final_overwrite", "automatic_retry"]
+    },
+    {
+      "id": "MAV-029-alignment-hard-exit-after-artifact-publish",
+      "execution_owner": "phase2_alignment_operation_store_process_integration",
+      "input": {"operation_id": "op_00000000000040008000000000000030", "alignment_id": "aln_publish_window", "fault_boundary": "after_atomic_artifact_publish_before_record_succeeded", "published_artifact": {"producer_operation_id": "op_00000000000040008000000000000030", "content_hash": "2929292929292929292929292929292929292929292929292929292929292929"}, "child_state_before_status": "terminated_and_waited", "writer_lock": "released_after_child_exit"},
+      "expected": {"record_status": "interrupted", "error_code": "alignment_interrupted", "result_ref": null, "artifact_preserved_exactly": true, "artifact_delivered": false, "status_artifact_scan_count": 0, "status_cleanup_count": 0},
+      "forbidden_side_effects": ["artifact_adoption", "artifact_delete", "success_inference", "transaction_marker", "worker_recovery"]
+    },
+    {
+      "id": "MAV-030-alignment-runtime-basis-change-zero-publish",
+      "execution_owner": "phase2_alignment_operation_revalidation_integration",
+      "input": {"alignment_id_prefix": "aln_basis_change_case_", "worker_started_with": {"project_revision": 11, "source_identity_fingerprint_hash": "3030303030303030303030303030303030303030303030303030303030303030", "runtime_binding_hash": "3131313131313131313131313131313131313131313131313131313131313131"}, "isolated_mutations_after_worker_start": [{"case": "project_or_source_basis_changed", "operation_id": "op_00000000000040008000000000000031", "current_project_revision": 12, "current_source_identity_fingerprint_hash": "3232323232323232323232323232323232323232323232323232323232323232", "current_runtime_binding_hash": "3131313131313131313131313131313131313131313131313131313131313131"}, {"case": "runtime_binding_changed", "operation_id": "op_00000000000040008000000000000033", "current_project_revision": 11, "current_source_identity_fingerprint_hash": "3030303030303030303030303030303030303030303030303030303030303030", "current_runtime_binding_hash": "3333333333333333333333333333333333333333333333333333333333333333"}], "execute_each_isolated_case_through_publish_revalidation": true},
+      "expected": {"case_results": [{"case": "project_or_source_basis_changed", "record_status": "failed", "error_code": "alignment_basis_changed_during_run", "artifact_publish_count": 0}, {"case": "runtime_binding_changed", "record_status": "failed", "error_code": "alignment_runtime_changed_during_run", "artifact_publish_count": 0}]},
+      "forbidden_side_effects": ["per_camera_source_changed_error", "partial_artifact_publish", "metadata_only_assertion", "worker_retry"]
+    },
+    {
+      "id": "MAV-031-parallel-runtime-basis-change-zero-publish",
+      "execution_owner": "phase3_parallel_operation_revalidation_integration",
+      "input": {"worker_started_with": {"mapped_source_basis_hash": "3434343434343434343434343434343434343434343434343434343434343434", "decision_alignment_output_hash": "3535353535353535353535353535353535353535353535353535353535353535", "runtime_binding_hash": "3636363636363636363636363636363636363636363636363636363636363636"}, "isolated_mutations_after_worker_start": [{"case": "mapped_source_or_plan_basis_changed", "operation_id": "op_00000000000040008000000000000032", "current_mapped_source_basis_hash": "3737373737373737373737373737373737373737373737373737373737373737", "current_decision_alignment_output_hash": "3939393939393939393939393939393939393939393939393939393939393939", "current_runtime_binding_hash": "3636363636363636363636363636363636363636363636363636363636363636"}, {"case": "runtime_binding_changed", "operation_id": "op_00000000000040008000000000000034", "current_mapped_source_basis_hash": "3434343434343434343434343434343434343434343434343434343434343434", "current_decision_alignment_output_hash": "3535353535353535353535353535353535353535353535353535353535353535", "current_runtime_binding_hash": "3838383838383838383838383838383838383838383838383838383838383838"}], "execute_each_isolated_case_through_publish_revalidation": true},
+      "expected": {"case_results": [{"case": "mapped_source_or_plan_basis_changed", "record_status": "failed", "error_code": "parallel_render_basis_changed_during_run", "final_publish_count": 0}, {"case": "runtime_binding_changed", "record_status": "failed", "error_code": "parallel_render_runtime_changed_during_run", "final_publish_count": 0}]},
+      "forbidden_side_effects": ["per_camera_source_changed_error", "partial_final_publish", "metadata_only_assertion", "worker_retry"]
+    },
+    {
+      "id": "MAV-032-parallel-one-failed-one-succeeded-atomic-partial",
+      "execution_owner": "phase3_parallel_operation_store_media_integration",
+      "input": {
+        "operation_id": "op_00000000000040008000000000000035",
+        "prepare_ref_source": "call_real_prepare_application_with_two_deliverable_synthetic_camera_fixtures",
+        "selected_camera_ids": ["aux-failed", "aux-succeeded"],
+        "camera_execution": [
+          {"camera_id": "aux-failed", "fault": "encode_failed_after_partial_staging_file"},
+          {"camera_id": "aux-succeeded", "fault": "none", "generate_and_verify_with_real_ffmpeg_synthetic_media": true}
+        ],
+        "final_visibility_observation": "observe_before_and_after_single_directory_publish"
+      },
+      "expected": {
+        "operation_status": "succeeded",
+        "operation_error": null,
+        "result_ref_nonnull": true,
+        "parallel_render_id_matches_frozen_prepare_ref_and_operation_id_derivation": true,
+        "delivery_status": "partial",
+        "manifest_producer": {"operation_id": "op_00000000000040008000000000000035", "operation_type": "render_multicam_parallel"},
+        "manifest_prepare_alignment_decision_identity_exact": true,
+        "manifest_unknown_field_rejected_on_strict_readback": true,
+        "manifest_camera_linkage": [
+          {"camera_id": "aux-failed", "alignment_status": "partial", "coverage_status": "partial", "render_status": "failed", "output": null, "error": {"code": "parallel_camera_encode_failed"}},
+          {"camera_id": "aux-succeeded", "alignment_status": "complete", "coverage_status": "complete", "render_status": "succeeded", "output_nonnull": true, "output_matches_planned_filename_and_final_root": true, "output_bytes_positive": true, "output_hash_matches_strict_file_readback": true, "error": null}
+        ],
+        "failed_camera_transient_removed_before_verify": true,
+        "directory_publish_count": 1,
+        "final_visibility_sequence": ["missing", "complete_verified_tree"],
+        "final_tree_files": ["camera_aux-succeeded.mp4", "manifest.json"],
+        "status_cleanup_count": 0
+      },
+      "forbidden_side_effects": ["failed_camera_placeholder", "per_file_final_publish", "partial_final_tree", "all_failed_success", "status_staging_cleanup"]
+    },
+    {
+      "id": "MAV-033-parallel-all-selected-cameras-failed-zero-final",
+      "execution_owner": "phase3_parallel_operation_store_media_integration",
+      "input": {
+        "operation_id": "op_00000000000040008000000000000036",
+        "selected_camera_ids": ["aux-encode-failed", "aux-verify-failed"],
+        "camera_execution": [
+          {"camera_id": "aux-encode-failed", "fault": "encode_failed_after_partial_staging_file"},
+          {"camera_id": "aux-verify-failed", "fault": "strict_output_verification_failed"}
+        ],
+        "failure_is_worker_controlled": true
+      },
+      "expected": {
+        "operation_status": "failed",
+        "phase_message_code": "parallel_render_failed",
+        "error": {"code": "parallel_render_all_cameras_failed", "responsibility": "roughcut_core", "action": "render_parallel_cameras", "message_code": "parallel_render_failed"},
+        "result_ref": null,
+        "camera_error_codes": ["parallel_camera_encode_failed", "parallel_camera_verify_failed"],
+        "manifest_publish_count": 0,
+        "final_directory_publish_count": 0,
+        "worker_staging_cleanup_count": 1,
+        "staging_exists_after_terminal_record": false,
+        "cleanup_failure_would_not_replace_all_failed_code": true,
+        "status_cleanup_count": 0
+      },
+      "forbidden_side_effects": ["succeeded_partial_with_zero_outputs", "failure_manifest_publish", "empty_final_directory", "status_staging_cleanup", "automatic_retry"]
+    },
+    {
+      "id": "MAV-034-parallel-undeliverable-camera-selection-rejected",
+      "execution_owner": "phase3_parallel_prepare_application_store_integration",
+      "input": {
+        "alignment_delivery": {"producer_record_status": "succeeded", "result_ref_matches_exactly": true},
+        "isolated_selection_cases": [
+          {"case": "omitted_camera", "camera_id": "aux-omitted", "alignment_status": "omitted", "alignment_mapped_ticks": 0, "projected_mapped_ticks": 0},
+          {"case": "failed_camera", "camera_id": "aux-failed", "alignment_status": "failed", "alignment_mapped_ticks": 0, "projected_mapped_ticks": 0},
+          {"case": "zero_mapped_current_decision", "camera_id": "aux-off-decision", "alignment_status": "partial", "alignment_mapped_ticks": 120000, "projected_mapped_ticks": 0}
+        ],
+        "execute_each_case_through_prepare_application": true
+      },
+      "expected": {
+        "each_case_error_code": "parallel_render_camera_not_deliverable",
+        "prepare_ref": null,
+        "summary": null,
+        "project_write_count": 0,
+        "operation_record_count": 0,
+        "staging_create_count": 0,
+        "media_process_count": 0
+      },
+      "forbidden_side_effects": ["all_black_prepare", "omitted_camera_output", "failed_camera_output", "zero_mapped_output", "workflow_mutation"]
+    },
+    {
+      "id": "MAV-035-multisource-decision-reorder-nonframe-global-quotas",
+      "execution_owner": "phase3_parallel_prepare_application_render_schedule_integration",
+      "input": {
+        "project": {"project_id": "project_fixture", "revision": 20, "output_settings": {"width": 1920, "height": 1080, "frame_rate": {"numerator": 25, "denominator": 1}, "audio_sample_rate": 48000}},
+        "decision_before": {"edit_version_id": "edit_before_reorder", "clips": [["clip_a", "src_main_a", 2000, 11005], ["clip_b", "src_main_b", 1001, 10002]]},
+        "current_adopted_decision_fixture": {
+          "edit_version_id": "edit_reordered",
+          "clips": [["clip_b", "src_main_b", 1001, 10002], ["clip_a", "src_main_a", 2000, 11005]],
+          "persist_exact_adoption_receipt_approval_run_chain": true
+        },
+        "succeeded_alignment_fixture": {
+          "alignment_id": "aln_multi_main",
+          "producer_operation_id": "op_00000000000040008000000000000035",
+          "camera_id": "aux-1",
+          "camera_status": "partial",
+          "main_source_partitions": [
+            {"main": ["src_main_b", 0, 3502], "classification": "mapped", "auxiliary": ["src_aux_b", 4000, 7502]},
+            {"main": ["src_main_b", 3502, 12000], "classification": "missing", "auxiliary": null},
+            {"main": ["src_main_a", 0, 6803], "classification": "mapped", "auxiliary": ["src_aux_a", 10000, 16803]},
+            {"main": ["src_main_a", 6803, 12000], "classification": "uncertain", "auxiliary": null}
+          ],
+          "persist_exact_succeeded_operation_result_chain": true
+        },
+        "prepare_request": {"edit_version_id": "edit_reordered", "auxiliary_camera_ids": ["aux-1"], "expected_revision": 20},
+        "derive_through_real_prepare_and_render_schedule": true
+      },
+      "expected": {
+        "alignment_operation_count": 0,
+        "decision_clip_order": ["clip_b", "clip_a"],
+        "slot_source_order": ["src_main_b", "src_main_b", "src_main_a", "src_main_a"],
+        "slot_output_tick_boundaries": [0, 2501, 9001, 13804, 18006],
+        "slot_video_frame_boundaries": [0, 1, 2, 3, 4],
+        "slot_audio_sample_boundaries": [0, 1000, 3600, 5522, 7202],
+        "video_frame_quota": 4,
+        "audio_sample_quota": 7202,
+        "output_settings_hash": "b11ff679ae9b32ad4b5168003c50eda7a2f2550f0e0866223a6853241312116b",
+        "estimated_temporary_disk_bytes_is_positive_deterministic_integer": true,
+        "plan_basis_hash_matches_returned_exact_basis": true,
+        "prepare_id_matches_frozen_derivation": true,
+        "plan_basis_and_summary_unknown_fields_rejected": true
+      },
+      "forbidden_side_effects": ["source_order_projection", "per_slot_rounding_accumulation", "per_clip_quota_reset", "alignment_rerun", "decision_mutation"]
+    },
+    {
+      "id": "MAV-036-nondeliverable-alignment-prepare-zero-write",
+      "execution_owner": "phase3_parallel_prepare_application_operation_store_integration",
+      "input": {
+        "requested_alignment_ref": {"kind": "multicam_alignment", "alignment_id": "aln_delivery_gate", "schema_version": 1, "content_hash": "3636363636363636363636363636363636363636363636363636363636363636"},
+        "isolated_producer_cases": [
+          {"case": "published_then_interrupted", "artifact_producer_operation_id": "op_00000000000040008000000000000037", "record_status": "interrupted", "record_result_ref": null},
+          {"case": "producer_failed", "artifact_producer_operation_id": "op_00000000000040008000000000000042", "record_status": "failed", "record_result_ref": null},
+          {"case": "succeeded_result_ref_changed", "artifact_producer_operation_id": "op_00000000000040008000000000000038", "record_status": "succeeded", "record_result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_delivery_gate", "schema_version": 1, "content_hash": "3838383838383838383838383838383838383838383838383838383838383838"}},
+          {"case": "artifact_producer_mismatch", "artifact_producer_operation_id": "op_00000000000040008000000000000039", "record_status": "succeeded", "record_operation_id": "op_00000000000040008000000000000040", "record_result_ref": {"kind": "multicam_alignment", "alignment_id": "aln_delivery_gate", "schema_version": 1, "content_hash": "3636363636363636363636363636363636363636363636363636363636363636"}}
+        ],
+        "execute_each_case_through_prepare_application_and_operation_store": true
+      },
+      "expected": {
+        "each_case_error_code": "parallel_render_alignment_not_deliverable",
+        "prepare_ref": null,
+        "summary": null,
+        "project_write_count": 0,
+        "operation_record_write_count": 0,
+        "staging_create_count": 0,
+        "media_process_count": 0
+      },
+      "forbidden_side_effects": ["interrupted_artifact_adoption", "result_ref_subset_match", "producer_rebinding", "directory_scan", "workflow_mutation"]
+    },
+    {
+      "id": "MAV-037-fabricated-or-field-modified-prepare-ref-zero-write",
+      "execution_owner": "phase3_parallel_start_application_store_integration",
+      "input": {
+        "baseline_prepare_ref_source": "call_real_prepare_application_with_persisted_current_decision_and_succeeded_alignment_fixtures",
+        "isolated_mutation_paths": ["/schema_version", "/prepare_id", "/project_id", "/project_revision", "/decision_ref/kind", "/decision_ref/edit_version_id", "/decision_ref/schema_version", "/decision_ref/content_hash", "/decision_adoption/run_id", "/decision_adoption/receipt_ref/action_id", "/decision_adoption/receipt_ref/receipt_schema_version", "/decision_adoption/receipt_ref/receipt_hash", "/decision_adoption/approval_ref/approval_id", "/decision_adoption/approval_ref/record_schema_version", "/decision_adoption/approval_ref/record_hash", "/alignment_ref/kind", "/alignment_ref/alignment_id", "/alignment_ref/schema_version", "/alignment_ref/content_hash", "/alignment_producer/operation_id", "/alignment_producer/operation_type", "/alignment_producer/result_ref/kind", "/alignment_producer/result_ref/alignment_id", "/alignment_producer/result_ref/schema_version", "/alignment_producer/result_ref/content_hash", "/auxiliary_camera_ids", "/auxiliary_camera_ids/0", "/output_settings_hash", "/plan_basis_hash"],
+        "fabricated_cases": ["unknown_top_level_field_added", "unknown_nested_field_added", "required_field_removed", "valid_shape_with_noncurrent_plan_basis"],
+        "execute_each_case_as_an_isolated_start_before_any_write": true
+      },
+      "expected": {
+        "each_mutation_and_fabrication_error_code": "parallel_render_prepare_stale",
+        "operation_record": null,
+        "worker_start_count": 0,
+        "staging_create_count": 0,
+        "media_process_count": 0,
+        "final_publish_count": 0,
+        "project_write_count": 0
+      },
+      "forbidden_side_effects": ["partial_ref_acceptance", "field_normalization", "prepare_ref_repair", "pending_record", "workflow_mutation"]
+    }
+  ],
+  "profile2_vectors": [
+    {
+      "id": "MAV2-001-profile1-profile2-readback-compatibility",
+      "execution_owner": "phase4_profile2_historical_readback_input_projection_compatibility",
+      "contract_scope": "historical_profile1_profile2_artifact_readback_and_pure_profile2_input_projection_hash_compatibility",
+      "input": {
+        "historical_alignment_profiles": [{"name": "roughcut_audalign_fixed_offset", "version": 1}, {"name": "roughcut_audalign_fixed_offset", "version": 2}],
+        "artifact_schema_version_must_remain": 1,
+        "public_request_fields_added": false
+      },
+      "expected": {
+        "historical_profile_versions": [1, 2],
+        "historical_schema_versions": [1, 1],
+        "historical_request_hashes": ["cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"],
+        "historical_input_hashes": ["dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"],
+        "profile2_input_projection_hash": "7c212a1d1524c6ff71ee2064b074442b3aabbac794b832f7c2fbef610a8c9297",
+        "mutated_profile2_input_projection_hash": "1a1cefde8ffad8245b2ec1a6f3b97520d87083caf0319591af83890ffbf0dddd"
+      },
+      "forbidden_side_effects": ["profile1_artifact_rewrite", "profile2_as_profile1", "schema_version_2_artifact", "new_public_request_field"]
+    },
+    {
+      "id": "MAV2-002-source-global-b-positive-negative-offset",
+      "execution_owner": "phase4_profile2_alignment_schedule_unit",
+      "input": {
+        "ticks_per_second": 120000,
+        "cases": [
+          {"case": "positive_offset", "M0_ticks": 2400000, "A0_ticks": 3600000, "delta_seconds": "0.25125", "expected_B_ticks": -1169850},
+          {"case": "negative_offset", "M0_ticks": 4800000, "A0_ticks": 1200000, "delta_seconds": "-0.25125", "expected_B_ticks": 3569850}
+        ]
+      },
+      "expected": {"source_global_B_ticks": [-1169850, 3569850], "candidate_count": 2, "window_local_offset_not_used_as_B": true, "decimal_rounding": "nearest_ties_away_from_zero_decimal"},
+      "forbidden_side_effects": ["local_offset_as_global_B", "float_binary_rounding", "source_pair_rebinding"]
+    },
+    {
+      "id": "MAV2-003-exact-schedule-candidate-admission",
+      "execution_owner": "phase4_profile2_alignment_media_integration",
+      "input": {
+        "evidence_scope": "sample_A_profile2_exact_schedule_bounded_child",
+        "source_duration_ticks": 98668800,
+        "excerpt_length_ticks": 1800000,
+        "M0_ticks": 0,
+        "probe_order": ["opening", "middle", "ending"],
+        "probes": [
+          {"probe": "opening", "A0_ticks": 0, "raw_candidates": [{"upstream_index": 0, "delta_seconds": "571.53596", "B_ticks": 68584315}, {"upstream_index": 1, "B_ticks": 38084441}]},
+          {"probe": "middle", "A0_ticks": 48434400, "raw_candidates": [{"upstream_index": 0, "delta_seconds": "391.81351", "B_ticks": -1416779}, {"upstream_index": 1, "B_ticks": -28104865}, {"upstream_index": 2, "B_ticks": -24828065}]},
+          {"probe": "ending", "A0_ticks": 96868800, "raw_candidates": [{"upstream_index": 0, "delta_seconds": "797.00172", "B_ticks": -1228594}, {"upstream_index": 1, "B_ticks": -73546678}]}
+        ],
+        "candidate_group_diameter_ticks": 12000,
+        "max_selected_candidates_per_probe": 1
+      },
+      "expected": {"raw_candidate_count": 7, "raw_group_count": 7, "selected_upstream_indices": [0, 0, 0], "selected_hypothesis_B_ticks": [68584315, -1416779, -1228594], "selected_hypothesis_count": 3, "selected_group_count": 3, "planned_verification_candidate_B_ticks": [68584315, -1416779, -1228594], "planned_verification_call_count": 9, "ending_correct_group_selected": true, "ending_correct_group_distance_ticks": 1556, "result": "candidate_admission_gate_passed_not_mapped"},
+      "forbidden_side_effects": ["all_raw_groups_enter_verification", "upstream_rank_as_mapped_decision", "confidence_as_admission_gate", "ground_truth_as_admission_gate", "full_target_scan", "verification_replaced_by_recall"]
+    },
+    {
+      "id": "MAV2-004-multiple-probes-same-B-merge",
+      "execution_owner": "phase4_profile2_alignment_schedule_unit",
+      "input": {
+        "probe_order": ["opening", "middle", "ending"],
+        "candidates": [
+          {"probe": "opening", "upstream_index": 0, "B_ticks": -1230150, "confidence": 85},
+          {"probe": "middle", "upstream_index": 0, "B_ticks": -1230150, "confidence": 91},
+          {"probe": "ending", "upstream_index": 0, "B_ticks": -1230150, "confidence": 88}
+        ],
+        "group_diameter_ticks": 12000,
+        "max_candidate_groups_per_channel": 3
+      },
+      "expected": {"deduplicated_verified_B_count": 1, "same_B_probe_support_count": 3, "conflict": false, "representative_probe": "opening", "representative_upstream_index": 0, "verification_window_count": 3, "saved_relation_is_source_global": true},
+      "forbidden_side_effects": ["duplicate_intervals_for_same_B", "same_B_conflict", "confidence_only_selection", "local_B"]
+    },
+    {
+      "id": "MAV2-005-different-verified-B-conflict",
+      "execution_owner": "phase4_profile2_alignment_domain_compatibility",
+      "input": {
+        "main_duration_ticks": 12000000,
+        "auxiliary_duration_ticks": 15000000,
+        "candidate_groups": [
+          {"B_ticks": -1230150, "probe_support": ["middle"], "main_interval_ticks": [0, 12000000], "auxiliary_interval_ticks": [1230150, 13230150], "verification_window_starts_ticks": [0, 5280000, 10560000]},
+          {"B_ticks": 3569850, "probe_support": ["ending"], "main_interval_ticks": [3569850, 12000000], "auxiliary_interval_ticks": [0, 8430150], "verification_window_starts_ticks": [3569850, 7064925, 10560000]}
+        ],
+        "group_diameter_ticks": 12000,
+        "verification_window_ticks": 1440000,
+        "each_group_verification_windows": 3,
+        "max_local_error_ticks": 12000
+      },
+      "expected": {"verified_B_ticks": [-1230150, 3569850], "verified_B_count": 2, "classification": "conflict", "interval_count": 2, "verification_call_count": 6, "mapped_ticks": 3569850, "conflict_ticks": 8430150, "uncertain_ticks": 0, "both_verified_evidences_preserved": true, "lr_override_attempted": false},
+      "forbidden_side_effects": ["first_wins", "confidence_only_selection", "conflict_suppression", "candidate_group_chain_merge"]
+    },
+    {
+      "id": "MAV2-006-all-probes-zero-candidate-uncertain",
+      "execution_owner": "phase4_profile2_alignment_media_integration",
+      "input": {
+        "probe_starts_ticks": [0, 48434400, 96868800],
+        "channels": [
+          {"channel": "mono", "probe_raw_candidate_counts": [0, 0, 0], "recall_call_count": 3},
+          {"channel": "left", "probe_raw_candidate_counts": [0, 0, 0], "recall_call_count": 3},
+          {"channel": "right", "probe_raw_candidate_counts": [0, 0, 0], "recall_call_count": 3}
+        ]
+      },
+      "expected": {"channel_classifications": ["uncertain", "uncertain", "uncertain"], "pair_classification": "uncertain", "evidence_code": "no_candidate", "recall_call_count": 9, "verification_call_count": 0, "missing_interval_count": 0},
+      "forbidden_side_effects": ["missing_guess", "verification_without_candidate", "full_length_retry", "per_camera_failed_for_zero_candidates"]
+    },
+    {
+      "id": "MAV2-007-probe-schedule-and-call-ceiling-boundaries",
+      "execution_owner": "phase4_profile2_alignment_schedule_unit",
+      "input": {
+        "excerpt_length_ticks": 1800000,
+        "duration_cases": [{"duration_ticks": 1800000, "expected_probe_starts": [0]}, {"duration_ticks": 98668800, "expected_probe_starts": [0, 48434400, 96868800]}],
+        "call_plan": {"mono_recall_max": 3, "recall_max_per_channel": 3, "recall_max_per_source_pair": 9, "max_candidate_groups_per_channel": 3, "max_verification_calls": 27, "max_total_audalign_calls": 36},
+        "exceeding_call_plan": {"planned_audalign_calls": 37},
+        "candidate_response_limit": {"raw_candidate_count": 512, "raw_candidate_count_513_result": "channel_uncertain_zero_verification"},
+        "candidate_group_boundary": {"group_count": 3, "result": "accepted_for_verification", "verification_call_count": 9},
+        "candidate_group_limit": {"group_count": 4, "result": "channel_uncertain_zero_verification"}
+      },
+      "expected": {"shorter_than_excerpt_rejected_before_worker": true, "boundary_duration_deduplicates_starts": true, "call_plan_exceed_rejected_without_extra_worker": true, "raw_candidate_count_513_truncated": false, "raw_candidate_count_513_channel_classification": "uncertain", "raw_candidate_count_513_verification_call_count": 0, "three_group_admitted_for_verification": true, "three_group_verification_call_count": 9, "four_group_channel_classification": "uncertain", "four_group_verification_call_count": 0, "max_verification_call_count": 27, "max_total_audalign_call_count": 36, "planned_call_count_37_result": "rejected", "global_ceiling_exceed_is_operation_failed_zero_artifact": true},
+      "forbidden_side_effects": ["implicit_probe_append", "unbounded_call_loop", "ceiling_raise", "per_camera_partial_on_global_budget"]
+    },
+    {
+      "id": "MAV2-008-mono-two-groups-fail-bounded-lr",
+      "execution_owner": "phase4_profile2_alignment_media_integration",
+      "input": {
+        "probe_starts_ticks": [0, 48434400, 96868800],
+        "mono": {"status": "two_groups_both_failed", "recall_call_count": 3, "candidate_group_count": 2, "verification_call_count": 6, "verification_group_results": [{"B_ticks": -1230150, "window_results": ["failed", "failed", "failed"]}, {"B_ticks": 3569850, "window_results": ["failed", "failed", "failed"]}]},
+        "left": {"status": "mapped", "recall_call_count": 3, "verified_B_ticks": -1230150, "verification_call_count": 3},
+        "right": {"status": "mapped", "recall_call_count": 3, "verified_B_ticks": -1230150, "verification_call_count": 3}
+      },
+      "expected": {"mono_triggers_fallback": true, "mono_fallback_reason": "both_groups_failed_after_six_verifications", "left_schedule": [0, 48434400, 96868800], "right_schedule": [0, 48434400, 96868800], "final_pair_classification": "mapped", "accepted_B_ticks": -1230150, "total_recall_calls": 9, "mono_verification_calls": 6, "total_verification_calls": 12, "channel_conflict_count": 0, "same_B_channels_merge": true},
+      "forbidden_side_effects": ["different_lr_schedule", "channel_specific_unbounded_probe", "mono_failure_as_global_failure", "channel_disagreement_suppressed"]
+    },
+    {
+      "id": "MAV2-009-multifile-pair-order-direct-source-ticks",
+      "execution_owner": "phase4_profile2_alignment_media_integration",
+      "input": {
+        "ordered_pairs": [
+          {"main_source_id": "src_main_1", "aux_source_id": "src_aux_1", "M0_ticks": 0, "A0_ticks": 8430150, "delta_seconds": "60.00036", "expected_B_ticks": -1230107},
+          {"main_source_id": "src_main_2", "aux_source_id": "src_aux_2", "M0_ticks": 0, "A0_ticks": 2400000, "delta_seconds": "10.25125", "expected_B_ticks": -1169850}
+        ],
+        "pair_count": 2,
+        "source_relation_is_direct": true,
+        "pairing_basis": "ordered_source_ids"
+      },
+      "expected": {"pair_execution_order": ["src_main_1↔src_aux_1", "src_main_2↔src_aux_2"], "M0_ticks": [0, 0], "B_ticks": [-1230107, -1169850], "max_planned_recall_calls": 18, "max_planned_audalign_calls": 72, "chain_truth": false},
+      "forbidden_side_effects": ["auxiliary_chain_as_truth", "unordered_pair_scan", "file_name_pairing", "local_offset_persisted"]
+    },
+    {
+      "id": "MAV2-010-deadline-memory-overrun-zero-artifact",
+      "execution_owner": "phase4_profile2_alignment_operation_process_integration",
+      "input": {
+        "operation_budgets": {"max_runtime_seconds": 1800, "max_analysis_memory_bytes": 4294967296, "max_temporary_disk_bytes": 536870912},
+        "failure_cases": ["deadline_exceeded_during_recall", "memory_exceeded_during_verification", "disk_exceeded_before_pair"],
+        "artifact_schema_version": 1
+      },
+      "expected": {"operation_status": "failed", "terminal_error_is_global_budget_code": true, "result_ref": null, "artifact_publish_count": 0, "per_camera_partial": false, "all_child_processes_waited": true},
+      "forbidden_side_effects": ["partial_artifact", "per_camera_downgrade", "ceiling_raise", "orphan_child", "artifact_scan_recovery"]
+    },
+    {
+      "id": "MAV2-011-repeated-fingerprint-fixture-bounded",
+      "execution_owner": "phase4_profile2_alignment_schedule_unit",
+      "input": {
+        "fixture": "synthetic_repeated_fingerprint",
+        "duration_ticks": 98668800,
+        "excerpt_length_ticks": 1800000,
+        "probe_starts_ticks": [0, 48434400, 96868800],
+        "main_against_mode": "complete_source_M0_zero",
+        "main_tiling": "none",
+        "target_window_count_per_call": 1,
+        "raw_candidate_count_per_probe": 512,
+        "max_selected_candidates_per_probe": 1,
+        "max_candidate_groups_per_channel": 3,
+        "max_verification_calls_per_source_pair": 27,
+        "max_audalign_calls_per_source_pair": 36,
+        "channel_mode": "mono_then_lr_fallback",
+        "schedule_fixture_scope": "call_schedule_only"
+      },
+      "expected": {"target_window_length_ticks": 1800000, "mono_recall_call_upper_bound": 3, "lr_recall_call_upper_bound": 9, "total_audalign_call_upper_bound": 36, "verification_call_upper_bound": 27, "selected_candidates_per_probe": 1, "full_length_target_window_count": 0, "internal_fanout_resource_bound_proven": false, "planned_call_count_37_result": "rejected"},
+      "forbidden_side_effects": ["full_length_target_window", "full_length_times_full_length_recall", "second_algorithm", "manual_pairing", "unbounded_retry"]
+    },
+    {
+      "id": "MAV2-012-mono-worker-error-no-lr",
+      "execution_owner": "phase4_profile2_alignment_operation_process_integration",
+      "input": {
+        "probe_starts_ticks": [0, 48434400, 96868800],
+        "mono": {"status": "auxiliary_recognition_failed", "error_code": "auxiliary_recognition_failed", "recall_call_count": 3},
+        "left": {"status": "not_run", "recall_call_count": 0},
+        "right": {"status": "not_run", "recall_call_count": 0}
+      },
+      "expected": {"fallback_triggered": false, "final_pair_classification": "failed", "final_error_code": "auxiliary_recognition_failed", "total_recall_calls": 3, "left_recall_calls": 0, "right_recall_calls": 0, "verification_call_count": 0},
+      "forbidden_side_effects": ["worker_error_as_uncertain", "left_fallback_after_worker_error", "right_fallback_after_worker_error", "partial_artifact"]
+    },
+    {
+      "id": "MAV2-013-windows-hard-memory-enforcement-attribution-boundary",
+      "execution_owner": "phase4_profile2_alignment_operation_process_integration",
+      "input": {
+        "platform": "windows-x64",
+        "operation_budgets": {"max_runtime_seconds": 1800, "max_analysis_memory_bytes": 4294967296, "max_temporary_disk_bytes": 536870912},
+        "cases": [
+          {"case_id": "peak_equals_ceiling_message_absent", "phase": "auxiliary_verification", "returncode": 1, "peak": 4294967296, "message_received": false, "typed_error": null, "stderr_text": "ordinary child failure", "allocation_intent": null},
+          {"case_id": "message_observed_peak_below_ceiling", "phase": "auxiliary_recognition", "returncode": 1, "peak": 4294967295, "message_received": true, "typed_error": null, "stderr_text": "ordinary child failure", "allocation_intent": null},
+          {"case_id": "typed_error_observed", "phase": "alignment_decoding_main", "returncode": null, "peak": 4294967295, "message_received": false, "typed_error": "ChildProcessMemoryBudgetError", "stderr_text": null, "allocation_intent": null},
+          {"case_id": "main_decode_nonzero_text_and_intent", "phase": "alignment_decoding_main", "returncode": 1, "peak": 4294967295, "message_received": false, "typed_error": null, "stderr_text": "MemoryError", "allocation_intent": "attempt_beyond_ceiling"},
+          {"case_id": "main_index_nonzero", "phase": "alignment_indexing_main", "returncode": 1, "peak": 4294967295, "message_received": false, "typed_error": null, "stderr_text": "ordinary child failure", "allocation_intent": null},
+          {"case_id": "auxiliary_decode_nonzero_text_and_intent", "phase": "auxiliary_decode", "returncode": 1, "peak": 4294967295, "message_received": false, "typed_error": null, "stderr_text": "MemoryError", "allocation_intent": "attempt_beyond_ceiling"},
+          {"case_id": "auxiliary_recognition_nonzero", "phase": "auxiliary_recognition", "returncode": 1, "peak": 4294967295, "message_received": false, "typed_error": null, "stderr_text": "ordinary child failure", "allocation_intent": null},
+          {"case_id": "auxiliary_verification_nonzero", "phase": "auxiliary_verification", "returncode": 1, "peak": 4294967295, "message_received": false, "typed_error": null, "stderr_text": "ordinary child failure", "allocation_intent": null}
+        ],
+        "cleanup_cases": [
+          {"case_id": "cleanup_observation_a", "root_or_descendant_alive_before_cleanup": false, "terminate_called": false, "terminate_succeeded": null, "root_wait_completed": true, "class1_query_succeeded": true, "active_processes": 0, "job_close_succeeded": true, "remaining_handle_close_results": {"completion_port": true, "initial_thread_or_gate": true}},
+          {"case_id": "cleanup_observation_b", "root_or_descendant_alive_before_cleanup": true, "terminate_called": true, "terminate_succeeded": false, "root_wait_completed": true, "class1_query_succeeded": true, "active_processes": 1, "job_close_succeeded": true, "remaining_handle_close_results": {"completion_port": true, "initial_thread_or_gate": true}},
+          {"case_id": "cleanup_observation_c", "root_or_descendant_alive_before_cleanup": true, "terminate_called": true, "terminate_succeeded": true, "root_wait_completed": true, "class1_query_succeeded": false, "active_processes": null, "job_close_succeeded": true, "remaining_handle_close_results": {"completion_port": true, "initial_thread_or_gate": true}},
+          {"case_id": "cleanup_observation_d", "root_or_descendant_alive_before_cleanup": true, "terminate_called": true, "terminate_succeeded": false, "root_wait_completed": false, "class1_query_succeeded": false, "active_processes": null, "job_close_succeeded": false, "remaining_handle_close_results": {"completion_port": null, "initial_thread_or_gate": null}},
+          {"case_id": "cleanup_observation_e", "root_or_descendant_alive_before_cleanup": true, "terminate_called": true, "terminate_succeeded": true, "root_wait_completed": true, "class1_query_succeeded": true, "active_processes": 0, "job_close_succeeded": true, "remaining_handle_close_results": {"completion_port": true, "initial_thread_or_gate": true}},
+          {"case_id": "cleanup_observation_f", "root_or_descendant_alive_before_cleanup": true, "terminate_called": true, "terminate_succeeded": false, "root_wait_completed": true, "class1_query_succeeded": false, "active_processes": null, "job_close_succeeded": true, "remaining_handle_close_results": {"completion_port": false, "initial_thread_or_gate": true}}
+        ]
+      },
+      "expected": {
+        "required_evidence_classes": ["windows_native_verified_normal_drain", "deterministic_kernel_control_emergency_containment", "deterministic_abi_fault_injection"],
+        "windows_native_verified_normal_drain": {"hard_limit_flag": "JOB_OBJECT_LIMIT_JOB_MEMORY", "kill_on_job_close_flag": "JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE", "hard_ceiling_bytes": 4294967296, "hard_ceiling_applied": true, "launch_barrier": "documented_deterministic_before_target_execution", "target_executes_only_after_job_assignment": true, "immediate_descendant_cannot_escape": true, "terminate_required_when_timeout_error_or_interrupt_has_live_root_or_descendant": true, "natural_root_exit_with_active_zero_may_omit_terminate": true, "ordered_cleanup_steps": ["terminate_job_if_required_and_require_success", "root_popen_wait", "class1_query_active_processes_zero", "close_job_handle", "close_completion_port_handle", "close_initial_thread_or_gate_handles", "release_writer_lock"], "root_popen_wait_completed": true, "active_processes_query": {"information_class": 1, "structure": "_WindowsBasicAccounting", "active_processes": 0}, "completion_message_substitutes_for_active_processes_query": false, "all_long_lived_handles_closed_before_writer_release": true, "all_handle_closes_succeeded": true, "orphan_process_count": 0, "native_resource_ownership_or_drain_replaceable_by_mock": false, "individual_descendant_handle_wait_required": false},
+        "deterministic_kernel_control_emergency_containment": {"cleanup_case_mapping": {"cleanup_observation_a": "verified_normal_drain", "cleanup_observation_b": "emergency_containment", "cleanup_observation_c": "emergency_containment", "cleanup_observation_d": "job_containment_failed", "cleanup_observation_e": "verified_normal_drain", "cleanup_observation_f": "job_containment_succeeded_remaining_handle_cleanup_failed"}, "emergency_trigger": "persistent_terminate_or_class1_query_failure", "last_owned_job_handle_has_kill_on_job_close": true, "ordered_cleanup_steps": ["close_last_job_handle_with_kill_on_job_close", "root_popen_wait", "close_all_remaining_non_job_handles", "release_writer_lock", "return_existing_failure_if_remaining_handle_closes_succeeded"], "all_remaining_handle_close_attempts_complete_before_writer_release": true, "successful_emergency_close_returns_existing_failure_only_after_remaining_handle_closes_succeed": true, "remaining_handle_close_failure_surfaces_after_all_close_attempts_and_writer_release": true, "artifact_publish_count": 0, "success_written": false, "pre_close_class1_zero_claimed": false, "completion_message_substitutes_for_class1_query": false, "job_close_failure_must_surface": true, "job_close_failure_claimed_as_safe_containment": false, "job_close_failure_hidden_by_prior_primary_error": false, "remaining_handle_close_failure_must_surface": true, "successful_job_containment_reversed_by_remaining_handle_close_failure": false, "remaining_handle_close_failure_claimed_as_full_cleanup_success": false, "new_retry_added": false},
+        "deterministic_abi_fault_injection": {"information_classes": {"JobObjectBasicAccountingInformation": {"literal": 1, "structure": "_WindowsBasicAccounting"}, "JobObjectExtendedLimitInformation": {"literal": 9, "structure": "_WindowsExtendedLimit"}}, "fake_abi_test_expected_literals_source": "independent_literal_1_and_9", "basic_accounting_class_8_accepted": false, "completion_message_case_may_use_fault_injection": true, "real_windows_completion_message_required": false, "case_error_mapping": {"peak_equals_ceiling_message_absent": "alignment_memory_budget_exceeded", "message_observed_peak_below_ceiling": "alignment_memory_budget_exceeded", "typed_error_observed": "alignment_memory_budget_exceeded", "main_decode_nonzero_text_and_intent": "alignment_main_decode_failed", "main_index_nonzero": "alignment_main_index_failed", "auxiliary_decode_nonzero_text_and_intent": "auxiliary_decode_failed", "auxiliary_recognition_nonzero": "auxiliary_recognition_failed", "auxiliary_verification_nonzero": "auxiliary_verification_failed"}, "missing_completion_message_semantics": "unknown_not_negative_evidence"},
+        "positive_evidence_raises": "ChildProcessMemoryBudgetError",
+        "positive_evidence_operation_status": "failed",
+        "positive_evidence_artifact_publish_count": 0,
+        "failed_child_output_accepted": false,
+        "other_safe_camera_results_follow_partial_delivery": true,
+        "owner_derives_mapping_and_cleanup_without_input_answers": true,
+        "json_or_source_search_is_execution_evidence": false
+      },
+      "forbidden_side_effects": ["input_answer_oracle", "input_expected_error", "input_cleanup_order", "input_launch_barrier_answer", "input_hard_ceiling_answer", "memory_inference_from_missing_message", "memory_inference_from_nonzero_returncode", "memory_inference_from_stderr", "memory_inference_from_allocation_intent", "memory_inference_from_near_ceiling_peak", "completion_message_as_drain_proof", "terminate_skipped_while_root_or_descendant_active", "writer_release_before_all_normal_handle_closes_succeed", "writer_release_before_all_emergency_remaining_close_attempts_complete", "failed_child_output_acceptance", "success_after_emergency_containment", "artifact_publish_after_emergency_containment", "pre_close_active_zero_claim_after_emergency_containment", "swallowed_job_close_failure", "swallowed_remaining_handle_close_failure", "remaining_handle_close_failure_reverses_job_containment", "automatic_retry", "ceiling_raise", "pid_scan", "rss_approximation", "orphan_child", "mock_native_resource_ownership", "mock_native_job_drain"]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "roughcut": {
+      "command": "roughcut-mcp",
+      "args": []
+    }
+  }
+}

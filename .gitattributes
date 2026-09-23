@@ -1,0 +1,3 @@
+core/src/roughcut/component_catalog/python/*.lock text eol=lf
+core/src/roughcut/component_catalog/audalign/* -text diff
+core/src/roughcut/component_catalog/audio-offset-finder/* -text diff

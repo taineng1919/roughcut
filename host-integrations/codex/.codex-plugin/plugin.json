@@ -1,0 +1,7 @@
+{
+  "name": "roughcut",
+  "version": "0.1.0",
+  "description": "Local transcript rough-cut tools for Codex.",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

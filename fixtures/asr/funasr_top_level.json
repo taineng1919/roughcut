@@ -1,0 +1,14 @@
+[
+  {
+    "key": "fixture-a",
+    "text": "顶层片段一。",
+    "start": 0,
+    "end": 900
+  },
+  {
+    "key": "fixture-b",
+    "text": "顶层片段二。",
+    "start": 1100,
+    "end": 1900
+  }
+]

@@ -1,0 +1,194 @@
+{
+ "schema_version": 1,
+ "architecture": "x86_64",
+ "artifact_count": 17,
+ "artifacts": [
+  {
+   "component": "audalign_fingerprint",
+   "name": "audalign",
+   "version": "1.3.1",
+   "filename": "audalign-1.3.1-py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/25/24/af008cf18794f411aab9593f67e43a9a6202a4f2746e79310242abdc4089/audalign-1.3.1-py3-none-any.whl",
+   "license": "LICENSE.md",
+   "sha256": "4d78f71a026d30c7462521084a56c7b1f50103e955b04e2ce7015fd8a107c477",
+   "size": 56737,
+   "destination": "audalign/audalign-1.3.1-py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "matplotlib",
+   "version": "3.8.2",
+   "filename": "matplotlib-3.8.2-cp311-cp311-win_amd64.whl",
+   "url": "https://files.pythonhosted.org/packages/26/5a/27fd341e4510257789f19a4b4be8bb90d1113b8f176c3dab562b4f21466e/matplotlib-3.8.2-cp311-cp311-win_amd64.whl",
+   "license": "LICENSE/LICENSE, LICENSE/LICENSE_AMSFONTS, LICENSE/LICENSE_BAKOMA, LICENSE/LICENSE_CARLOGO, LICENSE/LICENSE_COLORBREWER, LICENSE/LICENSE_COURIERTEN, LICENSE/LICENSE_JSXTOOLS_RESIZE_OBSERVER, LICENSE/LICENSE_QHULL, LICENSE/LICENSE_QT4_EDITOR, LICENSE/LICENSE_SOLARIZED, LICENSE/LICENSE_STIX, LICENSE/LICENSE_YORICK",
+   "sha256": "3773002da767f0a9323ba1a9b9b5d00d6257dbd2a93107233167cfb581f64717",
+   "size": 7645742,
+   "destination": "audalign/matplotlib-3.8.2-cp311-cp311-win_amd64.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "numpy",
+   "version": "1.26.4",
+   "filename": "numpy-1.26.4-cp311-cp311-win_amd64.whl",
+   "url": "https://files.pythonhosted.org/packages/3f/6b/5610004206cf7f8e7ad91c5a85a8c71b2f2f8051a0c0c4d5916b76d6cbb2/numpy-1.26.4-cp311-cp311-win_amd64.whl",
+   "license": "see wheel METADATA",
+   "sha256": "cd25bcecc4974d09257ffcd1f098ee778f7834c3ad767fe5db785be9a4aa9cb2",
+   "size": 15811913,
+   "destination": "audalign/numpy-1.26.4-cp311-cp311-win_amd64.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "pydub",
+   "version": "0.25.1",
+   "filename": "pydub-0.25.1-py2.py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/a6/53/d78dc063216e62fc55f6b2eebb447f6a4b0a59f55c8406376f76bf959b08/pydub-0.25.1-py2.py3-none-any.whl",
+   "license": "see wheel METADATA",
+   "sha256": "65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6",
+   "size": 32327,
+   "destination": "audalign/pydub-0.25.1-py2.py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "scipy",
+   "version": "1.12.0",
+   "filename": "scipy-1.12.0-cp311-cp311-win_amd64.whl",
+   "url": "https://files.pythonhosted.org/packages/9a/25/5b30cb3efc9566f0ebeaeca1976150316353c17031ad7868ef46de5ab8dc/scipy-1.12.0-cp311-cp311-win_amd64.whl",
+   "license": "see wheel METADATA",
+   "sha256": "a24024d45ce9a675c1fb8494e8e5244efea1c7a09c60beb1eeb80373d0fecc70",
+   "size": 46162940,
+   "destination": "audalign/scipy-1.12.0-cp311-cp311-win_amd64.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "setuptools",
+   "version": "59.6.0",
+   "filename": "setuptools-59.6.0-py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/b0/3a/88b210db68e56854d0bcf4b38e165e03be377e13907746f825790f3df5bf/setuptools-59.6.0-py3-none-any.whl",
+   "license": "LICENSE",
+   "sha256": "4ce92f1e1f8f01233ee9952c04f6b81d1e02939d6e1b488428154974a4d0783e",
+   "size": 952597,
+   "destination": "audalign/setuptools-59.6.0-py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "tqdm",
+   "version": "4.66.2",
+   "filename": "tqdm-4.66.2-py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/2a/14/e75e52d521442e2fcc9f1df3c5e456aead034203d4797867980de558ab34/tqdm-4.66.2-py3-none-any.whl",
+   "license": "LICENCE",
+   "sha256": "1ee4f8a893eb9bef51c6e35730cebf234d5d0b6bd112b0271e10ed7c24a02bd9",
+   "size": 78296,
+   "destination": "audalign/tqdm-4.66.2-py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "contourpy",
+   "version": "1.3.3",
+   "filename": "contourpy-1.3.3-cp311-cp311-win_amd64.whl",
+   "url": "https://files.pythonhosted.org/packages/98/4b/9bd370b004b5c9d8045c6c33cf65bae018b27aca550a3f657cdc99acdbd8/contourpy-1.3.3-cp311-cp311-win_amd64.whl",
+   "license": "see wheel METADATA",
+   "sha256": "3519428f6be58431c56581f1694ba8e50626f2dd550af225f82fb5f5814d2a42",
+   "size": 225234,
+   "destination": "audalign/contourpy-1.3.3-cp311-cp311-win_amd64.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "cycler",
+   "version": "0.12.1",
+   "filename": "cycler-0.12.1-py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl",
+   "license": "LICENSE",
+   "sha256": "85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30",
+   "size": 8321,
+   "destination": "audalign/cycler-0.12.1-py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "fonttools",
+   "version": "4.63.0",
+   "filename": "fonttools-4.63.0-cp311-cp311-win_amd64.whl",
+   "url": "https://files.pythonhosted.org/packages/08/60/defa5e69641db890a63be281f41345f4c33b157824eaf0b9fad3e08b0dcb/fonttools-4.63.0-cp311-cp311-win_amd64.whl",
+   "license": "LICENSE, LICENSE.external",
+   "sha256": "063e08bd17bd5a90127a14123de0d6a952dbc847695fd98b63c043d58057f90c",
+   "size": 2356389,
+   "destination": "audalign/fonttools-4.63.0-cp311-cp311-win_amd64.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "kiwisolver",
+   "version": "1.5.0",
+   "filename": "kiwisolver-1.5.0-cp311-cp311-win_amd64.whl",
+   "url": "https://files.pythonhosted.org/packages/be/6c/28f17390b62b8f2f520e2915095b3c94d88681ecf0041e75389d9667f202/kiwisolver-1.5.0-cp311-cp311-win_amd64.whl",
+   "license": "LICENSE",
+   "sha256": "beb7f344487cdcb9e1efe4b7a29681b74d34c08f0043a327a74da852a6749e7b",
+   "size": 73480,
+   "destination": "audalign/kiwisolver-1.5.0-cp311-cp311-win_amd64.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "packaging",
+   "version": "26.2",
+   "filename": "packaging-26.2-py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl",
+   "license": "LICENSE, LICENSE.APACHE, LICENSE.BSD",
+   "sha256": "5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e",
+   "size": 100195,
+   "destination": "audalign/packaging-26.2-py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "pillow",
+   "version": "12.3.0",
+   "filename": "pillow-12.3.0-cp311-cp311-win_amd64.whl",
+   "url": "https://files.pythonhosted.org/packages/63/c6/4bad1b18d132a50b27e1365e1ab163616f7a5bb56d330f66f9d1d9d4f9d4/pillow-12.3.0-cp311-cp311-win_amd64.whl",
+   "license": "LICENSE",
+   "sha256": "8e95e1385e4998ae9694eeaa4730ba5457ff61185b3a55e2e7bea0880aef452a",
+   "size": 7233653,
+   "destination": "audalign/pillow-12.3.0-cp311-cp311-win_amd64.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "pyparsing",
+   "version": "3.3.2",
+   "filename": "pyparsing-3.3.2-py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/10/bd/c038d7cc38edc1aa5bf91ab8068b63d4308c66c4c8bb3cbba7dfbc049f9c/pyparsing-3.3.2-py3-none-any.whl",
+   "license": "LICENSE",
+   "sha256": "850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d",
+   "size": 122781,
+   "destination": "audalign/pyparsing-3.3.2-py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "python-dateutil",
+   "version": "2.9.0.post0",
+   "filename": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+   "license": "LICENSE",
+   "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427",
+   "size": 229892,
+   "destination": "audalign/python_dateutil-2.9.0.post0-py2.py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "six",
+   "version": "1.17.0",
+   "filename": "six-1.17.0-py2.py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl",
+   "license": "LICENSE",
+   "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
+   "size": 11050,
+   "destination": "audalign/six-1.17.0-py2.py3-none-any.whl"
+  },
+  {
+   "component": "audalign_fingerprint",
+   "name": "colorama",
+   "version": "0.4.6",
+   "filename": "colorama-0.4.6-py2.py3-none-any.whl",
+   "url": "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl",
+   "license": "LICENSE.txt",
+   "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+   "size": 25335,
+   "destination": "audalign/colorama-0.4.6-py2.py3-none-any.whl"
+  }
+ ]
+}

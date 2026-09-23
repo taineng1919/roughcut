@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "kind": "roughcut_installation_operation_vectors",
+  "vectors": [
+    {
+      "id": "IOR-001",
+      "title": "new installation succeeds",
+      "expect": "pending_running_succeeded_with_runtime_ref"
+    },
+    {
+      "id": "IOR-002",
+      "title": "explicit installer failure",
+      "expect": "failed_with_closed_responsibility"
+    },
+    {
+      "id": "IOR-003",
+      "title": "keyboard interrupt",
+      "expect": "interrupted_and_cleanup_preserved"
+    },
+    {
+      "id": "IOR-004",
+      "title": "hard exit writer disappeared",
+      "expect": "status_converges_running_to_interrupted"
+    },
+    {
+      "id": "IOR-005",
+      "title": "host task disappeared but writer remains",
+      "expect": "status_remains_running_and_apply_not_repeated"
+    },
+    {
+      "id": "IOR-006",
+      "title": "terminal cannot return to running",
+      "expect": "operation_transition_not_allowed"
+    },
+    {
+      "id": "IOR-007",
+      "title": "same operation and input retries existing-first",
+      "expect": "same_record_readback_without_plan_or_prerequisite_check"
+    },
+    {
+      "id": "IOR-008",
+      "title": "same operation different input",
+      "expect": "operation_input_conflict"
+    },
+    {
+      "id": "IOR-009",
+      "title": "quick plan used for full apply",
+      "expect": "zero_download_zero_publish_rejected"
+    },
+    {
+      "id": "IOR-010",
+      "title": "new operation approved full plan became stale",
+      "expect": "stale_rejected_before_operation_record_download_or_publish"
+    },
+    {
+      "id": "IOR-011",
+      "title": "success response lost",
+      "expect": "succeeded_readback_without_reapply"
+    },
+    {
+      "id": "IOR-012",
+      "title": "runtime binding publication fails",
+      "expect": "failed_record_matches_runtime_responsibility"
+    },
+    {
+      "id": "IOR-013",
+      "title": "closed JSON and schema integrity",
+      "expect": "missing_extra_duplicate_unknown_schema_rejected"
+    },
+    {
+      "id": "IOR-014",
+      "title": "unsafe record storage nodes",
+      "expect": "symlink_hardlink_path_escape_rejected"
+    },
+    {
+      "id": "IOR-015",
+      "title": "pure status read",
+      "expect": "no_plan_download_install_verify_or_publish"
+    },
+    {
+      "id": "IOR-016",
+      "title": "cross-platform lock branch",
+      "expect": "posix_passed_windows_fixture_only"
+    },
+    {
+      "id": "IOR-017",
+      "title": "staged full verification framing failure",
+      "expect": "failed_component_installer_not_user_input"
+    },
+    {
+      "id": "IOR-018",
+      "title": "stale new operation remains user input without record",
+      "expect": "user_input_validate_approved_full_plan_without_operation_record"
+    },
+    {
+      "id": "IOR-019",
+      "title": "full verification text cannot change typed mapping",
+      "expect": "typed_mapping_ignores_error_text"
+    },
+    {
+      "id": "IOR-020",
+      "title": "network transport failure remains HTTPS runtime",
+      "expect": "network_transport_maps_to_python_https_runtime"
+    }
+  ]
+}

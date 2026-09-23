@@ -1,0 +1,292 @@
+{
+  "models": [
+    {
+      "directory_sha256": "f85944b34ef2da2ef9468b977c7856cb4adc5acc063560bad5bd10d4220d54fb",
+      "files": [
+        {
+          "path": ".gitattributes",
+          "sha256": "250c7e711fdc0cb21d71417b4dd84fe42790c67f6e34003b9e53795b2655983b",
+          "size": 1506,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=.gitattributes"
+        },
+        {
+          "path": "README.md",
+          "sha256": "c92fa06ad63cc9962b9515eb23872f8ed8052fecb4f2df90ec7d0cdbaf916b9f",
+          "size": 13677,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=README.md"
+        },
+        {
+          "path": "am.mvn",
+          "sha256": "29b3c740a2c0cfc6b308126d31d7f265fa2be74f3bb095cd2f143ea970896ae5",
+          "size": 11203,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=am.mvn"
+        },
+        {
+          "path": "asr_example_hotword.wav",
+          "sha256": "51792bc95be33075c1a8abb9afb76ad9f72943e84cd723cc8825b2678799b004",
+          "size": 253642,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=asr_example_hotword.wav"
+        },
+        {
+          "path": "config.yaml",
+          "sha256": "6602efa95e4c7248e1d1030f7ff454a3c9af0f57c335ed87f35260cd7faec35d",
+          "size": 3477,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=config.yaml"
+        },
+        {
+          "path": "configuration.json",
+          "sha256": "1acac324430b5a4680ef5ee2947575443ab2039a92c8a0551665f6bc9a606b41",
+          "size": 478,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=configuration.json"
+        },
+        {
+          "path": "example/asr_example.wav",
+          "sha256": "2ffa478de2cd570dd54e8762008cd6bbde9871fd79757f1cdbbec7d6b7b49274",
+          "size": 144770,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=example%2Fasr_example.wav"
+        },
+        {
+          "path": "example/hotword.txt",
+          "sha256": "c16dbde81120bb4be3a3a0838ec692da0ab4f0b6503aea9348bf318186e5a452",
+          "size": 7,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=example%2Fhotword.txt"
+        },
+        {
+          "path": "fig/res.png",
+          "sha256": "1f59ebc6a86733896b2b84110e2aae5625754382762bf1324e017d89a152c2fb",
+          "size": 196655,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=fig%2Fres.png"
+        },
+        {
+          "path": "fig/seaco.png",
+          "sha256": "6886864eb6bcc6487a17111b5e3353bd72e7c78fda98c27cf47faa35eafbdcaf",
+          "size": 170780,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=fig%2Fseaco.png"
+        },
+        {
+          "path": "model.pt",
+          "sha256": "3d491689244ec5dfbf9170ef3827c358aa10f1f20e42a7c59e15e688647946d1",
+          "size": 989763045,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=model.pt"
+        },
+        {
+          "path": "seg_dict",
+          "sha256": "59a2ef803a3f1648ad03a2e1480db1c1ee0c0d7dc4ef4dbd16cea33944329022",
+          "size": 8287834,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=seg_dict"
+        },
+        {
+          "path": "tokens.json",
+          "sha256": "2b20c2b12572d682afff84ce1c8d560f67b8b32a4c1f21567411d141ed352127",
+          "size": 93676,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/repo?Revision=0141367fdc9b6ba58b0442ef34bceb56a6c1789c&FilePath=tokens.json"
+        }
+      ],
+      "license": "Apache-2.0",
+      "name": "model_asr",
+      "repository": "iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
+      "revision": "0141367fdc9b6ba58b0442ef34bceb56a6c1789c",
+      "size": 998940750
+    },
+    {
+      "directory_sha256": "6a29e5c990a2b7d49736c36bfb74b64b56383023d04866133db73bff4808b2a9",
+      "files": [
+        {
+          "path": ".gitattributes",
+          "sha256": "f3d04437c926962476701a7939d22f21400b4eb0bdd31a15f0012576f2d00932",
+          "size": 1414,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=.gitattributes"
+        },
+        {
+          "path": "README.md",
+          "sha256": "42377011603a186fc2bae41a5cc5e548ebf98d8ec307bbae9dd405f82567f543",
+          "size": 11567,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=README.md"
+        },
+        {
+          "path": "am.mvn",
+          "sha256": "6820fef9687708c4fc3fab2530179c8fcea6262daa25514380056cd8f6eb1754",
+          "size": 8040,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=am.mvn"
+        },
+        {
+          "path": "config.yaml",
+          "sha256": "486861ca26ddb79081663b6179cb204c6bfae71c52f04aafc48a9e9d8dde1e93",
+          "size": 1215,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=config.yaml"
+        },
+        {
+          "path": "configuration.json",
+          "sha256": "7bce8867e37d55c3dd8f672695ced18077a2be199ea529a5d432d5350fc0acba",
+          "size": 365,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=configuration.json"
+        },
+        {
+          "path": "example/vad_example.wav",
+          "sha256": "a7431f0169ef76ef630c945a1d2c3675d8c8c2df2ae4a6b16f8a88ba1bccfbbb",
+          "size": 2261722,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=example%2Fvad_example.wav"
+        },
+        {
+          "path": "fig/struct.png",
+          "sha256": "c745bcc2fd4952fb1fe5a0f7f9fdabda510c3771e7a47dd22be605e26db4ee2c",
+          "size": 27914,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=fig%2Fstruct.png"
+        },
+        {
+          "path": "model.pt",
+          "sha256": "b3be75be477f0780277f3bae0fe489f48718f585f3a6e45d7dd1fbb1a4255fc5",
+          "size": 1721366,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/repo?Revision=f9a8b8274674755d925277e27063869038d41515&FilePath=model.pt"
+        }
+      ],
+      "license": "Apache-2.0",
+      "name": "model_vad",
+      "repository": "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch",
+      "revision": "f9a8b8274674755d925277e27063869038d41515",
+      "size": 4033603
+    },
+    {
+      "directory_sha256": "0655fb08490008a44bbed75f451bd67c5f36e8051e88fb7c3877e5dc44919b74",
+      "files": [
+        {
+          "path": ".gitattributes",
+          "sha256": "bc7177460104c4a1b762899a2c158fed192e0c4db70c974f169b5136cdf17acc",
+          "size": 1458,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=.gitattributes"
+        },
+        {
+          "path": "README.md",
+          "sha256": "d1f2f3c30db716fb995208608d4305b045f6ef7b7b46a84e7e2d200160df50e0",
+          "size": 11561,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=README.md"
+        },
+        {
+          "path": "config.yaml",
+          "sha256": "c5ffb25cd063ed366cb26283908dca05a08ecfef8e90bef1d498ef9ffacd7552",
+          "size": 812,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=config.yaml"
+        },
+        {
+          "path": "configuration.json",
+          "sha256": "7043245e6264cea789404e498a6f55a330a18585a4690d35dfe71741e6982237",
+          "size": 450,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=configuration.json"
+        },
+        {
+          "path": "example/punc_example.txt",
+          "sha256": "1905542a6e78e344504a3b56cbc772eb391a20eb7eac71830f837852b558dd0c",
+          "size": 863,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=example%2Fpunc_example.txt"
+        },
+        {
+          "path": "fig/struct.png",
+          "sha256": "90e5bdca14b00d4bbcafcbb1e9e2ca0e3905afb2b3b3129e5fd85d49b059812c",
+          "size": 154534,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=fig%2Fstruct.png"
+        },
+        {
+          "path": "jieba.c.dict",
+          "sha256": "eb0a68f8bfa65e6956d59e8f9652b49f5c91952273e24737bc9a8c5e23055221",
+          "size": 41536866,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=jieba.c.dict"
+        },
+        {
+          "path": "jieba_usr_dict",
+          "sha256": "059aa2af152734d5fd011a4d69cbab171f62347074db0db5157c17b5649010f5",
+          "size": 11280857,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=jieba_usr_dict"
+        },
+        {
+          "path": "model.pt",
+          "sha256": "7176cae922a872e130e6b88aef9a1153581711baf79c9124c7c95be383cd6f81",
+          "size": 1125507622,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=model.pt"
+        },
+        {
+          "path": "tokens.json",
+          "sha256": "89951fe0669380ed33298ee048c4a2b0ebcaaf6ee8f332d85c281c41d0f38392",
+          "size": 8280697,
+          "url": "https://modelscope.cn/api/v1/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large/repo?Revision=45ab6961ad58a973ce7785401b4e93a0aab907a3&FilePath=tokens.json"
+        }
+      ],
+      "license": "Apache-2.0",
+      "name": "model_punc",
+      "repository": "iic/punc_ct-transformer_cn-en-common-vocab471067-large",
+      "revision": "45ab6961ad58a973ce7785401b4e93a0aab907a3",
+      "size": 1186775720
+    },
+    {
+      "directory_sha256": "b3c108deb1f66464fd53d31aa1fe0997f51c5cf2a51c269561ac01de17a88870",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "9bd58b989a534fa0121c8d10e62c0cce9080a9a9aeb2499bb429676f9c17cc3a",
+          "size": 6004,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=README.md"
+        },
+        {
+          "path": "campplus_cn_common.bin",
+          "sha256": "3388cf5fd3493c9ac9c69851d8e7a8badcfb4f3dc631020c4961371646d5ada8",
+          "size": 28036335,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=campplus_cn_common.bin"
+        },
+        {
+          "path": "config.yaml",
+          "sha256": "17342041bd5b22f6fd7e32f6e7a267b0bf65f018c0a721bada6547e3d28fbfc9",
+          "size": 537,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=config.yaml"
+        },
+        {
+          "path": "configuration.json",
+          "sha256": "6f7acaf1e81ca121f4a3c71b6ddb66beec24350a3ef330e2c846f17829176a8f",
+          "size": 581,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=configuration.json"
+        },
+        {
+          "path": "dingding.jpg",
+          "sha256": "e06e800d10edb766768dff0a1677b70715f5f517a58a05369a171cc9bb7499c0",
+          "size": 184010,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=dingding.jpg"
+        },
+        {
+          "path": "examples/speaker1_a_cn_16k.wav",
+          "sha256": "5f20ce0ddc378ca3239d3ce864b1142726a46a1221ae553912e4e142045df58b",
+          "size": 118932,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=examples%2Fspeaker1_a_cn_16k.wav"
+        },
+        {
+          "path": "examples/speaker1_b_cn_16k.wav",
+          "sha256": "20745dc08a4281894d146140b99b9ef7417ac681119b7f7202f553cdf1a85f65",
+          "size": 157058,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=examples%2Fspeaker1_b_cn_16k.wav"
+        },
+        {
+          "path": "examples/speaker2_a_cn_16k.wav",
+          "sha256": "8a6cffa452df32ef10503f7992f22ffcdd7f16c4e0273d13311bc5cdcb13abf4",
+          "size": 170028,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=examples%2Fspeaker2_a_cn_16k.wav"
+        },
+        {
+          "path": "quickstart.md",
+          "sha256": "e16e6134b030b7fea46f6729246b18c2945d755b4070ab78b513fe4fab38b6e3",
+          "size": 1530,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=quickstart.md"
+        },
+        {
+          "path": "structure.png",
+          "sha256": "1ff916275cbfe40e1e5584ef66f81b776ef992e9997d8658328394d023dba1b8",
+          "size": 286018,
+          "url": "https://modelscope.cn/api/v1/models/iic/speech_campplus_sv_zh-cn_16k-common/repo?Revision=v2.0.2&FilePath=structure.png"
+        }
+      ],
+      "license": "Apache-2.0",
+      "name": "model_spk",
+      "repository": "iic/speech_campplus_sv_zh-cn_16k-common",
+      "revision": "v2.0.2",
+      "size": 28961033
+    }
+  ],
+  "schema_version": 1,
+  "source": "ModelScope official repository-files API"
+}

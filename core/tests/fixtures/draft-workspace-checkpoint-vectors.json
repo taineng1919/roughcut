@@ -1,0 +1,1226 @@
+{
+  "schema_version": 1,
+  "contract": "draft_workspace_checkpoint_v1",
+  "vector_schema": {
+    "setup_fields": [
+      "checkpoint_state",
+      "project_revision",
+      "checkpoint_project_revision",
+      "stage",
+      "lifecycle",
+      "anchor_candidate_id",
+      "current_candidate_id",
+      "redo_candidate_ids",
+      "history",
+      "injected_fault"
+    ],
+    "request_fields": [
+      "kind",
+      "operation_id",
+      "expected_generation",
+      "expected_candidate_id",
+      "result_candidate_id",
+      "same_request_as"
+    ],
+    "expect_fields": [
+      "result",
+      "error_code",
+      "checkpoint_generation",
+      "current_candidate_id",
+      "redo_candidate_ids",
+      "new_child_count",
+      "orphan_child_ids",
+      "project_revision_delta",
+      "stage",
+      "user_success_reported",
+      "preserve_evidence"
+    ]
+  },
+  "vectors": [
+    {
+      "id": "DWC-001",
+      "title": "首次显式进入 draft_review 初始化 checkpoint",
+      "setup": {
+        "checkpoint_state": "absent",
+        "project_revision": 7,
+        "checkpoint_project_revision": null,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "initialize",
+        "operation_id": "dwop_0_00000000000000000000000000000001",
+        "expected_generation": 0,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_a",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": 1,
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-002",
+      "title": "正常机械编辑先发布 immutable child 再提交 checkpoint",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "edit_delete",
+        "operation_id": "dwop_1_00000000000000000000000000000002",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": 2,
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [],
+        "new_child_count": 1,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-003",
+      "title": "响应丢失后同 operation ID 同输入回读",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_b",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": "response_lost_after_checkpoint"
+      },
+      "request": {
+        "kind": "edit_delete",
+        "operation_id": "dwop_1_00000000000000000000000000000002",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_b",
+        "same_request_as": "DWC-002"
+      },
+      "expect": {
+        "result": "readback",
+        "error_code": null,
+        "checkpoint_generation": 2,
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-004",
+      "title": "同 operation ID 不同输入冲突",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_b",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": "same_operation_id_different_input"
+      },
+      "request": {
+        "kind": "edit_move",
+        "operation_id": "dwop_1_00000000000000000000000000000002",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_c",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_action_conflict",
+        "checkpoint_generation": 2,
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-005",
+      "title": "两个 Review 服务以同一 generation 做 CAS 只有先到者成功",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": "concurrent_cas_loser"
+      },
+      "request": {
+        "kind": "edit_insert",
+        "operation_id": "dwop_1_00000000000000000000000000000005",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_loser",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_stale",
+        "checkpoint_generation": 2,
+        "current_candidate_id": "draft_winner",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-006",
+      "title": "child 写入失败保持旧 checkpoint",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": "child_write_failed"
+      },
+      "request": {
+        "kind": "narration_edit",
+        "operation_id": "dwop_1_00000000000000000000000000000006",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_write_failed",
+        "checkpoint_generation": 1,
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-007",
+      "title": "checkpoint temp 写入失败清理身份匹配的新 child",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": "checkpoint_temp_write_failed"
+      },
+      "request": {
+        "kind": "edit_delete",
+        "operation_id": "dwop_1_00000000000000000000000000000007",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_write_failed",
+        "checkpoint_generation": 1,
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-008",
+      "title": "checkpoint replace 失败保持旧 checkpoint 并清理 owned child",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": "checkpoint_replace_failed"
+      },
+      "request": {
+        "kind": "edit_move",
+        "operation_id": "dwop_1_00000000000000000000000000000008",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_write_failed",
+        "checkpoint_generation": 1,
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-009",
+      "title": "child 发布后 checkpoint 前硬退出恢复旧成功状态",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_orphan",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": "hard_exit_after_child_before_checkpoint"
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_1_00000000000000000000000000000009",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_a",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "recover",
+        "error_code": null,
+        "checkpoint_generation": 1,
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [
+          "draft_orphan"
+        ],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-010",
+      "title": "连续十次编辑保留第十个精确 current",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_0",
+        "current_candidate_id": "draft_9",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_0",
+            "child_id": "draft_1",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_1",
+            "child_id": "draft_2",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_2",
+            "child_id": "draft_3",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_3",
+            "child_id": "draft_4",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_4",
+            "child_id": "draft_5",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_5",
+            "child_id": "draft_6",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_6",
+            "child_id": "draft_7",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_7",
+            "child_id": "draft_8",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_8",
+            "child_id": "draft_9",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "edit_insert",
+        "operation_id": "dwop_10_00000000000000000000000000000010",
+        "expected_generation": 10,
+        "expected_candidate_id": "draft_9",
+        "result_candidate_id": "draft_10",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": 11,
+        "current_candidate_id": "draft_10",
+        "redo_candidate_ids": [],
+        "new_child_count": 1,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-011",
+      "title": "undo 原子移动 pointer 并把旧 current 放到 redo 末项",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_c",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_b",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_b",
+            "child_id": "draft_c",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "undo",
+        "operation_id": "dwop_3_00000000000000000000000000000011",
+        "expected_generation": 3,
+        "expected_candidate_id": "draft_c",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": 4,
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [
+          "draft_c"
+        ],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-012",
+      "title": "redo 只取数组末项 direct child",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [
+          "draft_c",
+          "draft_b"
+        ],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_b",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_b",
+            "child_id": "draft_c",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "redo",
+        "operation_id": "dwop_5_00000000000000000000000000000012",
+        "expected_generation": 5,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": 6,
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [
+          "draft_c"
+        ],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-013",
+      "title": "undo 后新编辑清空 redo 但保留旧 child",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [
+          "draft_c"
+        ],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_b",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_b",
+            "child_id": "draft_c",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "edit_move",
+        "operation_id": "dwop_6_00000000000000000000000000000013",
+        "expected_generation": 6,
+        "expected_candidate_id": "draft_b",
+        "result_candidate_id": "draft_branch",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": 7,
+        "current_candidate_id": "draft_branch",
+        "redo_candidate_ids": [],
+        "new_child_count": 1,
+        "orphan_child_ids": [
+          "draft_c"
+        ],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-014",
+      "title": "Review 服务重启恢复 exact current 与 redo",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [
+          "draft_d",
+          "draft_c"
+        ],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_b",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_b",
+            "child_id": "draft_c",
+            "basis": "same"
+          },
+          {
+            "parent_id": "draft_c",
+            "child_id": "draft_d",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": "review_service_restart"
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_8_00000000000000000000000000000014",
+        "expected_generation": 8,
+        "expected_candidate_id": "draft_b",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "recover",
+        "error_code": null,
+        "checkpoint_generation": 8,
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [
+          "draft_d",
+          "draft_c"
+        ],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-015",
+      "title": "外部 Project revision 变化使 checkpoint stale",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 8,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_a",
+            "child_id": "draft_b",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": "external_project_revision"
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_2_00000000000000000000000000000015",
+        "expected_generation": 2,
+        "expected_candidate_id": "draft_b",
+        "result_candidate_id": "draft_b",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_stale",
+        "checkpoint_generation": 2,
+        "current_candidate_id": "draft_b",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-016",
+      "title": "损坏 JSON 不回退到 run anchor",
+      "setup": {
+        "checkpoint_state": "corrupt_json",
+        "project_revision": 7,
+        "checkpoint_project_revision": null,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_1_00000000000000000000000000000016",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_a",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_integrity_error",
+        "checkpoint_generation": null,
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-017",
+      "title": "checkpoint symlink 保留证据并拒绝",
+      "setup": {
+        "checkpoint_state": "symlink",
+        "project_revision": 7,
+        "checkpoint_project_revision": null,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_1_00000000000000000000000000000017",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_a",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_integrity_error",
+        "checkpoint_generation": null,
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-018",
+      "title": "checkpoint hardlink 保留证据并拒绝",
+      "setup": {
+        "checkpoint_state": "hardlink",
+        "project_revision": 7,
+        "checkpoint_project_revision": null,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_1_00000000000000000000000000000018",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_a",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_integrity_error",
+        "checkpoint_generation": null,
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-019",
+      "title": "路径逃逸或跨 Project run 身份拒绝",
+      "setup": {
+        "checkpoint_state": "path_escape",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_foreign",
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": "cross_project_identity"
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_1_00000000000000000000000000000019",
+        "expected_generation": 1,
+        "expected_candidate_id": "draft_foreign",
+        "result_candidate_id": "draft_foreign",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_integrity_error",
+        "checkpoint_generation": 1,
+        "current_candidate_id": "draft_foreign",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-020",
+      "title": "旧 Project 纯读取不创建 checkpoint 或 run",
+      "setup": {
+        "checkpoint_state": "absent",
+        "project_revision": 4,
+        "checkpoint_project_revision": null,
+        "stage": "none",
+        "lifecycle": "none",
+        "anchor_candidate_id": null,
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": "legacy_read_only"
+      },
+      "request": {
+        "kind": "read",
+        "operation_id": "dwop_0_00000000000000000000000000000020",
+        "expected_generation": 0,
+        "expected_candidate_id": null,
+        "result_candidate_id": null,
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": null,
+        "current_candidate_id": null,
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "none",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-021",
+      "title": "approve_draft 后旧 checkpoint 不作为 confirmed current 恢复",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 8,
+        "checkpoint_project_revision": 7,
+        "stage": "roughcut_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_confirmed",
+        "current_candidate_id": "draft_unconfirmed",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_unconfirmed",
+            "child_id": "draft_confirmed",
+            "basis": "approval"
+          }
+        ],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_3_00000000000000000000000000000021",
+        "expected_generation": 3,
+        "expected_candidate_id": "draft_unconfirmed",
+        "result_candidate_id": "draft_unconfirmed",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_transition_not_allowed",
+        "checkpoint_generation": 3,
+        "current_candidate_id": "draft_unconfirmed",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "roughcut_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-022",
+      "title": "return_to_draft 原子 reset 到 exact confirmed anchor 并清 redo",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 9,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_confirmed",
+        "current_candidate_id": "draft_unconfirmed",
+        "redo_candidate_ids": [
+          "draft_old_redo"
+        ],
+        "history": [
+          {
+            "parent_id": "draft_unconfirmed",
+            "child_id": "draft_confirmed",
+            "basis": "approval"
+          }
+        ],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "return_to_draft_reset",
+        "operation_id": "dwop_3_00000000000000000000000000000022",
+        "expected_generation": 3,
+        "expected_candidate_id": "draft_unconfirmed",
+        "result_candidate_id": "draft_confirmed",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "success",
+        "error_code": null,
+        "checkpoint_generation": 4,
+        "current_candidate_id": "draft_confirmed",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [
+          "draft_old_redo"
+        ],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": true,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-023",
+      "title": "return receipt 后 reset 前硬退出由下次打开确定性完成",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 9,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_confirmed",
+        "current_candidate_id": "draft_unconfirmed",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_unconfirmed",
+            "child_id": "draft_confirmed",
+            "basis": "approval"
+          }
+        ],
+        "injected_fault": "hard_exit_after_return_receipt_before_checkpoint_reset"
+      },
+      "request": {
+        "kind": "recover_return_to_draft",
+        "operation_id": "dwop_3_00000000000000000000000000000023",
+        "expected_generation": 3,
+        "expected_candidate_id": "draft_unconfirmed",
+        "result_candidate_id": "draft_confirmed",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "recover",
+        "error_code": null,
+        "checkpoint_generation": 4,
+        "current_candidate_id": "draft_confirmed",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-024",
+      "title": "redo ref 不是 direct child 时 restart fail closed",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [
+          "draft_sibling"
+        ],
+        "history": [
+          {
+            "parent_id": "draft_other",
+            "child_id": "draft_sibling",
+            "basis": "same"
+          }
+        ],
+        "injected_fault": null
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_2_00000000000000000000000000000024",
+        "expected_generation": 2,
+        "expected_candidate_id": "draft_a",
+        "result_candidate_id": "draft_a",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_integrity_error",
+        "checkpoint_generation": 2,
+        "current_candidate_id": "draft_a",
+        "redo_candidate_ids": [
+          "draft_sibling"
+        ],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-025",
+      "title": "current ArtifactRef 指向未知 Content Draft 时不猜测替代",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 7,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_a",
+        "current_candidate_id": "draft_unknown",
+        "redo_candidate_ids": [],
+        "history": [],
+        "injected_fault": "missing_current_artifact"
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_2_00000000000000000000000000000025",
+        "expected_generation": 2,
+        "expected_candidate_id": "draft_unknown",
+        "result_candidate_id": "draft_unknown",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "reject",
+        "error_code": "draft_workspace_integrity_error",
+        "checkpoint_generation": 2,
+        "current_candidate_id": "draft_unknown",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    },
+    {
+      "id": "DWC-026",
+      "title": "return reset 后的首个 unconfirmed child 可跨唯一 reopened basis 边界恢复",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 9,
+        "checkpoint_project_revision": 9,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_confirmed",
+        "current_candidate_id": "draft_return_child",
+        "redo_candidate_ids": [],
+        "history": [
+          {
+            "parent_id": "draft_confirmed",
+            "child_id": "draft_return_child",
+            "basis": "return_reopen"
+          }
+        ],
+        "injected_fault": "review_service_restart"
+      },
+      "request": {
+        "kind": "recover",
+        "operation_id": "dwop_5_00000000000000000000000000000026",
+        "expected_generation": 5,
+        "expected_candidate_id": "draft_return_child",
+        "result_candidate_id": "draft_return_child",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "recover",
+        "error_code": null,
+        "checkpoint_generation": 5,
+        "current_candidate_id": "draft_return_child",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": false
+      }
+    },
+    {
+      "id": "DWC-027",
+      "title": "scope 或 Brief rebase receipt 后确定性 reset 到新的 unconfirmed anchor",
+      "setup": {
+        "checkpoint_state": "valid",
+        "project_revision": 8,
+        "checkpoint_project_revision": 7,
+        "stage": "draft_review",
+        "lifecycle": "active",
+        "anchor_candidate_id": "draft_rebase",
+        "current_candidate_id": "draft_old_anchor",
+        "redo_candidate_ids": [
+          "draft_old_redo"
+        ],
+        "history": [
+          {
+            "parent_id": "draft_old_anchor",
+            "child_id": "draft_rebase",
+            "basis": "rebase"
+          }
+        ],
+        "injected_fault": "hard_exit_after_rebase_receipt_before_checkpoint_reset"
+      },
+      "request": {
+        "kind": "recover_workflow_anchor_reset",
+        "operation_id": "dwop_4_00000000000000000000000000000027",
+        "expected_generation": 4,
+        "expected_candidate_id": "draft_old_anchor",
+        "result_candidate_id": "draft_rebase",
+        "same_request_as": null
+      },
+      "expect": {
+        "result": "recover",
+        "error_code": null,
+        "checkpoint_generation": 5,
+        "current_candidate_id": "draft_rebase",
+        "redo_candidate_ids": [],
+        "new_child_count": 0,
+        "orphan_child_ids": [
+          "draft_old_redo"
+        ],
+        "project_revision_delta": 0,
+        "stage": "draft_review",
+        "user_success_reported": false,
+        "preserve_evidence": true
+      }
+    }
+  ]
+}

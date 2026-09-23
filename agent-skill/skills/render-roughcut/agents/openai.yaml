@@ -1,0 +1,4 @@
+interface:
+  display_name: "Render roughcut"
+  short_description: "Render a confirmed roughcut to verified MP4"
+  default_prompt: "Render the active confirmed roughcut only after showing its timeline and output settings for explicit approval."

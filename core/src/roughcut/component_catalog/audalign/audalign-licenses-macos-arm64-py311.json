@@ -1,0 +1,160 @@
+{
+ "Pillow": {
+  "dist_info": "pillow-12.3.0.dist-info",
+  "license_files": [
+   "LICENSE"
+  ],
+  "payloads": {
+   "LICENSE": null
+  }
+ },
+ "audalign": {
+  "dist_info": "audalign-1.3.1.dist-info",
+  "license_files": [
+   "LICENSE.md"
+  ],
+  "payloads": {
+   "LICENSE.md": null
+  }
+ },
+ "contourpy": {
+  "dist_info": "contourpy-1.3.3.dist-info",
+  "license_files": [],
+  "payloads": {}
+ },
+ "cycler": {
+  "dist_info": "cycler-0.12.1.dist-info",
+  "license_files": [
+   "LICENSE"
+  ],
+  "payloads": {
+   "LICENSE": "Copyright (c) 2015, matplotlib project\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n* Redistributions of source code must retain the above copyright notice, this\n  list of conditions and the following disclaimer.\n\n* Redistributions in binary form must reproduce the above copyright notice,\n  this list of conditions and the following disclaimer in the documentation\n  and/or other materials provided with the distribution.\n\n* Neither the name of the matplotlib project nor the names of its\n  contributors may be used to endorse or promote products derived from\n  this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+  }
+ },
+ "fonttools": {
+  "dist_info": "fonttools-4.63.0.dist-info",
+  "license_files": [
+   "LICENSE",
+   "LICENSE.external"
+  ],
+  "payloads": {
+   "LICENSE": null,
+   "LICENSE.external": null
+  }
+ },
+ "kiwisolver": {
+  "dist_info": "kiwisolver-1.5.0.dist-info",
+  "license_files": [
+   "LICENSE"
+  ],
+  "payloads": {
+   "LICENSE": null
+  }
+ },
+ "matplotlib": {
+  "dist_info": "matplotlib-3.8.2.dist-info",
+  "license_files": [
+   "LICENSE/LICENSE",
+   "LICENSE/LICENSE_AMSFONTS",
+   "LICENSE/LICENSE_BAKOMA",
+   "LICENSE/LICENSE_CARLOGO",
+   "LICENSE/LICENSE_COLORBREWER",
+   "LICENSE/LICENSE_COURIERTEN",
+   "LICENSE/LICENSE_JSXTOOLS_RESIZE_OBSERVER",
+   "LICENSE/LICENSE_QHULL",
+   "LICENSE/LICENSE_QT4_EDITOR",
+   "LICENSE/LICENSE_SOLARIZED",
+   "LICENSE/LICENSE_STIX",
+   "LICENSE/LICENSE_YORICK"
+  ],
+  "payloads": {
+   "LICENSE/LICENSE": null,
+   "LICENSE/LICENSE_AMSFONTS": null,
+   "LICENSE/LICENSE_BAKOMA": null,
+   "LICENSE/LICENSE_CARLOGO": null,
+   "LICENSE/LICENSE_COLORBREWER": null,
+   "LICENSE/LICENSE_COURIERTEN": null,
+   "LICENSE/LICENSE_JSXTOOLS_RESIZE_OBSERVER": null,
+   "LICENSE/LICENSE_QHULL": null,
+   "LICENSE/LICENSE_QT4_EDITOR": null,
+   "LICENSE/LICENSE_SOLARIZED": null,
+   "LICENSE/LICENSE_STIX": null,
+   "LICENSE/LICENSE_YORICK": null,
+   "matplotlib/mpl-data/fonts/ttf/LICENSE_DEJAVU": "Fonts are (c) Bitstream (see below). DejaVu changes are in public domain.\nGlyphs imported from Arev fonts are (c) Tavmjong Bah (see below)\n\nBitstream Vera Fonts Copyright\n------------------------------\n\nCopyright (c) 2003 by Bitstream, Inc. All Rights Reserved. Bitstream Vera is\na trademark of Bitstream, Inc.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof the fonts accompanying this license (\"Fonts\") and associated\ndocumentation files (the \"Font Software\"), to reproduce and distribute the\nFont Software, including without limitation the rights to use, copy, merge,\npublish, distribute, and/or sell copies of the Font Software, and to permit\npersons to whom the Font Software is furnished to do so, subject to the\nfollowing conditions:\n\nThe above copyright and trademark notices and this permission notice shall\nbe included in all copies of one or more of the Font Software typefaces.\n\nThe Font Software may be modified, altered, or added to, and in particular\nthe designs of glyphs or characters in the Fonts may be modified and\nadditional glyphs or characters may be added to the Fonts, only if the fonts\nare renamed to names not containing either the words \"Bitstream\" or the word\n\"Vera\".\n\nThis License becomes null and void to the extent applicable to Fonts or Font\nSoftware that has been modified and is distributed under the \"Bitstream\nVera\" names.\n\nThe Font Software may be sold as part of a larger software package but no\ncopy of one or more of the Font Software typefaces may be sold by itself.\n\nTHE FONT SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS\nOR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT,\nTRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL BITSTREAM OR THE GNOME\nFOUNDATION BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING\nANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES,\nWHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF\nTHE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE\nFONT SOFTWARE.\n\nExcept as contained in this notice, the names of Gnome, the Gnome\nFoundation, and Bitstream Inc., shall not be used in advertising or\notherwise to promote the sale, use or other dealings in this Font Software\nwithout prior written authorization from the Gnome Foundation or Bitstream\nInc., respectively. For further information, contact: fonts at gnome dot\norg. \n\nArev Fonts Copyright\n------------------------------\n\nCopyright (c) 2006 by Tavmjong Bah. All Rights Reserved.\n\nPermission is hereby granted, free of charge, to any person obtaining\na copy of the fonts accompanying this license (\"Fonts\") and\nassociated documentation files (the \"Font Software\"), to reproduce\nand distribute the modifications to the Bitstream Vera Font Software,\nincluding without limitation the rights to use, copy, merge, publish,\ndistribute, and/or sell copies of the Font Software, and to permit\npersons to whom the Font Software is furnished to do so, subject to\nthe following conditions:\n\nThe above copyright and trademark notices and this permission notice\nshall be included in all copies of one or more of the Font Software\ntypefaces.\n\nThe Font Software may be modified, altered, or added to, and in\nparticular the designs of glyphs or characters in the Fonts may be\nmodified and additional glyphs or characters may be added to the\nFonts, only if the fonts are renamed to names not containing either\nthe words \"Tavmjong Bah\" or the word \"Arev\".\n\nThis License becomes null and void to the extent applicable to Fonts\nor Font Software that has been modified and is distributed under the \n\"Tavmjong Bah Arev\" names.\n\nThe Font Software may be sold as part of a larger software package but\nno copy of one or more of the Font Software typefaces may be sold by\nitself.\n\nTHE FONT SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\nOF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL\nTAVMJONG BAH BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,\nINCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL\nDAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\nFROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM\nOTHER DEALINGS IN THE FONT SOFTWARE.\n\nExcept as contained in this notice, the name of Tavmjong Bah shall not\nbe used in advertising or otherwise to promote the sale, use or other\ndealings in this Font Software without prior written authorization\nfrom Tavmjong Bah. For further information, contact: tavmjong @ free\n. fr.\n\n$Id: LICENSE 2133 2007-11-28 02:46:28Z lechimp $\n",
+   "matplotlib/mpl-data/fonts/ttf/LICENSE_STIX": "The STIX fonts distributed with matplotlib have been modified from\ntheir canonical form.  They have been converted from OTF to TTF format\nusing Fontforge and this script:\n\n  #!/usr/bin/env fontforge\n  i=1\n  while ( i<$argc )\n    Open($argv[i])\n    Generate($argv[i]:r + \".ttf\")\n    i = i+1\n  endloop\n\nThe original STIX Font License begins below.\n\n-----------------------------------------------------------\n\nSTIX Font License\n\n24 May 2010\n\nCopyright (c) 2001-2010 by the STI Pub Companies, consisting of the American\nInstitute of Physics, the American Chemical Society, the American Mathematical\nSociety, the American Physical Society, Elsevier, Inc., and The Institute of\nElectrical and Electronic Engineers, Inc. (www.stixfonts.org), with Reserved\nFont Name STIX Fonts, STIX Fonts (TM) is a  trademark of The Institute of\nElectrical and Electronics Engineers, Inc.\n\nPortions copyright (c) 1998-2003 by MicroPress, Inc. (www.micropress-inc.com),\nwith Reserved Font Name TM Math. To obtain additional mathematical fonts, please\ncontact MicroPress, Inc., 68-30 Harrow Street, Forest Hills, NY 11375, USA,\nPhone: (718) 575-1816.\n\nPortions copyright (c) 1990 by Elsevier, Inc.\n\nThis Font Software is licensed under the SIL Open Font License, Version 1.1.\nThis license is copied below, and is also available with a FAQ at:\nhttps://scripts.sil.org/OFL\n\n-----------------------------------------------------------\nSIL OPEN FONT LICENSE Version 1.1 - 26 February 2007\n-----------------------------------------------------------\n\nPREAMBLE\nThe goals of the Open Font License (OFL) are to stimulate worldwide\ndevelopment of collaborative font projects, to support the font creation\nefforts of academic and linguistic communities, and to provide a free and\nopen framework in which fonts may be shared and improved in partnership\nwith others.\n\nThe OFL allows the licensed fonts to be used, studied, modified and\nredistributed freely as long as they are not sold by themselves. The\nfonts, including any derivative works, can be bundled, embedded,\nredistributed and/or sold with any software provided that any reserved\nnames are not used by derivative works. The fonts and derivatives,\nhowever, cannot be released under any other type of license. The\nrequirement for fonts to remain under this license does not apply\nto any document created using the fonts or their derivatives.\n\nDEFINITIONS\n\"Font Software\" refers to the set of files released by the Copyright\nHolder(s) under this license and clearly marked as such. This may\ninclude source files, build scripts and documentation.\n\n\"Reserved Font Name\" refers to any names specified as such after the\ncopyright statement(s).\n\n\"Original Version\" refers to the collection of Font Software components as\ndistributed by the Copyright Holder(s).\n\n\"Modified Version\" refers to any derivative made by adding to, deleting,\nor substituting -- in part or in whole -- any of the components of the\nOriginal Version, by changing formats or by porting the Font Software to a\nnew environment.\n\n\"Author\" refers to any designer, engineer, programmer, technical\nwriter or other person who contributed to the Font Software.\n\nPERMISSION & CONDITIONS\nPermission is hereby granted, free of charge, to any person obtaining\na copy of the Font Software, to use, study, copy, merge, embed, modify,\nredistribute, and sell modified and unmodified copies of the Font\nSoftware, subject to the following conditions:\n\n1) Neither the Font Software nor any of its individual components,\nin Original or Modified Versions, may be sold by itself.\n\n2) Original or Modified Versions of the Font Software may be bundled,\nredistributed and/or sold with any software, provided that each copy\ncontains the above copyright notice and this license. These can be\nincluded either as stand-alone text files, human-readable headers or\nin the appropriate machine-readable metadata fields within text or\nbinary files as long as those fields can be easily viewed by the user.\n\n3) No Modified Version of the Font Software may use the Reserved Font\nName(s) unless explicit written permission is granted by the corresponding\nCopyright Holder. This restriction only applies to the primary font name as\npresented to the users.\n\n4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font\nSoftware shall not be used to promote, endorse or advertise any\nModified Version, except to acknowledge the contribution(s) of the\nCopyright Holder(s) and the Author(s) or with their explicit written\npermission.\n\n5) The Font Software, modified or unmodified, in part or in whole,\nmust be distributed entirely under this license, and must not be\ndistributed under any other license. The requirement for fonts to\nremain under this license does not apply to any document created\nusing the Font Software.\n\nTERMINATION\nThis license becomes null and void if any of the above conditions are\nnot met.\n\nDISCLAIMER\nTHE FONT SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\nOF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE\nCOPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,\nINCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL\nDAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\nFROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM\nOTHER DEALINGS IN THE FONT SOFTWARE.\n"
+  }
+ },
+ "numpy": {
+  "dist_info": "numpy-1.26.4.dist-info",
+  "license_files": [],
+  "payloads": {}
+ },
+ "packaging": {
+  "dist_info": "packaging-26.2.dist-info",
+  "license_files": [
+   "LICENSE",
+   "LICENSE.APACHE",
+   "LICENSE.BSD"
+  ],
+  "payloads": {
+   "LICENSE": null,
+   "LICENSE.APACHE": null,
+   "LICENSE.BSD": null
+  }
+ },
+ "pydub": {
+  "dist_info": "pydub-0.25.1.dist-info",
+  "license_files": [],
+  "payloads": {}
+ },
+ "pyparsing": {
+  "dist_info": "pyparsing-3.3.2.dist-info",
+  "license_files": [
+   "LICENSE"
+  ],
+  "payloads": {
+   "LICENSE": null
+  }
+ },
+ "python-dateutil": {
+  "dist_info": "python_dateutil-2.9.0.post0.dist-info",
+  "license_files": [
+   "LICENSE"
+  ],
+  "payloads": {
+   "LICENSE": "Copyright 2017- Paul Ganssle <paul@ganssle.io>\nCopyright 2017- dateutil contributors (see AUTHORS file)\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\nThe above license applies to all contributions after 2017-12-01, as well as\nall contributions that have been re-licensed (see AUTHORS file for the list of\ncontributors who have re-licensed their code).\n--------------------------------------------------------------------------------\ndateutil - Extensions to the standard Python datetime module.\n\nCopyright (c) 2003-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>\nCopyright (c) 2012-2014 - Tomi Pievil\u00e4inen <tomi.pievilainen@iki.fi>\nCopyright (c) 2014-2016 - Yaron de Leeuw <me@jarondl.net>\nCopyright (c) 2015-     - Paul Ganssle <paul@ganssle.io>\nCopyright (c) 2015-     - dateutil contributors (see AUTHORS file)\n\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n    * Redistributions of source code must retain the above copyright notice,\n      this list of conditions and the following disclaimer.\n    * Redistributions in binary form must reproduce the above copyright notice,\n      this list of conditions and the following disclaimer in the documentation\n      and/or other materials provided with the distribution.\n    * Neither the name of the copyright holder nor the names of its\n      contributors may be used to endorse or promote products derived from\n      this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR\nCONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,\nEXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,\nPROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR\nPROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF\nLIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING\nNEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\nSOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\nThe above BSD License Applies to all code, even that also covered by Apache 2.0."
+  }
+ },
+ "scipy": {
+  "dist_info": "scipy-1.12.0.dist-info",
+  "license_files": [],
+  "payloads": {}
+ },
+ "setuptools": {
+  "dist_info": "setuptools-59.6.0.dist-info",
+  "license_files": [
+   "LICENSE"
+  ],
+  "payloads": {
+   "LICENSE": "Copyright Jason R. Coombs\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to\ndeal in the Software without restriction, including without limitation the\nrights to use, copy, modify, merge, publish, distribute, sublicense, and/or\nsell copies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in\nall copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\nFROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS\nIN THE SOFTWARE.\n"
+  }
+ },
+ "six": {
+  "dist_info": "six-1.17.0.dist-info",
+  "license_files": [
+   "LICENSE"
+  ],
+  "payloads": {
+   "LICENSE": "Copyright (c) 2010-2024 Benjamin Peterson\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of\nthis software and associated documentation files (the \"Software\"), to deal in\nthe Software without restriction, including without limitation the rights to\nuse, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of\nthe Software, and to permit persons to whom the Software is furnished to do so,\nsubject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS\nFOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR\nCOPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER\nIN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN\nCONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n"
+  }
+ },
+ "tqdm": {
+  "dist_info": "tqdm-4.66.2.dist-info",
+  "license_files": [
+   "LICENCE"
+  ],
+  "payloads": {
+   "LICENCE": "`tqdm` is a product of collaborative work.\nUnless otherwise stated, all authors (see commit logs) retain copyright\nfor their respective work, and release the work under the MIT licence\n(text below).\n\nExceptions or notable authors are listed below\nin reverse chronological order:\n\n* files: *\n  MPL-2.0 2015-2024 (c) Casper da Costa-Luis\n  [casperdcl](https://github.com/casperdcl).\n* files: tqdm/_tqdm.py\n  MIT 2016 (c) [PR #96] on behalf of Google Inc.\n* files: tqdm/_tqdm.py README.rst .gitignore\n  MIT 2013 (c) Noam Yorav-Raphael, original author.\n\n[PR #96]: https://github.com/tqdm/tqdm/pull/96\n\n\nMozilla Public Licence (MPL) v. 2.0 - Exhibit A\n-----------------------------------------------\n\nThis Source Code Form is subject to the terms of the\nMozilla Public License, v. 2.0.\nIf a copy of the MPL was not distributed with this project,\nYou can obtain one at https://mozilla.org/MPL/2.0/.\n\n\nMIT License (MIT)\n-----------------\n\nCopyright (c) 2013 noamraph\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of\nthis software and associated documentation files (the \"Software\"), to deal in\nthe Software without restriction, including without limitation the rights to\nuse, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of\nthe Software, and to permit persons to whom the Software is furnished to do so,\nsubject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS\nFOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR\nCOPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER\nIN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN\nCONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n"
+  }
+ }
+}

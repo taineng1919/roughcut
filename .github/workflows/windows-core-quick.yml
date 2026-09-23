@@ -1,0 +1,465 @@
+name: Windows Core Quick Gate
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "core/**"
+      - "review-ui/**"
+      - "scripts/bootstrap.py"
+      - "scripts/uninstall.py"
+      - ".github/workflows/windows-core-quick.yml"
+  pull_request:
+    paths:
+      - "core/**"
+      - "review-ui/**"
+      - "scripts/bootstrap.py"
+      - "scripts/uninstall.py"
+      - ".github/workflows/windows-core-quick.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-core-quick-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-core-quick:
+    name: Windows / Python 3.11 / Core quick gate
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: core/pyproject.toml
+
+      - name: Install Core development dependencies
+        working-directory: core
+        run: |
+          python -m pip install --disable-pip-version-check --upgrade pip
+          python -m pip install --disable-pip-version-check "setuptools>=68" wheel
+          python -m pip install -e ".[dev]" "ruff==0.16.5"
+          python -m ruff --version
+
+      - name: Windows platform and path sanity
+        run: |
+          python -c "import os, platform, sys; assert os.name == 'nt'; print(platform.platform()); print(sys.version)"
+          python -c "from pathlib import Path; uri = Path(r'C:\roughcut\media\clip.mov').as_uri(); assert uri == 'file:///C:/roughcut/media/clip.mov', uri; print(uri)"
+
+      - name: W3 Windows host VC++ observation
+        run: |
+          python -c "from roughcut.adapters.component_environment import probe_windows_vc_runtime; import json; print(json.dumps(probe_windows_vc_runtime(), ensure_ascii=False, indent=2))"
+
+      - name: Core quick
+        run: |
+          python -m pytest -q core/tests/domain core/tests/test_bootstrap_core_lifecycle.py
+
+      - name: W1 filesystem focused
+        run: |
+          python -m pytest -q `
+            core/tests/adapters/test_project_lock.py `
+            core/tests/adapters/test_media_operation_store.py `
+            core/tests/adapters/test_installation_operation_store.py `
+            core/tests/adapters/test_workflow_candidates.py `
+            core/tests/adapters/test_runtime_binding.py `
+            core/tests/adapters/test_workflow_store.py `
+            -k windows_runtime
+
+      - name: W2 bounded Ruff
+        run: |
+          python -m ruff check core/tests/test_bootstrap.py core/tests/test_bootstrap_core_lifecycle.py core/tests/test_bootstrap_installation_operation.py
+
+      - name: W2 focused pytest
+        run: |
+          python -m pytest -q `
+            core/tests/test_bootstrap.py `
+            core/tests/test_bootstrap_core_lifecycle.py `
+            core/tests/test_bootstrap_installation_operation.py::test_bootstrap_apply_requires_operation_id_and_full_plan `
+            core/tests/test_bootstrap_installation_operation.py::test_bootstrap_component_apply_records_success_and_response_loss_readback `
+            core/tests/test_bootstrap_installation_operation.py::test_bootstrap_cli_parses_include_audalign_and_rejects_quick_plan `
+            core/tests/test_bootstrap_installation_operation.py::test_bootstrap_stale_full_plan_fails_before_download_or_publish `
+            core/tests/test_bootstrap_installation_operation.py::test_public_stale_preflight_failure_is_closed_and_has_no_record `
+            core/tests/test_bootstrap_installation_operation.py::test_public_pre_pending_keyboard_interrupt_ignores_missing_status `
+            core/tests/test_bootstrap_installation_operation.py::test_bootstrap_runtime_publish_failure_matches_operation_record `
+            core/tests/test_bootstrap_installation_operation.py::test_bootstrap_operation_status_is_pure_and_does_not_plan `
+            core/tests/test_bootstrap_installation_operation.py::test_bootstrap_cli_operation_status_reads_terminal_without_apply
+
+      - name: W3 bounded Ruff
+        run: |
+          python -m ruff check `
+            core/src/roughcut/adapters/component_installation.py `
+            core/tests/test_component_installation.py `
+            core/tests/test_managed_runtime.py `
+            core/tests/adapters/test_environment.py `
+            core/tests/adapters/test_runtime_binding.py `
+            core/tests/test_bootstrap_installation_operation.py `
+            core/tests/test_installation_operation_vectors.py
+
+      - name: W3 VC++ bootstrap fail-closed preflight
+        run: |
+          python -m pytest -q core/tests/test_bootstrap_installation_operation.py::test_bootstrap_windows_vc_prerequisite_blocks_before_side_effects
+
+      - name: W3 component catalog / VC++ / plan/apply contract
+        run: |
+          python -m pytest -q `
+            core/tests/test_component_installation.py `
+            core/tests/test_managed_runtime.py `
+            -k "not audalign and not bbc and not alignment"
+
+      - name: W3 FFmpeg / runtime binding / probe framing
+        run: |
+          python -m pytest -q `
+            core/tests/adapters/test_environment.py `
+            core/tests/adapters/test_runtime_binding.py `
+            -k "not live_audalign and not live_bbc and not alignment and not schema_two and not audalign and not bbc and not configured_binding_override"
+
+      - name: W3 cache accounting witness (include-Audalign read-only plan)
+        run: |
+          python -m pytest -q `
+            core/tests/test_component_installation.py::test_windows_catalog_full_plan_selects_exact_closed_audalign_group
+
+      - name: W4 bounded Ruff
+        run: |
+          python -m ruff check --per-file-ignores "core/src/roughcut/mcp.py:I001" `
+            core/src/roughcut/mcp.py `
+            core/tests/test_cli_health.py `
+            core/tests/test_mcp_health.py `
+            core/tests/windows/w4_support.py `
+            core/tests/windows/test_w4_cli_subprocess.py `
+            core/tests/windows/test_w4_mcp_stdio_subprocess.py `
+            core/tests/windows/test_w4_workflow_subprocess.py
+
+      - name: W4 CLI subprocess and JSON contract
+        run: |
+          python -m pytest -q `
+            core/tests/test_cli_health.py `
+            core/tests/windows/test_w4_cli_subprocess.py
+
+      - name: W4 stdio MCP subprocess and transport contract
+        run: |
+          python -m pytest -q `
+            core/tests/test_mcp_health.py `
+            core/tests/windows/test_w4_mcp_stdio_subprocess.py
+
+      - name: W4 finite workflow, recovery, and Skill contract
+        run: |
+          python -m pytest -q `
+            core/tests/windows/test_w4_workflow_subprocess.py `
+            core/tests/application/test_workflow_public_surface.py `
+            core/tests/application/test_workflows.py `
+            core/tests/domain/test_workflow.py `
+            core/tests/adapters/test_workflow_store.py `
+            core/tests/e2e/test_agent_revision_workflow.py `
+            core/tests/packaging/test_agent_skill.py
+
+      - name: WP3A Qwen credential store, ACL and redaction
+        run: |
+          python -m ruff check `
+            core/src/roughcut/adapters/qwen_credential_store.py `
+            core/src/roughcut/application/qwen_credentials.py `
+            core/tests/adapters/test_qwen_credential_store.py `
+            core/tests/test_qwen_credential_contract.py `
+            core/tests/windows/test_qwen_credential_security.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q `
+            core/tests/adapters/test_qwen_credential_store.py `
+            core/tests/test_qwen_credential_contract.py `
+            core/tests/windows/test_qwen_credential_security.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WP3B Cloud route, credential preflight and failure mapping
+        run: |
+          python -m ruff check `
+            core/src/roughcut/adapters/qwen/filetrans.py `
+            core/src/roughcut/application/media_operations.py `
+            core/src/roughcut/application/qwen_credentials.py `
+            core/src/roughcut/application/transcription.py `
+            core/tests/application/test_qwen_cloud_transcription_wiring.py `
+            core/tests/adapters/test_qwen_filetrans.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q `
+            core/tests/application/test_qwen_cloud_transcription_wiring.py `
+            core/tests/adapters/test_qwen_filetrans.py `
+            core/tests/adapters/test_qwen_normalize.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Set up Node.js 24 for Review UI gates
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: review-ui/package-lock.json
+
+      - name: Install Review UI dependencies
+        working-directory: review-ui
+        run: npm ci
+
+      - name: W5 bounded Ruff
+        run: |
+          python -m ruff --version
+          python -m ruff check `
+            core/src/roughcut/review/server.py `
+            core/tests/windows/w5_review_support.py `
+            core/tests/windows/w5_review_process.py `
+            core/tests/windows/test_w5_review_server.py `
+            core/tests/windows/test_w5_review_workflow.py `
+            core/tests/windows/test_w5_review_browser.py
+
+      - name: W5 Review Server / HTTP / security
+        run: |
+          python -m pytest -q core/tests/windows/test_w5_review_server.py
+
+      - name: W5 workflow Review contract and write gates
+        run: |
+          python -m pytest -q core/tests/windows/test_w5_review_workflow.py
+
+      - name: W5 production Review UI build and packaging assets
+        run: |
+          npm --prefix review-ui run build
+          python -m pytest -q core/tests/packaging/test_review_assets.py
+
+      - name: Install Chromium for W5 production browser smoke
+        working-directory: review-ui
+        run: npx playwright install chromium
+
+      - name: W5 production Review Server browser smoke
+        run: |
+          python -m pytest -q core/tests/windows/test_w5_review_browser.py
+
+      - name: W6 FFmpeg / ffprobe provisioning and smoke
+        run: |
+          $ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
+          $ffprobe = Get-Command ffprobe -ErrorAction SilentlyContinue
+          $existing_compatible = $false
+          if ($null -ne $ffmpeg -and $null -ne $ffprobe) {
+            $env:W6_FFMPEG = $ffmpeg.Source
+            $env:W6_FFPROBE = $ffprobe.Source
+            $check_existing = Join-Path $env:RUNNER_TEMP "roughcut-w6-ffmpeg-existing.py"
+            @'
+          import os
+          from roughcut.adapters.ffmpeg_environment import diagnose_ffmpeg
+
+          report = diagnose_ffmpeg(
+              ffmpeg_command=os.environ["W6_FFMPEG"],
+              ffprobe_command=os.environ["W6_FFPROBE"],
+              full=True,
+          )
+          raise SystemExit(0 if report.ffmpeg.status == "available" and report.ffprobe.status == "available" else 1)
+          '@ | Set-Content -LiteralPath $check_existing -Encoding utf8
+            python $check_existing
+            $existing_code = $LASTEXITCODE
+            Remove-Item -LiteralPath $check_existing -Force -ErrorAction SilentlyContinue
+            if ($existing_code -eq 0) {
+              $existing_compatible = $true
+              $bin = Split-Path -Parent $ffmpeg.Source
+              Write-Host "CI provisioning source: existing compatible runner pair"
+            }
+          }
+          if (-not $existing_compatible) {
+            $archive = Join-Path $env:RUNNER_TEMP "ffmpeg-9.0-full_build.zip"
+            $extract = Join-Path $env:RUNNER_TEMP "roughcut-w6-ffmpeg-9.0"
+            $uri = "https://github.com/GyanD/codexffmpeg/releases/download/9.0/ffmpeg-9.0-full_build.zip"
+            $expected_sha256 = "f42f0c4b04eae3ac918707ff66e3e0ff0cee527bfa6d322624d4bc1160d5055e"
+            Invoke-WebRequest -Uri $uri -OutFile $archive -UseBasicParsing -ErrorAction Stop
+            $actual_sha256 = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual_sha256 -ne $expected_sha256) {
+              Write-Error "CI provisioning failure: fixed FFmpeg archive SHA-256 mismatch"
+              exit 1
+            }
+            if (Test-Path -LiteralPath $extract) {
+              Remove-Item -LiteralPath $extract -Recurse -Force
+            }
+            Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
+            $ffmpeg_file = Get-ChildItem -LiteralPath $extract -Filter ffmpeg.exe -File -Recurse | Select-Object -First 1
+            $ffprobe_file = Get-ChildItem -LiteralPath $extract -Filter ffprobe.exe -File -Recurse | Select-Object -First 1
+            if ($null -eq $ffmpeg_file -or $null -eq $ffprobe_file) {
+              Write-Error "CI provisioning failure: fixed FFmpeg archive has no matched executable pair"
+              exit 1
+            }
+            $bin = $ffmpeg_file.Directory.FullName
+            $env:W6_FFMPEG = $ffmpeg_file.FullName
+            $env:W6_FFPROBE = $ffprobe_file.FullName
+            Write-Host "CI provisioning source: fixed Gyan FFmpeg 9.0 archive"
+          }
+          if ([string]::IsNullOrWhiteSpace($bin)) {
+            Write-Error "CI provisioning failure: no selected FFmpeg bin directory"
+            exit 1
+          }
+          $selected_bin_file = Join-Path $env:RUNNER_TEMP "roughcut-w6-ffmpeg-bin.txt"
+          [System.IO.File]::WriteAllText(
+            $selected_bin_file,
+            $bin,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+          Write-Host "ffmpeg executable: $env:W6_FFMPEG"
+          & $env:W6_FFMPEG -version | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "ffprobe executable: $env:W6_FFPROBE"
+          & $env:W6_FFPROBE -version | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $check = Join-Path $env:RUNNER_TEMP "roughcut-w6-ffmpeg-check.py"
+          @'
+          import json
+          import os
+          from roughcut.adapters.ffmpeg_environment import diagnose_ffmpeg
+
+          report = diagnose_ffmpeg(
+              ffmpeg_command=os.environ["W6_FFMPEG"],
+              ffprobe_command=os.environ["W6_FFPROBE"],
+              full=True,
+          )
+          print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+          if report.ffmpeg.status != "available" or report.ffprobe.status != "available":
+              raise SystemExit("CI provisioning failure: the runner FFmpeg pair is not compatible")
+          '@ | Set-Content -LiteralPath $check -Encoding utf8
+          python $check
+          $code = $LASTEXITCODE
+          Remove-Item -LiteralPath $check -Force -ErrorAction SilentlyContinue
+          Remove-Item Env:W6_FFMPEG -ErrorAction SilentlyContinue
+          Remove-Item Env:W6_FFPROBE -ErrorAction SilentlyContinue
+          if ($code -ne 0) { exit $code }
+
+      - name: W6 bounded Ruff
+        run: |
+          python -m ruff --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m ruff check `
+            core/src/roughcut/application/media_operations.py `
+            core/src/roughcut/application/proxies.py `
+            core/src/roughcut/application/renders.py `
+            core/src/roughcut/application/transcription.py `
+            core/src/roughcut/adapters/media_operation_store.py `
+            core/src/roughcut/adapters/ffmpeg/audio.py `
+            core/src/roughcut/adapters/ffmpeg/proxy.py `
+            core/src/roughcut/adapters/ffmpeg/render.py `
+            core/src/roughcut/adapters/ffmpeg/verify.py `
+            core/src/roughcut/adapters/ffmpeg_environment.py `
+            core/src/roughcut/adapters/ffprobe.py `
+            core/src/roughcut/adapters/funasr/normalize.py `
+            core/src/roughcut/adapters/funasr/runner.py `
+            core/src/roughcut/adapters/funasr/worker.py `
+            core/src/roughcut/adapters/funasr_environment.py `
+            core/tests/adapters/test_media_operation_store.py `
+            core/tests/windows/w6_support.py `
+            core/tests/windows/test_w6_render_proxy.py `
+            core/tests/windows/test_w6_asr.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: W6 Render + Proxy real FFmpeg integration
+        run: |
+          $selected_bin_file = Join-Path $env:RUNNER_TEMP "roughcut-w6-ffmpeg-bin.txt"
+          if (-not (Test-Path -LiteralPath $selected_bin_file -PathType Leaf)) {
+            Write-Error "CI provisioning failure: selected W6 FFmpeg bin record is missing"
+            exit 1
+          }
+          $bin = (Get-Content -LiteralPath $selected_bin_file -Raw).Trim()
+          $ffmpeg_path = Join-Path $bin "ffmpeg.exe"
+          $ffprobe_path = Join-Path $bin "ffprobe.exe"
+          if (-not (Test-Path -LiteralPath $ffmpeg_path -PathType Leaf) -or -not (Test-Path -LiteralPath $ffprobe_path -PathType Leaf)) {
+            Write-Error "CI provisioning failure: selected W6 FFmpeg pair is unavailable"
+            exit 1
+          }
+          $env:PATH = "$bin;$env:PATH"
+          python -c "import shutil; assert shutil.which('ffmpeg'); assert shutil.which('ffprobe'); print(shutil.which('ffmpeg')); print(shutil.which('ffprobe'))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q `
+            core/tests/windows/test_w6_render_proxy.py `
+            core/tests/adapters/test_ffmpeg_render.py `
+            core/tests/adapters/test_ffmpeg_proxy.py `
+            core/tests/adapters/test_ffmpeg_verify.py `
+            core/tests/integration/test_proxy_integration.py `
+            core/tests/application/test_renders.py `
+            core/tests/application/test_proxies.py `
+            core/tests/integration/test_render.py::test_multisource_a_b_a_renders_real_color_audio_order_and_schema_three `
+            core/tests/integration/test_render.py::test_audio_only_source_renders_black_h264_canvas_and_reordered_aac `
+            core/tests/integration/test_render.py::test_multisource_video_plus_audio_only_uses_black_canvas_and_real_audio `
+            core/tests/integration/test_render.py::test_multisource_all_silent_videos_publish_without_audio_track
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: W6 ASR production integration
+        run: |
+          $selected_bin_file = Join-Path $env:RUNNER_TEMP "roughcut-w6-ffmpeg-bin.txt"
+          if (-not (Test-Path -LiteralPath $selected_bin_file -PathType Leaf)) {
+            Write-Error "CI provisioning failure: selected W6 FFmpeg bin record is missing"
+            exit 1
+          }
+          $bin = (Get-Content -LiteralPath $selected_bin_file -Raw).Trim()
+          $ffmpeg_path = Join-Path $bin "ffmpeg.exe"
+          $ffprobe_path = Join-Path $bin "ffprobe.exe"
+          if (-not (Test-Path -LiteralPath $ffmpeg_path -PathType Leaf) -or -not (Test-Path -LiteralPath $ffprobe_path -PathType Leaf)) {
+            Write-Error "CI provisioning failure: selected W6 FFmpeg pair is unavailable"
+            exit 1
+          }
+          $env:PATH = "$bin;$env:PATH"
+          python -c "import shutil; assert shutil.which('ffmpeg'); assert shutil.which('ffprobe'); print(shutil.which('ffmpeg')); print(shutil.which('ffprobe'))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q `
+            core/tests/windows/test_w6_asr.py `
+            core/tests/adapters/test_ffmpeg_audio.py `
+            core/tests/adapters/test_funasr_runner.py `
+            core/tests/adapters/test_funasr_normalize.py `
+            core/tests/adapters/test_media_operation_store.py `
+            core/tests/application/test_media_operations.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: W7 bounded Ruff
+        run: |
+          python -m ruff --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m ruff check `
+            --per-file-ignores "core/src/roughcut/application/nle_handoff.py:I001" `
+            --per-file-ignores "core/src/roughcut/domain/nle_handoff.py:B018" `
+            --per-file-ignores "core/src/roughcut/domain/nle_handoff.py:RUF034" `
+            core/src/roughcut/application/nle_handoff.py `
+            core/src/roughcut/adapters/fcp7_xml.py `
+            core/src/roughcut/adapters/fcpxml.py `
+            core/src/roughcut/adapters/nle_export_store.py `
+            core/src/roughcut/adapters/nle_time.py `
+            core/src/roughcut/domain/nle_handoff.py `
+            core/tests/windows/w6_support.py `
+            core/tests/windows/test_w7_nle_export.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: W7 shared NLE artifact generation
+        run: |
+          $selected_bin_file = Join-Path $env:RUNNER_TEMP "roughcut-w6-ffmpeg-bin.txt"
+          if (-not (Test-Path -LiteralPath $selected_bin_file -PathType Leaf)) {
+            Write-Error "CI provisioning failure: selected W6 FFmpeg bin record is missing"
+            exit 1
+          }
+          $bin = (Get-Content -LiteralPath $selected_bin_file -Raw).Trim()
+          $ffmpeg_path = Join-Path $bin "ffmpeg.exe"
+          $ffprobe_path = Join-Path $bin "ffprobe.exe"
+          if (-not (Test-Path -LiteralPath $ffmpeg_path -PathType Leaf) -or -not (Test-Path -LiteralPath $ffprobe_path -PathType Leaf)) {
+            Write-Error "CI provisioning failure: selected W6 FFmpeg pair is unavailable"
+            exit 1
+          }
+          $env:PATH = "$bin;$env:PATH"
+          python -c "import shutil; assert shutil.which('ffmpeg'); assert shutil.which('ffprobe'); print(shutil.which('ffmpeg')); print(shutil.which('ffprobe'))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q core/tests/windows/test_w7_nle_export.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q `
+            core/tests/adapters/test_fcp7_xml.py `
+            core/tests/adapters/test_fcpxml.py `
+            core/tests/adapters/test_nle_export_store.py `
+            core/tests/adapters/test_nle_time.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q core/tests/domain/test_nle_handoff.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q core/tests/application/test_nle_handoff.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pytest -q core/tests/test_nle_export_contract.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

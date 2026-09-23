@@ -1,0 +1,174 @@
+{
+  "schema_version": 2,
+  "catalog_version": "2026-08-24.1",
+  "external_runtime_profiles": [
+    {
+      "id": "funasr-1.3.8-cpu-py311",
+      "python_version": "3.11",
+      "device": "cpu",
+      "platforms": [
+        {
+          "platform": "macos",
+          "architecture": "arm64"
+        }
+      ],
+      "versions": {
+        "funasr": "1.3.8",
+        "torch": "2.12.0",
+        "torchaudio": "2.11.0"
+      },
+      "evidence": "M1.8 strict same-input A/B"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "macos-arm64-py311",
+      "platform": "macos",
+      "architecture": "arm64",
+      "python_version": "3.11",
+      "prerequisites": {},
+      "runtime": {
+        "device": "cpu",
+        "versions": {
+          "funasr": "1.3.14",
+          "torch": "2.6.0",
+          "torchaudio": "2.6.0"
+        },
+        "artifacts": "python/macos-arm64-py311-artifacts.json",
+        "dependency_lock": "python/macos-arm64-py311.lock",
+        "dependency_lock_sha256": "8b31a036a7c1ea997c21d7c61523710ccbb479a6b3007c878d594c93574fb5f4",
+        "dependency_lock_origin": "https://pypi.org/simple and https://download.pytorch.org/whl/cpu",
+        "estimated_installed_bytes": 961757184
+      },
+      "models": "models.json",
+      "ffmpeg": {
+        "source_type": "external",
+        "manager": "Homebrew",
+        "package_id": "ffmpeg",
+        "command": ["brew", "install", "ffmpeg"],
+        "source": "https://formulae.brew.sh/formula/ffmpeg",
+        "license": "GPL-3.0-or-later",
+        "note": "Roughcut does not invoke Homebrew; an Agent must disclose and obtain approval first."
+      },
+      "audalign": {
+        "artifacts": "audalign/audalign-macos-arm64-py311-artifacts.json",
+        "dependency_lock": "audalign/audalign-macos-arm64-py311.lock",
+        "dependency_lock_sha256": "3f1e90c9f4acdd12c62fc29641f7db2e6bb34b0b5a6d4dc1d0aed216f7eaaa81",
+        "dependency_lock_origin": "https://pypi.org/simple",
+        "license_notice": "audalign/audalign-licenses-macos-arm64-py311.json",
+        "license_notice_sha256": "fc7254373ff8e5fcd24af22418d87f81f633c4e75eabc3db0596e57381e8cfc3",
+        "estimated_installed_bytes": 260000000
+      },
+      "bbc_audio_offset_finder": {
+        "artifacts": "audio-offset-finder/audio-offset-finder-macos-arm64-py311-artifacts.json",
+        "dependency_lock": "audio-offset-finder/audio-offset-finder-macos-arm64-py311.lock",
+        "dependency_lock_sha256": "8b4c9b0ba6e40468569f70c0875541bc7a465b021b84d60ae82f169599d61a0d",
+        "dependency_lock_origin": "https://pypi.org/simple",
+        "license_notice": "audio-offset-finder/audio-offset-finder-licenses-macos-arm64-py311.json",
+        "license_notice_sha256": "b36d1d6fd18401e5beb96bb5eb3f3c9b4f11c8d5c3d454be5b66763f3a5eae02",
+        "estimated_installed_bytes": 540000000
+      }
+    },
+    {
+      "id": "windows-x64-py311",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "python_version": "3.11",
+      "prerequisites": {
+        "windows_vc_runtime_x64": {
+          "minimum": "14.51.36247.0",
+          "manager": "Windows Package Manager",
+          "package_id": "Microsoft.VCRedist.2015+.x64",
+          "source": "Microsoft/winget"
+        }
+      },
+      "path_budget_evidence": {
+        "schema_version": 1,
+        "limit": 259,
+        "acceptance_evidence_sha256": "19baca9a7083101e7edbf4f3871b7d6e5d6d384326133737334a88a455004e06",
+        "wheel_member": {
+          "distribution": "modelscope",
+          "version": "1.38.1",
+          "artifact_filename": "modelscope-1.38.1-py3-none-any.whl",
+          "artifact_sha256": "7d65be96999144ca045386d27a8ea057b8777504c538d9755d60ec2c8906fe72",
+          "artifact_size": 6034052,
+          "member": "modelscope\\msdatasets\\dataset_cls\\custom_datasets\\image_quality_assessment_degradation\\image_quality_assessment_degradation_dataset.py",
+          "characters": 134,
+          "utf16_code_units": 134
+        },
+        "sdist_member": {
+          "distribution": "aliyun-python-sdk-core",
+          "version": "2.16.0",
+          "artifact_filename": "aliyun-python-sdk-core-2.16.0.tar.gz",
+          "artifact_sha256": "651caad597eb39d4fad6cf85133dffe92837d53bdf62db9d8f37dab6508bb8f9",
+          "artifact_size": 449555,
+          "member": "aliyun-python-sdk-core-2.16.0\\aliyunsdkcore\\vendored\\requests\\packages\\urllib3\\packages\\ssl_match_hostname\\_implementation.py",
+          "characters": 125,
+          "utf16_code_units": 125
+        },
+        "runtime_staged_relative": {
+          "source_artifact_filename": "modelscope-1.38.1-py3-none-any.whl",
+          "source_artifact_sha256": "7d65be96999144ca045386d27a8ea057b8777504c538d9755d60ec2c8906fe72",
+          "path": "venv\\Lib\\site-packages\\modelscope\\msdatasets\\dataset_cls\\custom_datasets\\image_quality_assessment_degradation\\__pycache__\\image_quality_assessment_degradation_dataset.cpython-311.pyc",
+          "characters": 182,
+          "utf16_code_units": 182
+        },
+        "audalign_staged_relative": {
+          "source_artifact_filename": "audalign-1.3.1-py3-none-any.whl",
+          "source_artifact_sha256": "4d78f71a026d30c7462521084a56c7b1f50103e955b04e2ce7015fd8a107c477",
+          "path": "audalign\\venv\\Lib\\site-packages\\audalign\\recognizers\\correcognizeSpectrogram\\__pycache__\\correcognize_spectrogram.cpython-311.pyc",
+          "characters": 129,
+          "utf16_code_units": 129
+        },
+        "bbc_audio_offset_finder_staged_relative": {
+          "source_artifact_filename": "scikit_learn-1.9.0-cp311-cp311-win_amd64.whl",
+          "source_artifact_sha256": "5dc1818c77575d149e25fce9ef82dd7b7263ae372f03494158668ad632a69759",
+          "path": "bbc_audio_offset_finder\\venv\\Lib\\site-packages\\sklearn\\ensemble\\_hist_gradient_boosting\\tests\\__pycache__\\test_monotonic_constraints.cpython-311.pyc",
+          "characters": 148,
+          "utf16_code_units": 148
+        }
+      },
+      "runtime": {
+        "device": "cpu",
+        "versions": {
+          "funasr": "1.3.14",
+          "torch": "2.6.0+cpu",
+          "torchaudio": "2.6.0+cpu"
+        },
+        "artifacts": "python/windows-x64-py311-artifacts.json",
+        "dependency_lock": "python/windows-x64-py311.lock",
+        "dependency_lock_sha256": "0e02da5501304528b0b2eb1afe390bb4bac1dbb0efa27ad4d8ad7b3fd4ee22ea",
+        "dependency_lock_origin": "https://pypi.org/simple and https://download.pytorch.org/whl/cpu",
+        "estimated_installed_bytes": 1200000000
+      },
+      "models": "models.json",
+      "ffmpeg": {
+        "source_type": "external",
+        "manager": "Windows Package Manager",
+        "package_id": "Gyan.FFmpeg",
+        "command": ["winget", "install", "--id", "Gyan.FFmpeg", "--exact", "--source", "winget"],
+        "source": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/g/Gyan/FFmpeg",
+        "license": "GPL-3.0-or-later",
+        "note": "Roughcut does not invoke winget; an Agent must disclose and obtain approval first."
+      },
+      "audalign": {
+        "artifacts": "audalign/audalign-windows-x64-py311-artifacts.json",
+        "dependency_lock": "audalign/audalign-windows-x64-py311.lock",
+        "dependency_lock_sha256": "c240c2138fd031e2f2099351f8ba27dea9e4dfabb168a6cfcf81b53979126984",
+        "dependency_lock_origin": "https://pypi.org/simple",
+        "license_notice": "audalign/audalign-licenses-windows-x64-py311.json",
+        "license_notice_sha256": "3c062539e1ec540cb990c6877b12eef3d5e1aed856053e53a6bc626736754fe2",
+        "estimated_installed_bytes": 320000000
+      },
+      "bbc_audio_offset_finder": {
+        "artifacts": "audio-offset-finder/audio-offset-finder-windows-x64-py311-artifacts.json",
+        "dependency_lock": "audio-offset-finder/audio-offset-finder-windows-x64-py311.lock",
+        "dependency_lock_sha256": "400ac2d3cc7fcf3b469ed3797d5e4ae148fae318d53209f55f69030b02580db0",
+        "dependency_lock_origin": "https://pypi.org/simple",
+        "license_notice": "audio-offset-finder/audio-offset-finder-licenses-windows-x64-py311.json",
+        "license_notice_sha256": "badc6d174fad32703a90885dc6f7fbbc6eaced29840c30c47f68b7a930830934",
+        "estimated_installed_bytes": 550000000
+      }
+    }
+  ]
+}

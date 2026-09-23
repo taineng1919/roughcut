@@ -1,0 +1,542 @@
+{
+  "schema_version": 1,
+  "kind": "roughcut_project_media_operation_vectors",
+  "vectors": [
+    {
+      "id": "MOR-001",
+      "title": "authorized transcription succeeds",
+      "operation_type": "transcribe_source",
+      "request_projection": {
+        "request_schema_version": 1,
+        "operation_type": "transcribe_source",
+        "scope": {
+          "kind": "project",
+          "project_id": "project_fixture",
+          "project_root_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "source_id": "source_a",
+        "expected_project_revision": 7,
+        "transcription_request": {
+          "speaker_diarization": true,
+          "timeout_milliseconds": 3600000
+        }
+      },
+      "request_hash": "9d4f093d25badca3262c3e491ea0ba14021307270d7f2cd3a324ed1e8b5d151f",
+      "input_projection": {
+        "input_schema_version": 1,
+        "operation_type": "transcribe_source",
+        "project_id": "project_fixture",
+        "source_ref": {
+          "source_id": "source_a",
+          "source_snapshot_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "expected_project_revision": 7,
+        "transcription_config": {
+          "config_schema_version": 1,
+          "runtime_binding_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "python_receipt_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+          "model_refs": {
+            "asr": "4444444444444444444444444444444444444444444444444444444444444444",
+            "vad": "5555555555555555555555555555555555555555555555555555555555555555",
+            "punc": "6666666666666666666666666666666666666666666666666666666666666666",
+            "speaker": "7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          "ffmpeg_tool_selection_hash": "8888888888888888888888888888888888888888888888888888888888888888",
+          "speaker_diarization": true,
+          "speaker_mode": "punc_segment",
+          "timeout_milliseconds": 3600000
+        }
+      },
+      "input_hash": "f5b3b0f61c7cc6dc4559493c5fd62745564aba4a2e45dc0e8bf12c6af093525e",
+      "expect": {
+        "status": "succeeded",
+        "result_kind": "transcript",
+        "project_revision": 8,
+        "binding": "exact_transcript_synchronized",
+        "workflow_stage_changed": false
+      }
+    },
+    {
+      "id": "MOR-002",
+      "title": "proxy encode verify and pair publish succeeds",
+      "operation_type": "proxy_create",
+      "request_projection": {
+        "request_schema_version": 1,
+        "operation_type": "proxy_create",
+        "scope": {
+          "kind": "project",
+          "project_id": "project_fixture",
+          "project_root_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "source_id": "source_a",
+        "expected_project_revision": 7
+      },
+      "request_hash": "2cc4f626fc98a8454181b637d6448a4d053e445355b7fba5766269361aac4777",
+      "input_projection": {
+        "input_schema_version": 1,
+        "operation_type": "proxy_create",
+        "project_id": "project_fixture",
+        "source_ref": {
+          "source_id": "source_a",
+          "source_snapshot_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "expected_project_revision": 7,
+        "cache_key": "9999999999999999999999999999999999999999999999999999999999999999",
+        "profile": {
+          "schema_version": 1,
+          "profile_version": 1,
+          "canvas": {
+            "width": 1280,
+            "height": 720
+          },
+          "frame_rate": {
+            "numerator": 25,
+            "denominator": 1
+          },
+          "gop_frames": 50,
+          "has_video": true,
+          "has_audio": true,
+          "container": "mp4",
+          "video_codec": "libx264",
+          "pixel_format": "yuv420p",
+          "crf": 23,
+          "preset": "veryfast",
+          "faststart": true,
+          "audio_codec": "aac",
+          "audio_sample_rate": 48000
+        },
+        "tool_refs": {
+          "runtime_binding_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "ffmpeg_tool_selection_hash": "8888888888888888888888888888888888888888888888888888888888888888",
+          "ffprobe_tool_selection_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "input_hash": "e0bb53dd3368d9c1889c2d4ad7bac5c0e360a694d83b1c48b764ac54216afa65",
+      "expect": {
+        "status": "succeeded",
+        "result_kind": "proxy",
+        "pair_published": true,
+        "project_revision": 7,
+        "workflow_stage_changed": false
+      }
+    },
+    {
+      "id": "MOR-003",
+      "title": "approved formal render succeeds through existing transaction",
+      "operation_type": "approve_export",
+      "request_projection": {
+        "request_schema_version": 1,
+        "operation_type": "approve_export",
+        "scope": {
+          "kind": "project",
+          "project_id": "project_fixture",
+          "project_root_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "run_id": "run_fixture",
+        "action_id": "action_export_fixture",
+        "workflow_action": {
+          "action": "approve_export",
+          "input_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      },
+      "request_hash": "88206bbf2648ad3a16856aad581e769c87dbc4155d8324e13829ce68e18b1d20",
+      "input_projection": {
+        "input_schema_version": 1,
+        "operation_type": "approve_export",
+        "project_id": "project_fixture",
+        "run_id": "run_fixture",
+        "approve_export_action": {
+          "action_id": "action_export_fixture",
+          "input_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "roughcut_approval_receipt_ref": {
+          "action_id": "action_adopt_fixture",
+          "receipt_schema_version": 1,
+          "receipt_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "decision_ref": {
+          "artifact_id": "decision_fixture",
+          "schema_version": 2,
+          "content_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "expected_project_revision": 7,
+        "export_dependency_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "export_basis_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "render_plan_ref": {
+          "artifact_id": "render_fixture",
+          "schema_version": 2,
+          "content_hash": "abababababababababababababababababababababababababababababababab"
+        }
+      },
+      "input_hash": "ec4c60acdd9f15b1e9d32fd92f5db3092f0370f92f321b8f622cb1ab081b2253",
+      "expect": {
+        "status": "succeeded",
+        "result_kind": "render",
+        "decision_schema_version": 2,
+        "render_plan_schema_version": 2,
+        "manifest_schema_version": 3,
+        "receipt_required": true,
+        "single_render": true,
+        "operation_record_advances_stage": false
+      }
+    },
+    {
+      "id": "MOR-004",
+      "title": "live writer survives missing Host task",
+      "operation_type": "all",
+      "setup": "pending_or_running_record_and_writer_lock_held",
+      "request": "status",
+      "expect": {
+        "status": "running",
+        "worker_restarted": false,
+        "record_mutated": false
+      }
+    },
+    {
+      "id": "MOR-005",
+      "title": "hard exit converges abandoned record",
+      "operation_type": "all",
+      "setup": "running_record_and_writer_process_os_exit",
+      "request": "status",
+      "expect": {
+        "status": "interrupted",
+        "responsibility": "roughcut_core",
+        "action": "recover_abandoned_media_operation",
+        "artifact_inferred": false
+      }
+    },
+    {
+      "id": "MOR-006",
+      "title": "same operation ID and stable request reads back before current preflight",
+      "operation_type": "all",
+      "setup": "existing_record_with_matching_request_hash",
+      "request": "run_same_operation",
+      "expect": {
+        "same_record": true,
+        "historical_input_reconstructed": false,
+        "current_stage_checked": false,
+        "current_revision_checked": false,
+        "worker_invocations": 0,
+        "new_result_count": 0
+      }
+    },
+    {
+      "id": "MOR-007",
+      "title": "same operation ID and different stable request conflicts",
+      "operation_type": "all",
+      "setup": {
+        "existing_record": true,
+        "different_request_cases": [
+          "source_id",
+          "expected_project_revision",
+          "transcription_request.speaker_diarization",
+          "transcription_request.timeout_milliseconds",
+          "workflow_action.input_hash"
+        ]
+      },
+      "request": "run_same_operation_id",
+      "expect": {
+        "error_code": "operation_input_conflict",
+        "all_cases_conflict": true,
+        "worker_invocations": 0,
+        "mutation": false
+      }
+    },
+    {
+      "id": "MOR-008",
+      "title": "transcription stale revision fails before record",
+      "operation_type": "transcribe_source",
+      "setup": "expected_revision_is_not_current",
+      "request": "start",
+      "expect": {
+        "error_owner": "existing_project_revision_gate",
+        "record_created": false,
+        "asr_invocations": 0,
+        "mutation": false
+      }
+    },
+    {
+      "id": "MOR-009",
+      "title": "render stale approval fails before record",
+      "operation_type": "approve_export",
+      "setup": "roughcut_approval_receipt_or_decision_is_stale",
+      "request": "start",
+      "expect": {
+        "error_owner": "existing_workflow_gate",
+        "record_created": false,
+        "renderer_invocations": 0,
+        "mutation": false
+      }
+    },
+    {
+      "id": "MOR-010",
+      "title": "proxy project changes after encode",
+      "operation_type": "proxy_create",
+      "setup": "project_revision_changes_before_pair_publish",
+      "request": "finish",
+      "expect": {
+        "status": "failed",
+        "responsibility": "user_input",
+        "action": "validate_proxy_basis",
+        "ready_proxy": false,
+        "project_overwritten": false
+      }
+    },
+    {
+      "id": "MOR-011",
+      "title": "success response loss reads terminal result",
+      "operation_type": "all",
+      "setup": "succeeded_record_published_then_response_dropped",
+      "request": "same_id_same_request",
+      "expect": {
+        "same_result_ref": true,
+        "worker_invocations": 0,
+        "publish_invocations": 0
+      }
+    },
+    {
+      "id": "MOR-012",
+      "title": "transcription exits before Transcript publish",
+      "operation_type": "transcribe_source",
+      "setup": "raw_asr_may_exist_but_transcript_not_published",
+      "request": "status_after_writer_exit",
+      "expect": {
+        "status": "interrupted",
+        "result_ref": null,
+        "active_transcript_changed": false,
+        "raw_asr_adopted": false
+      }
+    },
+    {
+      "id": "MOR-013",
+      "title": "transcription exits after Project commit before binding sync",
+      "operation_type": "transcribe_source",
+      "setup": "transcript_and_project_committed_writer_exits_before_sync_or_terminal_record",
+      "request": "status_then_workflow_status",
+      "expect": {
+        "operation_status": "interrupted",
+        "project_and_transcript_preserved": true,
+        "binding_repaired_by_existing_synchronizer": true,
+        "operation_infers_success": false
+      }
+    },
+    {
+      "id": "MOR-014",
+      "title": "proxy exits between output and manifest publish",
+      "operation_type": "proxy_create",
+      "setup": "candidate_or_target_contains_only_one_owned_file",
+      "request": "status",
+      "expect": {
+        "status": "interrupted",
+        "result_ref": null,
+        "partial_adopted": false,
+        "status_cleanup": false
+      }
+    },
+    {
+      "id": "MOR-015",
+      "title": "render exits at staging and publish boundaries",
+      "operation_type": "approve_export",
+      "setup": "hard_exit_before_marker_or_during_fixed_publish_node",
+      "request": "status_then_explicit_workflow_readback",
+      "expect": {
+        "operation_status": "interrupted",
+        "project_lock_released_before_media_writer": true,
+        "publish_lock_order": "media_writer_then_project_workflow_lock",
+        "owner_and_marker_remain_authoritative": true,
+        "status_cleanup": false,
+        "operation_advances_stage": false
+      }
+    },
+    {
+      "id": "MOR-016",
+      "title": "unsafe Project operation storage is rejected",
+      "operation_type": "all",
+      "setup": "project_or_operations_or_record_or_lock_is_symlink_hardlink_or_escape",
+      "request": "read_or_start",
+      "expect": {
+        "error_code": "operation_integrity_error",
+        "evidence_preserved": true,
+        "worker_invocations": 0
+      }
+    },
+    {
+      "id": "MOR-017",
+      "title": "closed responsibility identifies failing actor",
+      "operation_type": "all",
+      "setup": "one_fixture_failure_for_each_closed_responsibility",
+      "request": "finish",
+      "expect": {
+        "responsibilities": [
+          "roughcut_core",
+          "asr_worker",
+          "ffmpeg_proxy",
+          "ffmpeg_render",
+          "host",
+          "user_input"
+        ],
+        "absolute_path_leaked": false,
+        "internal_exception_leaked": false
+      }
+    },
+    {
+      "id": "MOR-018",
+      "title": "record transitions never advance workflow stage",
+      "operation_type": "all",
+      "setup": "capture_workflow_run_before_each_record_transition",
+      "request": "pending_running_terminal",
+      "expect": {
+        "workflow_stage_equal_before": true,
+        "approval_created_by_record": false,
+        "checkpoint_changed": false,
+        "project_schema_changed": false
+      }
+    },
+    {
+      "id": "MOR-019",
+      "title": "legacy Project without media operation storage remains compatible",
+      "operation_type": "all",
+      "setup": "valid_legacy_project_without_workflow_operations_media",
+      "request": "status_missing_then_first_authorized_operation",
+      "expect": {
+        "missing_status_creates_directory": false,
+        "project_json_changed": false,
+        "first_authorized_operation_creates_controlled_storage": true,
+        "project_schema_changed": false
+      }
+    },
+    {
+      "id": "MOR-020",
+      "title": "single-source render preserves existing schema pairing",
+      "operation_type": "approve_export",
+      "setup": {
+        "decision_schema_version": 1,
+        "prepared_render_plan_kind": "RenderPlan",
+        "prepared_render_plan_schema_version": 1
+      },
+      "request": "complete_existing_export_transaction",
+      "expect": {
+        "render_plan_schema_version": 1,
+        "manifest_schema_version": 2,
+        "new_render_schema_created": false,
+        "operation_record_advances_stage": false
+      }
+    },
+    {
+      "id": "MOR-021",
+      "title": "transcription success reads back after Project revision advances",
+      "operation_type": "transcribe_source",
+      "setup": "operation_started_at_revision_7_and_succeeded_with_project_revision_8_then_response_dropped",
+      "request": "same_operation_id_same_stable_request_with_expected_revision_7",
+      "expect": {
+        "status": "succeeded",
+        "same_result_ref": true,
+        "current_revision_revalidated": false,
+        "asr_invocations": 0,
+        "publish_invocations": 0
+      }
+    },
+    {
+      "id": "MOR-022",
+      "title": "render success reads back after workflow commit changes stage and Run",
+      "operation_type": "approve_export",
+      "setup": "approve_export_succeeded_then_response_dropped_and_current_run_is_completed_after_image",
+      "request": "same_action_id_and_same_stable_workflow_action_request",
+      "expect": {
+        "status": "succeeded",
+        "same_result_ref": true,
+        "current_stage_revalidated": false,
+        "current_run_record_hash_required": false,
+        "renderer_invocations": 0,
+        "publish_invocations": 0
+      }
+    },
+    {
+      "id": "MOR-023",
+      "title": "transcription readback survives persistent runtime replacement",
+      "operation_type": "transcribe_source",
+      "setup": "succeeded_record_then_runtime_json_and_component_tool_selections_are_replaced",
+      "request": "same_operation_id_same_source_revision_speaker_and_timeout_request",
+      "expect": {
+        "request_hash_matches_record": true,
+        "historical_input_hash_reconstructed": false,
+        "status": "succeeded",
+        "same_result_ref": true,
+        "asr_invocations": 0
+      }
+    },
+    {
+      "id": "MOR-024",
+      "title": "media readback survives current Source and Project state changes",
+      "operation_type": "transcribe_source_or_proxy_create",
+      "setup": {
+        "existing_status": "succeeded",
+        "after_record_changes": [
+          "current_source_snapshot_changed",
+          "current_project_revision_advanced"
+        ]
+      },
+      "request": "same_operation_id_and_same_original_stable_request",
+      "expect": {
+        "request_hash_matches_record": true,
+        "current_source_or_project_revalidated": false,
+        "same_result_ref": true,
+        "worker_invocations": 0
+      }
+    },
+    {
+      "id": "MOR-025",
+      "title": "same operation ID rejects every changed public request identity field",
+      "operation_type": "all",
+      "setup": "existing_record_then_one_public_request_field_changes_per_case",
+      "request_cases": [
+        "transcribe_source.source_id",
+        "transcribe_source.expected_project_revision",
+        "transcribe_source.transcription_request.speaker_diarization",
+        "transcribe_source.transcription_request.timeout_milliseconds",
+        "proxy_create.source_id",
+        "proxy_create.expected_project_revision",
+        "approve_export.workflow_action.input_hash"
+      ],
+      "expect": {
+        "all_cases_error_code": "operation_input_conflict",
+        "worker_invocations": 0,
+        "mutation": false
+      }
+    },
+    {
+      "id": "MOR-026",
+      "title": "same request ignores changed execution basis for existing operation",
+      "operation_type": "all",
+      "setup": "existing_record_request_hash_matches_but_current_runtime_source_or_export_basis_differs",
+      "request": "run_same_operation_id",
+      "expect": {
+        "same_record": true,
+        "input_hash_recomputed": false,
+        "preflight_invocations": 0,
+        "worker_invocations": 0,
+        "new_record_created": false
+      }
+    },
+    {
+      "id": "MOR-027",
+      "title": "malformed or missing request hash fails closed",
+      "operation_type": "all",
+      "setup": {
+        "record_cases": [
+          "request_hash_missing",
+          "request_hash_not_string",
+          "request_hash_not_lowercase_sha256",
+          "closed_record_has_unknown_field"
+        ]
+      },
+      "request": "status_or_retry",
+      "expect": {
+        "all_cases_error_code": "operation_integrity_error",
+        "record_reinterpreted_as_legacy_schema": false,
+        "worker_invocations": 0,
+        "mutation": false
+      }
+    }
+  ]
+}
