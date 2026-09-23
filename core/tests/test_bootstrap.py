@@ -34,6 +34,7 @@ from roughcut.adapters.component_environment import (
 ROOT = Path(__file__).resolve().parents[2]
 BOOTSTRAP = ROOT / "scripts" / "bootstrap.py"
 UNINSTALL = ROOT / "scripts" / "uninstall.py"
+CURRENT_CORE_VERSION = bootstrap_script.core_version()
 
 
 def _subprocess_diagnostics(
@@ -883,7 +884,7 @@ def test_bootstrap_cli_installs_and_reuses_core_from_local_wheel(
         build_argv,
         ROOT,
     )
-    wheel = wheel_dir / "roughcut-0.2.8-py3-none-any.whl"
+    wheel = wheel_dir / f"roughcut-{CURRENT_CORE_VERSION}-py3-none-any.whl"
     assert wheel.is_file()
 
     install_dir = tmp_path / "安装 根 with spaces"
@@ -920,7 +921,7 @@ def test_bootstrap_cli_installs_and_reuses_core_from_local_wheel(
     first = run_bootstrap()
     assert first["schema_version"] == 1
     assert first["ok"] is True
-    assert first["core_version"] == "0.2.8"
+    assert first["core_version"] == CURRENT_CORE_VERSION
     assert first["core_action"] == "installed"
     assert first["installed"] is True
 
@@ -959,7 +960,7 @@ def test_bootstrap_cli_installs_and_reuses_core_from_local_wheel(
         ROOT,
     )
     assert health_payload["schema_version"] == 1
-    assert health_payload["core_version"] == "0.2.8"
+    assert health_payload["core_version"] == CURRENT_CORE_VERSION
     assert health_payload["tool_schema_version"] == 32
     assert health_payload["ok"] is True
 

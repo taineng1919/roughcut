@@ -153,7 +153,7 @@ def test_tool_schema_and_core_version_are_exact() -> None:
 
     assert payload["schema_version"] == SCHEMA_VERSION == 1
     assert payload["tool_schema_version"] == TOOL_SCHEMA_VERSION == 32
-    assert payload["core_version"] == roughcut.__version__ == "0.2.8"
+    assert payload["core_version"] == roughcut.__version__
 
 
 def test_mcp_exposes_exactly_three_closed_credential_tools() -> None:
