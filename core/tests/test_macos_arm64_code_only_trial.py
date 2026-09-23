@@ -64,7 +64,7 @@ def test_code_only_trial_structure_and_manifest(tmp_path: Path) -> None:
     }
     manifest = json.loads((trial / MANIFEST_NAME).read_text(encoding="utf-8"))
     assert manifest["source_commit"] == _git_head()
-    assert manifest["code"]["version"] == CORE_VERSION == "0.2.9"
+    assert manifest["code"]["version"] == CORE_VERSION == "0.2.10"
     with zipfile.ZipFile(code_dir / WHEEL_NAME) as wheel:
         metadata = next(
             name for name in wheel.namelist() if name.endswith(".dist-info/METADATA")

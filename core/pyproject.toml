@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roughcut"
-version = "0.2.9"
+version = "0.2.10"
 description = "Local, agent-native transcript rough-cut tools"
 readme = "README.md"
 requires-python = ">=3.11"

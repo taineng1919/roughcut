@@ -48,6 +48,51 @@ def test_bootstrap_identity_requires_source_commit_equality() -> None:
     assert base != other
 
 
+def test_clean_checkout_identity_changes_with_committed_revision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source"
+    identity_file = source / "core/src/roughcut/_build_identity.py"
+    identity_file.parent.mkdir(parents=True)
+    identity_file.write_text("SOURCE_COMMIT: str | None = None\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(source), "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "A"],
+        check=True,
+    )
+    monkeypatch.setattr(bootstrap_script, "CORE_PATH", source / "core")
+    revision_a = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
+    assert bootstrap_script.current_core_source_commit() == revision_a
+
+    (source / "core/src/roughcut/change.py").write_text("value = 2\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(source), "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "B"],
+        check=True,
+    )
+    revision_b = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
+    assert revision_a != revision_b
+    assert bootstrap_script.current_core_source_commit() == revision_b
+
+    (source / "core/src/roughcut/change.py").write_text("value = 3\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="clean Git source checkout"):
+        bootstrap_script.current_core_source_commit()
+
+
+def test_embedded_source_bundle_identity_does_not_require_git(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "bundle"
+    identity_file = source / "core/src/roughcut/_build_identity.py"
+    identity_file.parent.mkdir(parents=True)
+    identity_file.write_text(
+        'SOURCE_COMMIT: str | None = "' + "e" * 40 + '"\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(bootstrap_script, "CORE_PATH", source / "core")
+    assert bootstrap_script.current_core_source_commit() == "e" * 40
+
+
 def test_build_identity_file_parsing(tmp_path: Path) -> None:
     sha_file = tmp_path / "_build_identity.py"
     sha_file.write_text('SOURCE_COMMIT: str | None = "' + "e" * 40 + '"\n', encoding="utf-8")

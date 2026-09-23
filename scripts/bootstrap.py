@@ -9,6 +9,7 @@ import os
 import stat
 import subprocess
 import sys
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from email.parser import Parser
@@ -83,9 +84,38 @@ def _source_commit_from_build_identity_file(path: Path) -> str | None:
 
 
 def current_core_source_commit() -> str | None:
-    return _source_commit_from_build_identity_file(
+    embedded = _source_commit_from_build_identity_file(
         CORE_PATH / "src" / "roughcut" / "_build_identity.py"
     )
+    if embedded is not None:
+        return embedded
+    source_root = CORE_PATH.parent.resolve()
+    repository = subprocess.run(
+        ["git", "-C", str(source_root), "rev-parse", "--show-toplevel"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if repository.returncode != 0 or Path(repository.stdout.strip()).resolve() != source_root:
+        return None
+    status = subprocess.run(
+        ["git", "-C", str(source_root), "status", "--porcelain", "--untracked-files=all"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if status.returncode != 0 or status.stdout:
+        raise RuntimeError("Roughcut bootstrap requires a clean Git source checkout")
+    head = subprocess.run(
+        ["git", "-C", str(source_root), "rev-parse", "--verify", "HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    commit = head.stdout.strip()
+    if head.returncode != 0 or _parse_build_identity_literal(f'"{commit}"') != commit:
+        raise RuntimeError("Roughcut bootstrap could not identify Git source HEAD")
+    return commit
 
 
 def current_core_identity() -> dict[str, object]:
@@ -231,6 +261,7 @@ def _install_current_core(
     *,
     action: str,
     core_wheel: Path | None = None,
+    source_commit: str | None = None,
 ) -> None:
     command = [
         sys.executable,
@@ -245,17 +276,31 @@ def _install_current_core(
     command.append("--no-deps")
     if action == "updated":
         command.extend(["--upgrade", "--force-reinstall"])
-    if core_wheel is None:
-        package_path = CORE_PATH
+    if core_wheel is None and source_commit is not None and _source_commit_from_build_identity_file(
+        CORE_PATH / "src" / "roughcut" / "_build_identity.py"
+    ) is None:
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from scripts.build_core_release import _stage_shared_source_with_identity
+
+        with tempfile.TemporaryDirectory(prefix="roughcut-core-bootstrap-") as temporary:
+            staged_root = Path(temporary) / "source"
+            _stage_shared_source_with_identity(CORE_PATH.parent, staged_root, source_commit)
+            if current_core_source_commit() != source_commit:
+                raise RuntimeError("Roughcut source changed during Core staging")
+            result = subprocess.run(
+                [*command, str(staged_root / "core")],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
     else:
-        package_path = core_wheel
-    command.append(str(package_path))
-    result = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+        result = subprocess.run(
+            [*command, str(core_wheel or CORE_PATH)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
     if result.returncode != 0:
         detail = result.stderr.strip() or "local core package installation failed"
         verb = "update" if action == "updated" else "install"
@@ -301,6 +346,11 @@ def bootstrap_core(
         venv_path,
         action=action,
         core_wheel=validated_wheel,
+        source_commit=(
+            expected_identity["source_commit"]
+            if isinstance(expected_identity["source_commit"], str)
+            else None
+        ),
     )
     health_error = _installed_core_health_error(roughcut_command, expected_identity)
     if not mcp_command.is_file():

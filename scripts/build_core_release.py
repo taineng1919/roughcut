@@ -20,7 +20,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CORE_SOURCE = ROOT / "core"
-CORE_VERSION = "0.2.9"
+CORE_VERSION = "0.2.10"
 WHEEL_NAME = f"roughcut-{CORE_VERSION}-py3-none-any.whl"
 SOURCE_BUNDLE_NAME = f"roughcut-core-{CORE_VERSION}-source.tar.gz"
 SOURCE_BUNDLE_ROOT = f"roughcut-core-{CORE_VERSION}"

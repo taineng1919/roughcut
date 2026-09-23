@@ -151,6 +151,7 @@ def test_core_wheel_install_uses_a_validated_offline_local_wheel(
         "0.2.7",
         # 0.2.8 is a historical identity and must be updated, never reused.
         "0.2.8",
+        "0.2.9",
     ]
 )
 def test_existing_old_core_is_updated_and_reverified(
@@ -218,6 +219,58 @@ def test_current_core_is_reused_without_pip(
     assert result["core_action"] == "reused"
     assert result["installed"] is False
     assert not any(call[1:3] == ["-m", "pip"] for call in calls)
+
+
+def test_staged_git_identity_installs_reuses_and_updates_same_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install_dir = tmp_path / "install"
+    runtime_path = install_dir / "runtime.json"
+    components = tmp_path / "components" / "model.bin"
+    revision = ["a" * 40]
+    installed = [None]
+    pip_calls: list[list[str]] = []
+    identity = {**CURRENT_HEALTH, "source_commit": revision[0]}
+
+    def current_identity() -> dict[str, object]:
+        return {**identity, "source_commit": revision[0]}
+
+    def run(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        if command[1:4] == ["-m", "venv", "--without-pip"]:
+            _write_launchers(install_dir)
+            return subprocess.CompletedProcess(command, 0, "", "")
+        if command[1:3] == ["-m", "pip"]:
+            pip_calls.append(command)
+            staged_identity = Path(command[-1]) / "src/roughcut/_build_identity.py"
+            installed[0] = bootstrap_script._source_commit_from_build_identity_file(
+                staged_identity
+            )
+            assert installed[0] == revision[0]
+            return subprocess.CompletedProcess(command, 0, "", "")
+        if command[1:] == ["health", "--json"]:
+            return subprocess.CompletedProcess(
+                command, 0, json.dumps({**current_identity(), "source_commit": installed[0]}), ""
+            )
+        raise AssertionError(f"unexpected subprocess command: {command}")
+
+    monkeypatch.setattr(bootstrap_script, "current_core_identity", current_identity)
+    monkeypatch.setattr(bootstrap_script, "current_core_source_commit", lambda: revision[0])
+    monkeypatch.setattr(bootstrap_script.subprocess, "run", run)
+    assert bootstrap_script.bootstrap_core(install_dir)[1] == "installed"
+    assert installed[0] == "a" * 40
+    assert bootstrap_script.bootstrap_core(install_dir)[1] == "reused"
+    assert len(pip_calls) == 1
+
+    runtime_path.write_bytes(b"existing runtime binding\n")
+    components.parent.mkdir()
+    components.write_bytes(b"existing model\n")
+    revision[0] = "b" * 40
+    assert bootstrap_script.bootstrap_core(install_dir)[1] == "updated"
+    assert installed[0] == "b" * 40
+    assert len(pip_calls) == 2
+    assert "--force-reinstall" in pip_calls[-1]
+    assert runtime_path.read_bytes() == b"existing runtime binding\n"
+    assert components.read_bytes() == b"existing model\n"
 
 
 def test_core_update_preserves_existing_runtime_binding(

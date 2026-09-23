@@ -51,7 +51,7 @@ The Agent must identify the user's intended source and install locations before 
 | Dirty, wrong origin, other branch, detached, ahead, or diverged | Any | **Stop.** Report the Git facts; do not change the checkout or installation. |
 | Any | Unknown, ambiguous, or conflicting install identity | **Stop.** Resolve the authoritative install/source identity with the user first. |
 
-Source state and installed Core state are separate dimensions. Do not infer Fresh or Update from a version string, directory name, or checkout alone. The bootstrap's `core_action` is the authority for the final Core result: `installed`, `updated`, or `reused`.
+Source state and installed Core state are separate dimensions. Do not infer Fresh or Update from a version string, directory name, or checkout alone. For a clean Git checkout, bootstrap stages the Core with that checkout's exact committed HEAD as `source_commit`; installed health reports the same revision. Bootstrap rejects a dirty Git checkout. A release source bundle instead uses its embedded commit identity without requiring `.git`. The bootstrap's `core_action` is the authority for the final Core result: `installed`, `updated`, or `reused`.
 
 ## Fresh installation
 
@@ -77,11 +77,11 @@ After the Git preflight passes, a checkout behind `origin/main` can be advanced 
 git merge --ff-only origin/main
 ```
 
-Do not use an implicit `git pull`, merge commit, rebase, automatic stash, reset, or forced checkout. If the fast-forward fails or the source identity is in doubt, stop. Run the same Core bootstrap command shown under Fresh, using the *existing* install directory. Bootstrap checks the installed Core identity and health, reuses a matching healthy environment, or updates the existing environment and checks post-update health. It does not delete the install directory or reinstall media components. A failed pip update is not guaranteed to roll back the old Core; follow Safe stop / recovery.
+Do not use an implicit `git pull`, merge commit, rebase, automatic stash, reset, or forced checkout. If the fast-forward fails or the source identity is in doubt, stop. Run the same Core bootstrap command shown under Fresh, using the *existing* install directory. A fast-forward to a different committed revision changes the expected `source_commit` even when Core version and tool schema stay the same. Bootstrap checks installed identity and health, reuses a matching healthy environment, or updates the existing environment and checks post-update health. It does not delete the install directory or reinstall media components. A failed pip update is not guaranteed to roll back the old Core; follow Safe stop / recovery.
 
 ## Reuse / already current
 
-When source is current and the installed Core appears healthy, run the same Core bootstrap command and confirm `core_action: "reused"`. Bootstrap checks health and skips pip for a matching Core. Then inspect component health and host integration; do not reapply compatible components or rewrite already-current host configuration.
+When source is current and the installed Core appears healthy, run the same Core bootstrap command and confirm `core_action: "reused"`. Bootstrap skips pip only when installed health matches the current source revision and other Core identity fields. Then inspect component health and host integration; do not reapply compatible components or rewrite already-current host configuration.
 
 ## Media component plan and apply
 

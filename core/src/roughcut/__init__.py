@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 
-__version__ = "0.2.9"
+__version__ = "0.2.10"
 
 
 def _ensure_supported_python(version: tuple[int, int]) -> None:
