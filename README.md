@@ -6,6 +6,10 @@ Roughcut can import linked or copied sources, transcribe audio with local FunASR
 
 It does not automatically create a finished program with titles, music, effects, mixing, or camera switching. Windows multicamera alignment has not been verified. A successful project still needs the user's editorial decisions and review.
 
+## Install or update with an Agent
+
+Give your terminal-capable Agent this repository URL and the [installation and update guide](docs/installation.md).
+
 ## Run from source
 
 Python 3.11 or newer is required. From this checkout:
