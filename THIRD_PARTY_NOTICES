@@ -1,0 +1,17 @@
+# Third-Party Notices
+
+Roughcut's own source code is licensed under the Apache License 2.0.
+
+Roughcut can interoperate with, install, or use third-party software and model assets that remain under their own licenses. Those third-party works are not relicensed under Roughcut's Apache-2.0 license.
+
+Current notable components include:
+
+- FFmpeg: external system component. The current Roughcut component catalog references GPL-3.0-or-later FFmpeg distributions. FFmpeg is not bundled in the default Roughcut code package.
+- FunASR: external managed runtime component. FunASR code and its dependencies retain their upstream license terms. Pretrained models are licensed separately from the toolkit.
+- PyTorch and TorchAudio: external managed runtime dependencies. They retain their upstream license terms.
+- Audalign: optional external component; upstream project is MIT licensed.
+- BBC audio-offset-finder: optional external component; upstream project is Apache-2.0 licensed.
+- ModelScope speech models: the model revisions currently pinned in `core/src/roughcut/component_catalog/models.json` are recorded there as Apache-2.0. Model licenses must be checked per model and revision.
+- Python and Node.js transitive dependencies: each dependency retains its own license. Relevant lockfiles and generated component license inventories are kept under `core/src/roughcut/component_catalog/` and `review-ui/package-lock.json`.
+
+The default Roughcut source/package does not bundle FunASR, PyTorch, TorchAudio, the speech models, Audalign, FFmpeg, user media, projects, or credentials. See `docs/release/PRODUCT_PACKAGING.md` for the package boundary.
