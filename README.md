@@ -23,3 +23,9 @@ roughcut diagnostics --json
 Media components are managed separately. Read [installation](docs/installation.md) before running transcription or rendering. The source checkout and release builder exist, but a general public installer and hosted binary release are not available. Node is needed only to develop the Review UI; installed core, CLI, and MCP do not require it.
 
 The [user workflow](docs/user-workflow.md), [technical specification](docs/spec.md), and [Agent tool contract](docs/agent-tool-contract.md) describe the current interfaces. `agent-skill/` is the shared source for Skills; `host-integrations/` contains thin host configuration. Codex and other compatible hosts use the same core through CLI or MCP.
+
+## License
+
+Roughcut is open source under the **Apache License 2.0**. You may use, modify, distribute, and commercially use Roughcut under the terms of that license. See [LICENSE](LICENSE).
+
+Third-party software, dependencies, and model assets keep their own licenses and are not automatically covered by Roughcut's Apache-2.0 license. See [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES).
