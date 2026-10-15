@@ -9,6 +9,7 @@ from roughcut.domain.edit import (
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
 )
 from roughcut.domain.project import ProjectError
 
@@ -85,7 +86,11 @@ class VirtualTimeline:
             spans.append(
                 TimelineSpan(
                     clip_id=clip.clip_id,
-                    source_id=clip.source_id,
+                    source_id=(
+                        clip.media_id
+                        if isinstance(clip, NarrationPlaceholderClip)
+                        else clip.source_id
+                    ),
                     source_in_ticks=clip.source_in_ticks,
                     source_out_ticks=clip.source_out_ticks,
                     output_in_ticks=output_in,

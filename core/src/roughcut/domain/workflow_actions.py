@@ -25,16 +25,23 @@ def _invalid(message: str) -> WorkflowError:
     )
 
 
-def _closed(value: object, fields: set[str], description: str) -> dict[str, Any]:
+def _closed(
+    value: object,
+    fields: set[str],
+    description: str,
+    *,
+    optional: set[str] | None = None,
+) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise _invalid(f"{description} must be an object")
     if any(not isinstance(key, str) for key in value):
         raise _invalid(f"{description} field names must be strings")
     actual = set(value)
-    if actual != fields:
+    allowed = fields if optional is None else fields | optional
+    if not fields <= actual or not actual <= allowed:
         raise _invalid(
             f"{description} fields are invalid; "
-            f"missing={sorted(fields - actual)}, extra={sorted(actual - fields)}"
+            f"missing={sorted(fields - actual)}, extra={sorted(actual - allowed)}"
         )
     return cast(dict[str, Any], value)
 
@@ -447,6 +454,7 @@ def _submit_draft(value: object) -> dict[str, object]:
                 block,
                 {"block_id", "kind", "text", "status", "recorded_refs"},
                 f"blocks[{index}]",
+                optional={"estimated_duration_seconds"},
             )
             refs = current["recorded_refs"]
             if not isinstance(refs, list):
@@ -466,6 +474,19 @@ def _submit_draft(value: object) -> dict[str, object]:
                 "status": current["status"],
                 "recorded_refs": parsed_refs,
             }
+            estimated = current.get("estimated_duration_seconds")
+            if estimated is not None and (
+                isinstance(estimated, bool)
+                or not isinstance(estimated, int)
+                or estimated <= 0
+            ):
+                raise _invalid(
+                    f"blocks[{index}].estimated_duration_seconds must be a positive integer"
+                )
+            if estimated is not None:
+                # Omit the default from the parsed projection so pre-feature
+                # submit_draft inputs keep their exact action input hash.
+                parsed["estimated_duration_seconds"] = estimated
         elif kind == "section_title":
             current = _closed(
                 block,

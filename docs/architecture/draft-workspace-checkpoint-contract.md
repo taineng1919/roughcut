@@ -277,7 +277,7 @@ ID、wall clock、生成后的 child ID、绝对路径和内存 cache 不进入 
 | `edit_delete` | 现有 Draft selection closed payload + `accept_degraded` |
 | `edit_move` | 现有 Draft selection、caret closed payload + `accept_degraded` |
 | `edit_insert` | 现有 Source selection、caret closed payload + `accept_degraded` |
-| `narration_edit` | `{block_id, text}` |
+| `narration_edit` | `{block_id, text, estimated_duration_seconds}`；`estimated_duration_seconds` 为正整数秒或 null（null 表示按文字自动估算） |
 | `candidate_select` | `{child_candidate_ref}`，必须为 current 的 direct unconfirmed child |
 | `external_submit_advance` | `{submit_draft_receipt_ref, child_candidate_ref}`；只接受同 basis、当前 exact submit receipt 的 direct child，且不得改变 Workflow anchor |
 | `undo` / `redo` | `{}` |

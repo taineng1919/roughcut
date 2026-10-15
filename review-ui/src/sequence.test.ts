@@ -77,7 +77,7 @@ function decisionReview(revision = 7, activeId = "edit_current"): ReviewPayload 
       total_duration_ticks: 1_200_000,
       spans: clips.map((clip, index) => ({
         clip_id: clip.clip_id,
-        source_id: clip.source_id,
+        source_id: clip.source_id!,
         source_in_ticks: clip.source_in_ticks,
         source_out_ticks: clip.source_out_ticks,
         output_in_ticks: index * 120_000,

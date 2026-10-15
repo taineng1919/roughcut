@@ -1,4 +1,5 @@
 import type { Clip, EditOperation, TranscriptSegment } from "./types";
+import { isNarrationPlaceholderClip } from "./types";
 
 const TICKS_PER_SECOND = 120_000;
 const TICKS_PER_MILLISECOND = 120;
@@ -17,7 +18,7 @@ export interface ManuscriptRun {
   speakerLabel: string;
   clips: Array<{
     clip_id: string;
-    source_id: string;
+    source_id?: string;
     display_text: string;
   }>;
 }
@@ -155,6 +156,20 @@ export function manuscriptRuns(
   );
   const runs: ManuscriptRun[] = [];
   for (const clip of clips) {
+    if (isNarrationPlaceholderClip(clip)) {
+      const key = `narration:${clip.narration_block_id ?? clip.clip_id}`;
+      let run = runs.at(-1);
+      if (run === undefined || run.speakerKey !== key) {
+        run = { speakerKey: key, speakerLabel: "解说待配音", clips: [] };
+        runs.push(run);
+      }
+      run.clips.push({
+        clip_id: clip.clip_id,
+        source_id: clip.media_id,
+        display_text: clip.display_text,
+      });
+      continue;
+    }
     const segment = segments.get(
       `${clip.source_id}:${clip.transcript_version_id}:${clip.segment_id}`,
     );

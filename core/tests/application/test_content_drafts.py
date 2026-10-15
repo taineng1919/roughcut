@@ -47,6 +47,7 @@ from roughcut.domain.content_draft import (
     legacy_section_block_id,
     punctuation_stripped,
 )
+from roughcut.domain.edit import PLACEHOLDER_MEDIA_VERSION, NarrationPlaceholderClip
 from roughcut.domain.project import (
     ImportMode,
     MediaProbe,
@@ -54,6 +55,8 @@ from roughcut.domain.project import (
     SourceAsset,
     SourceFingerprint,
 )
+from roughcut.domain.time import TICKS_PER_SECOND
+from roughcut.domain.timeline import VirtualTimeline
 from roughcut.domain.transcript import (
     FineUnit,
     TimedTranscript,
@@ -2068,7 +2071,7 @@ def test_source_excerpt_omitted_canonical_text_is_derived_and_readback_is_stable
     assert stored["canonical_text"] == "甲素材第一句。"
 
 
-def test_unrecorded_narration_blocks_proposal(tmp_path: Path) -> None:
+def test_unrecorded_narration_compiles_a_placeholder_proposal(tmp_path: Path) -> None:
     state = _fixture(tmp_path)
     root = Path(state["root"])
     candidate = create_content_draft(
@@ -2092,12 +2095,86 @@ def test_unrecorded_narration_blocks_proposal(tmp_path: Path) -> None:
     confirmed = confirm_content_draft(
         root, candidate.content_draft.content_draft_id, expected_revision=1
     )
-    with pytest.raises(ProjectError, match="not recorded"):
-        propose_content_draft(
-            root, confirmed.content_draft.content_draft_id, expected_revision=2
-        )
+    proposed = propose_content_draft(
+        root, confirmed.content_draft.content_draft_id, expected_revision=2
+    )
+    proposal = proposed.proposal
+    placeholder = proposal.clips[-1]
+    assert isinstance(placeholder, NarrationPlaceholderClip)
+    assert placeholder.narration_block_id == "block_narration"
+    assert placeholder.display_text == "尚未录制。"
+    assert placeholder.media_version == PLACEHOLDER_MEDIA_VERSION
+    assert placeholder.media_id.startswith("phm_")
+    assert placeholder.source_in_ticks == 0
+    # 4 narration units -> ceil(4 * 60 / 200) = 2 seconds, frame-aligned at 25 fps.
+    assert placeholder.source_out_ticks == 2 * TICKS_PER_SECOND
+    assert proposal.total_duration_ticks == sum(
+        clip.duration_ticks for clip in proposal.clips
+    )
     assert ProjectStore(root).load().revision == 2
-    assert not (root / "proposals").exists()
+    assert (root / "proposals" / f"{proposal.proposal_id}.json").is_file()
+
+
+@pytest.mark.parametrize(
+    "order",
+    [("first", "second", "source"), ("source", "first", "second"), ("first", "source", "second")],
+)
+def test_placeholder_head_tail_and_consecutive_boundaries(
+    tmp_path: Path, order: tuple[str, ...]
+) -> None:
+    state = _fixture(tmp_path)
+    root = Path(state["root"])
+    blocks = {
+        "source": _source_block(),
+        **{
+            name: {
+                "block_id": f"narration_{name}",
+                "kind": "narration",
+                "text": f"解说{name}",
+                "status": "draft",
+                "recorded_refs": [],
+                "estimated_duration_seconds": seconds,
+            }
+            for name, seconds in (("first", 2), ("second", 3))
+        },
+    }
+    candidate = create_content_draft(
+        root,
+        parent_draft_id=None,
+        source_bindings=_bindings("src_a"),
+        brief_id="brief_content",
+        context_hash=_context_hash(root, 1, "src_a"),
+        blocks=[blocks[name] for name in order],
+        expected_revision=1,
+    )
+    confirmed = confirm_content_draft(
+        root, candidate.content_draft.content_draft_id, expected_revision=1
+    )
+    proposal = propose_content_draft(
+        root, confirmed.content_draft.content_draft_id, expected_revision=2
+    ).proposal
+    timeline = VirtualTimeline.from_proposal(proposal)
+    placeholders = [
+        clip for clip in proposal.clips if isinstance(clip, NarrationPlaceholderClip)
+    ]
+    assert len(placeholders) == 2
+    assert len({clip.media_id for clip in placeholders}) == 1
+    assert [
+        clip.narration_block_id if isinstance(clip, NarrationPlaceholderClip) else "source"
+        for clip in proposal.clips
+    ] == ["source" if name == "source" else f"narration_{name}" for name in order]
+    assert [clip.duration_ticks for clip in placeholders] == [
+        2 * TICKS_PER_SECOND, 3 * TICKS_PER_SECOND
+    ]
+    assert timeline.total_duration_ticks == proposal.total_duration_ticks
+    for span in timeline.spans:
+        start = timeline.map_output_time(span.output_in_ticks)
+        end = timeline.map_output_time(span.output_out_ticks - 1)
+        assert start.clip_id == end.clip_id == span.clip_id
+        assert start.source_ticks == span.source_in_ticks
+        assert end.source_ticks == span.source_out_ticks - 1
+    with pytest.raises(ProjectError, match="outside the timeline"):
+        timeline.map_output_time(timeline.total_duration_ticks)
 
 
 def test_multisource_source_blocks_preserve_block_and_ref_order(tmp_path: Path) -> None:

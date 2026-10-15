@@ -248,10 +248,11 @@ def test_review_source_and_built_assets_are_small_and_framework_free() -> None:
     assert "正式导出当前已采用的粗剪版本" in bundled_javascript
     assert "/api/workflow/readable-transcript" not in bundled_javascript
     # The framework-free Review bundle remains bounded after direct-drop,
-    # schema-2 section editing, punctuation input, and the bounded interaction
-    # trace are included in the single generated chunk.
-    assert max(path.stat().st_size for path in scripts) < 115_000
-    assert sum(path.stat().st_size for path in STATIC.rglob("*") if path.is_file()) < 170_000
+    # schema-2 section editing, punctuation input, the bounded interaction
+    # trace, draft bylines, and narration duration editing are included in
+    # the single generated chunk.
+    assert max(path.stat().st_size for path in scripts) < 120_000
+    assert sum(path.stat().st_size for path in STATIC.rglob("*") if path.is_file()) < 175_000
 
 
 def test_canonical_review_build_matches_shipped_static_bytes(

@@ -53,6 +53,19 @@ interval 投影为 original-source clip。`missing`、`uncertain`、`conflict` �
 补集均生成 gap。不能可靠映射时不猜测、不插值、不自动补齐、不生成黑色视频或数字静音。
 auxiliary audio 本体保留；不生成 native multicam object，也不自动切机或混音。
 
+未配音解说占位的唯一真相是已确认 Content Draft 编译出的 `narration_placeholder` clip：
+它在主轨和每个 auxiliary track 的相同 timeline 区间投影为同一个项目管理的生成媒体
+（普通 H.264/AAC 文件），因此主轨仍无 gap、主副轨时段一致。导出准备阶段读取（必要时
+幂等生成）该媒体并校验记录、fingerprint 与时长；缺失或篡改时 fail closed，不发布成功
+的 XML/receipt。
+
+交付时把每个被引用的生成媒体复制到 destination 同级的
+`<destination stem>_placeholder_media/` companion 目录（同内容已存在且 hash 一致时复用，
+不同内容 fail closed），XML 的 locator 指向交付后的 companion 路径；receipt 可携带
+可选 `placeholder_media` 绑定（`media_id/media_version/content_sha256/locator_hash/
+duration_ticks`），request hash 与 receipt readback 都覆盖它。无解说或解说已 recorded 的
+项目不生成占位媒体、不附带任何新增 companion 文件。
+
 ## 3. Frozen exporter profiles
 
 只有以下两个 production profile：
@@ -179,7 +192,7 @@ WorkflowRun stage/lifecycle。
 - exact current Adopted Decision `edit_version_id`、schema version、content hash；
 - current Project revision；
 - current SourceAsset snapshot bundle（每个 source 的 snapshot hash、fingerprint、
-  duration、locator identity）；
+  duration、locator identity），以及占位生成媒体的 `placeholder_media` 绑定（如存在）；
 - route 与 Core 固定 exporter profile；
 - canonical destination/output identity；
 - 单机位 `alignment_artifact_id: null`；多机位 exact Alignment ID 与 content hash。
@@ -197,8 +210,10 @@ snapshot、route/profile、destination 或 Alignment）都会使旧 action/recei
    action-owned temp，flush/fsync 后以 no-replace atomic publish；
 3. 仅最终文件完成 hash readback 后写 immutable handoff receipt；receipt 自身也采用
    no-replace atomic write；
-4. 同 action/同 request 只回读已有 receipt 与同 hash output；同 action/不同 request、
-   output conflict、stale truth、writer/publish/receipt failure 均 fail closed；
+4. 同 action/同 request 只回读已有 receipt 与同 hash output；receipt readback 同时校验
+   companion 占位媒体存在、locator 与 content hash 未变；同 action/不同 request、
+   output/companion conflict、stale truth、writer/publish/receipt failure 均 fail closed；
+   失败清理只删除本 action 创建的 companion 文件，不覆盖既有交付；
 5. 失败不产生成功 receipt。若 publish 后 receipt 写入失败，只能在 output 仍与本 action
    的 hash/inode 完全一致时清理；否则保留现场并报告 recovery conflict，不声称成功。
 

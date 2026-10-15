@@ -882,9 +882,10 @@ safe IDs. An artifact ref is exactly
   `block_id/kind/refs`. Normal Agent schema-2 submissions MUST omit
   `canonical_text` and Core derives it from the exact refs. An explicitly
   identified legacy caller may supply it only as a strict-equality check against
-  that same Core-derived text. Narration blocks contain exactly
-  `block_id/kind/text/status/recorded_refs`; an independent heading contains
-  exactly `block_id/kind/title`.
+  that same Core-derived text. Narration blocks contain
+  `block_id/kind/text/status/recorded_refs` plus the optional positive-integer
+  `estimated_duration_seconds` manual override (absent = automatic estimate); an
+  independent heading contains exactly `block_id/kind/title`.
 - `approve_draft`: exact `content_draft_ref`.
 - `return_to_draft`: `current_subject_ref`, which is an artifact ref plus
   `kind: proposal|decision`, and exact `confirmed_content_draft_ref`.
@@ -1067,9 +1068,10 @@ Content Draft state differs.
 In addition, `content_draft_read` returns the additive `duration_acceptance`
 object with `target_duration_ticks`, `actual_duration_ticks`, `delta_ticks`,
 `status`, `tolerance_ticks`, and `accepted_upper_bound_ticks`. The actual value
-is derived from the current candidate's exact source refs and recorded narration
-refs through the existing duration truth; headings and unrecorded narration do
-not contribute. `delta_ticks` is `actual - target`, and the default inclusive
+is derived from the current candidate's exact source refs, recorded narration
+refs, and unrecorded narration's single effective duration (automatic estimate
+or manual override, frame-aligned once in integer ticks) through the existing
+duration truth; headings do not contribute. `delta_ticks` is `actual - target`, and the default inclusive
 accepted interval is `target .. target + floor(target * 10 / 100)`. Status is one
 of `within_target`, `under_target`, or `over_target`. This is a readback/warning,
 not a new Brief tolerance field or a blanket rejection; stale/ref changes cause
@@ -1082,9 +1084,12 @@ is an acceptance stop until it is met.
 `content_draft_propose` accepts schema 1 or schema 2 after exact-ref validation,
 but only the active, current, user-confirmed draft. Independent heading blocks
 are ignored and never become Proposal items, clips, duration, or placeholders.
-Every narration block must already be recorded; unrecorded narration blocks the
-operation and never becomes a placeholder clip, fabricated timing, or omitted
-content. The service compiles source/narration block/ref order through the
+Every narration block must already be approved or recorded; draft narration
+blocks the operation. Approved but unrecorded narration compiles into an
+explicit project-managed `narration_placeholder` item in the same ordered clip
+set with its single derived duration, backed by an immutable generated
+H.264/AAC media; it never fabricates a Transcript/segment identity, omits
+content, or bypasses source validation for real material. The service compiles source/narration block/ref order through the
 existing Proposal application service with canonical refs. Proposal, manuscript,
 and subtitle display prefers validated source `display_text`; clips, refs, ticks,
 duration, order, and media identity remain derived only from exact canonical

@@ -11,12 +11,14 @@ from typing import Any, TypeAlias
 from roughcut.domain.bindings import SourceTranscriptBinding
 from roughcut.domain.brief import EditBrief
 from roughcut.domain.project import ProjectError
+from roughcut.domain.time import TICKS_PER_SECOND, RationalRate
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 NARRATION_STATUSES = {"draft", "approved", "recorded"}
 _MAX_DISPLAY_TITLE_LENGTH = 80
 MAX_EDITORIAL_PUNCTUATION_RUN = 8
+NARRATION_ESTIMATE_UNITS_PER_MINUTE = 200
 
 
 def is_unicode_punctuation(character: str) -> bool:
@@ -303,6 +305,7 @@ class NarrationBlock:
     recorded_refs: tuple[ContentDraftRef, ...]
     section_title: str | None = None
     kind: str = "narration"
+    estimated_duration_seconds: int | None = None
 
     def __post_init__(self) -> None:
         _validate_id(self.block_id, "block_id")
@@ -322,6 +325,12 @@ class NarrationBlock:
             "section_title",
             _normalized_optional_title(self.section_title, "section title"),
         )
+        if self.estimated_duration_seconds is not None and (
+            isinstance(self.estimated_duration_seconds, bool)
+            or not isinstance(self.estimated_duration_seconds, int)
+            or self.estimated_duration_seconds <= 0
+        ):
+            raise ProjectError("content draft narration estimated duration is invalid")
 
     def to_dict(self, *, schema_version: int = 1) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -333,12 +342,19 @@ class NarrationBlock:
         }
         if schema_version == 1:
             payload["section_title"] = self.section_title
+        elif self.estimated_duration_seconds is not None:
+            # Absent key means "automatic estimate"; omitting the default keeps
+            # pre-feature schema-2 artifacts byte- and hash-identical.
+            payload["estimated_duration_seconds"] = self.estimated_duration_seconds
         return payload
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], *, schema_version: int = 1) -> NarrationBlock:
         if schema_version == 2 and "section_title" in data:
             raise ProjectError("schema 2 narration cannot contain section_title")
+        estimated_duration_seconds = (
+            data.get("estimated_duration_seconds") if schema_version == 2 else None
+        )
         return cls(
             block_id=_string(data, "block_id"),
             kind=_string(data, "kind"),
@@ -350,7 +366,56 @@ class NarrationBlock:
                 if schema_version == 2
                 else _optional_title(data.get("section_title"), "section title")
             ),
+            estimated_duration_seconds=(
+                None
+                if estimated_duration_seconds is None
+                else _positive_integer(estimated_duration_seconds, "estimated duration")
+            ),
         )
+
+
+def narration_text_unit_count(text: str) -> int:
+    """Count narration units: code points that are neither whitespace nor Unicode P*."""
+    return sum(
+        1
+        for character in text
+        if not character.isspace() and not is_unicode_punctuation(character)
+    )
+
+
+def estimated_narration_seconds(text: str) -> int:
+    """Return the automatic narration estimate in whole seconds using integer math."""
+    units = narration_text_unit_count(text)
+    return max(
+        1,
+        -(-units * 60 // NARRATION_ESTIMATE_UNITS_PER_MINUTE),
+    )
+
+
+def narration_requested_seconds(block: NarrationBlock) -> int:
+    """Return the manual override or the automatic estimate in whole seconds."""
+    if block.estimated_duration_seconds is not None:
+        return block.estimated_duration_seconds
+    return estimated_narration_seconds(block.text)
+
+
+def narration_effective_duration_ticks(
+    block: NarrationBlock, frame_rate: RationalRate
+) -> int:
+    """Resolve the single authoritative narration duration for one frame rate.
+
+    Recorded narration keeps its exact ref duration; unrecorded narration uses
+    the manual override or the automatic estimate, rounded up to whole project
+    frames so every consumer shares one integer tick duration.
+    """
+    if block.status == "recorded":
+        duration = sum(ref.end_ticks - ref.start_ticks for ref in block.recorded_refs)
+        if duration <= 0:
+            raise ProjectError("recorded narration duration is invalid")
+        return duration
+    ticks_per_frame = frame_rate.ticks_per_frame
+    seconds_ticks = narration_requested_seconds(block) * TICKS_PER_SECOND
+    return -(-seconds_ticks // ticks_per_frame) * ticks_per_frame
 
 
 @dataclass(frozen=True)
@@ -452,6 +517,7 @@ def project_schema1_to_schema2(parent: ContentDraft) -> ContentDraft:
                     text=block.text,
                     status=block.status,
                     recorded_refs=block.recorded_refs,
+                    estimated_duration_seconds=block.estimated_duration_seconds,
                 )
             )
         else:  # schema 1 cannot contain headings
@@ -617,10 +683,26 @@ class ContentDraft:
                     SourceExcerptBlock.from_dict(block, schema_version=schema_version)
                 )
             elif kind == "narration":
-                if schema_version == 2 and set(block) != {
-                    "block_id", "kind", "text", "status", "recorded_refs"
-                }:
+                if schema_version == 2 and set(block) not in (
+                    {"block_id", "kind", "text", "status", "recorded_refs"},
+                    {
+                        "block_id",
+                        "kind",
+                        "text",
+                        "status",
+                        "recorded_refs",
+                        "estimated_duration_seconds",
+                    },
+                ):
                     raise ProjectError("schema 2 narration block fields are invalid")
+                if schema_version == 2 and "estimated_duration_seconds" in block and (
+                    block["estimated_duration_seconds"] is not None
+                    and (
+                        isinstance(block["estimated_duration_seconds"], bool)
+                        or not isinstance(block["estimated_duration_seconds"], int)
+                    )
+                ):
+                    raise ProjectError("content draft narration estimated duration is invalid")
                 parsed_blocks.append(
                     NarrationBlock.from_dict(block, schema_version=schema_version)
                 )
@@ -671,6 +753,12 @@ def _integer(data: dict[str, Any], key: str) -> int:
     value = data.get(key)
     if isinstance(value, bool) or not isinstance(value, int):
         raise ProjectError(f"content draft {key} must be an integer")
+    return value
+
+
+def _positive_integer(value: object, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ProjectError(f"content draft {name} is invalid")
     return value
 
 

@@ -344,6 +344,7 @@ def edit_draft_workspace_narration(
     expected_current_candidate_ref: ArtifactRef,
     block_id: str,
     text: str,
+    estimated_duration_seconds: int | None = None,
     audit_review_session_id: str | None = None,
     prepared_editor_snapshot: DraftEditorSnapshot | None = None,
 ) -> DraftWorkspaceState:
@@ -354,7 +355,11 @@ def edit_draft_workspace_narration(
         expected_checkpoint_ref=expected_checkpoint_ref,
         expected_current_candidate_ref=expected_current_candidate_ref,
         operation="narration_edit",
-        input_payload={"block_id": block_id, "text": text},
+        input_payload={
+            "block_id": block_id,
+            "text": text,
+            "estimated_duration_seconds": estimated_duration_seconds,
+        },
         audit_review_session_id=audit_review_session_id,
         prepared_editor_snapshot=prepared_editor_snapshot,
         prepare=lambda snapshot, child_id: prepare_draft_narration(
@@ -362,6 +367,7 @@ def edit_draft_workspace_narration(
             block_id=block_id,
             text=text,
             child_id=child_id,
+            estimated_duration_seconds=estimated_duration_seconds,
         ),
     )
 

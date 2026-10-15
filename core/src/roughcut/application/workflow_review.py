@@ -15,6 +15,7 @@ from roughcut.application.agent_context import (
 )
 from roughcut.application.content_drafts import (
     ContentDraftState,
+    _project_frame_rate,
     read_content_draft,
     read_content_draft_editor_child,
 )
@@ -28,6 +29,7 @@ from roughcut.domain.brief import EditBrief
 from roughcut.domain.content_draft import (
     ContentDraft,
     NarrationBlock,
+    SectionTitleBlock,
     SourceExcerptBlock,
 )
 from roughcut.domain.edit import (
@@ -35,6 +37,7 @@ from roughcut.domain.edit import (
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
 )
 from roughcut.domain.project import Project, ProjectError, SourceAsset
 from roughcut.domain.transcript import TimedTranscript
@@ -273,7 +276,9 @@ def reopen_workflow_review_content_draft(
         base_project_revision=project.revision,
         context_hash=snapshot.context_hash,
     )
-    reopened = ContentDraftState(rebased, project.revision, "current", ())
+    reopened = ContentDraftState(
+        rebased, project.revision, "current", (), _project_frame_rate(project)
+    )
     selected = select_workflow_review_content_draft(snapshot, reopened)
     return replace(
         selected,
@@ -436,11 +441,7 @@ def _allowed_operations(
         operations.append("content_draft_read")
         if draft.status == "current":
             if draft.content_draft.confirmed_by_user:
-                if all(
-                    not isinstance(block, NarrationBlock) or block.status == "recorded"
-                    for block in draft.content_draft.blocks
-                ):
-                    operations.append("content_draft_propose")
+                operations.append("content_draft_propose")
             else:
                 operations.append("content_draft_confirm")
     return tuple(operations)
@@ -763,38 +764,45 @@ def _proposal_matches_draft(
         or proposal.context_hash != draft.context_hash
     ):
         return False
-    refs = tuple(
-        ref
-        for block in draft.blocks
-        for ref in (
-            block.refs
-            if isinstance(block, SourceExcerptBlock)
-            else block.recorded_refs
-            if isinstance(block, NarrationBlock)
-            else ()
+    expected: list[tuple[object, ...]] = []
+    for block in draft.blocks:
+        if isinstance(block, SectionTitleBlock):
+            continue
+        if isinstance(block, NarrationBlock) and block.status != "recorded":
+            expected.append(
+                ("narration_placeholder", block.block_id, block.text)
+            )
+            continue
+        refs = block.refs if isinstance(block, SourceExcerptBlock) else block.recorded_refs
+        expected.extend(
+            (
+                "ref",
+                ref.source_id,
+                ref.transcript_version_id,
+                ref.segment_id,
+                ref.start_ticks,
+                ref.end_ticks,
+            )
+            for ref in refs
         )
-    )
-    clip_ranges = tuple(
-        (
-            clip.source_id,
-            clip.transcript_version_id,
-            clip.segment_id,
-            clip.source_in_ticks,
-            clip.source_out_ticks,
-        )
-        for clip in proposal.clips
-    )
-    ref_ranges = tuple(
-        (
-            ref.source_id,
-            ref.transcript_version_id,
-            ref.segment_id,
-            ref.start_ticks,
-            ref.end_ticks,
-        )
-        for ref in refs
-    )
-    return clip_ranges == ref_ranges
+    actual: list[tuple[object, ...]] = []
+    for clip in proposal.clips:
+        if isinstance(clip, NarrationPlaceholderClip):
+            actual.append(
+                ("narration_placeholder", clip.narration_block_id, clip.display_text)
+            )
+        else:
+            actual.append(
+                (
+                    "ref",
+                    clip.source_id,
+                    clip.transcript_version_id,
+                    clip.segment_id,
+                    clip.source_in_ticks,
+                    clip.source_out_ticks,
+                )
+            )
+    return actual == expected
 
 
 def _read_workflow_decision(

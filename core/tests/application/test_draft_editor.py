@@ -1312,11 +1312,13 @@ def test_snapshot_is_path_free_and_exposes_safe_continuous_draft_and_sources(
     assert payload["editor_schema_version"] == 1
     assert payload["project"] == {"name": "初稿编辑"}
     assert payload["brief"]["theme"] == "测试初稿"
+    # The unrecorded narration now contributes its automatic estimate
+    # (4 units -> 2 seconds at 25 fps) to the draft duration acceptance facts.
     assert payload["duration_acceptance"] == {
         "target_duration_ticks": 360_000,
-        "actual_duration_ticks": 260_000,
-        "delta_ticks": -100_000,
-        "status": "under_target",
+        "actual_duration_ticks": 500_000,
+        "delta_ticks": 140_000,
+        "status": "over_target",
         "tolerance_ticks": 36_000,
         "accepted_upper_bound_ticks": 396_000,
     }
@@ -3864,3 +3866,239 @@ def test_schema1_punctuation_prepare_projects_one_immutable_schema2_child(
     changed = next(block for block in child.blocks if block.block_id == "block_a_fine")
     assert isinstance(changed, SourceExcerptBlock)
     assert changed.display_text == "你😀！好"
+
+
+def _byline_draft(
+    tmp_path: Path,
+    *,
+    speaker_maps: tuple[SpeakerMap, ...] | None = None,
+    persons: tuple[Person, ...] | None = None,
+    include_unmapped_a: bool = False,
+) -> tuple[Path, list[dict[str, str]], str]:
+    """Create a two-source draft that exercises bylines across kinds of boundaries."""
+    fixture = _fixture(tmp_path)
+    root = Path(fixture["root"])
+    if speaker_maps is not None or persons is not None:
+        project = ProjectStore(root).load()
+        updated = replace(
+            project,
+            revision=project.revision + 1,
+            persons=persons if persons is not None else project.persons,
+            speaker_maps=speaker_maps if speaker_maps is not None else project.speaker_maps,
+        )
+        ProjectStore(root).save(updated, expected_revision=project.revision)
+    project = ProjectStore(root).load()
+    bindings = [
+        {"source_id": "src_a", "transcript_version_id": "tr_a"},
+        {"source_id": "src_b", "transcript_version_id": "tr_b"},
+    ]
+    context = read_multi_source_agent_context(
+        root,
+        source_bindings=bindings,
+        brief_id=str(project.active_brief_id),
+        expected_revision=project.revision,
+        offset=0,
+        limit=20,
+    )
+    draft = create_content_draft(
+        root,
+        parent_draft_id=None,
+        source_bindings=bindings,
+        brief_id=str(project.active_brief_id),
+        context_hash=context.context_hash,
+        blocks=[
+            {
+                "block_id": "byline_first",
+                "kind": "source_excerpt",
+                "refs": [
+                    {
+                        "source_id": "src_a",
+                        "transcript_version_id": "tr_a",
+                        "segment_id": "seg_a_fine",
+                        "start_ticks": 0,
+                        "end_ticks": 60_000,
+                    }
+                ],
+                "canonical_text": "你😀好",
+            },
+            {"block_id": "byline_section", "kind": "section_title", "title": "人物章节"},
+            {
+                "block_id": "byline_after_section",
+                "kind": "source_excerpt",
+                "refs": [
+                    {
+                        "source_id": "src_a",
+                        "transcript_version_id": "tr_a",
+                        "segment_id": "seg_a_fine",
+                        "start_ticks": 0,
+                        "end_ticks": 60_000,
+                    }
+                ],
+                "canonical_text": "你😀好",
+            },
+            {
+                "block_id": "byline_narration",
+                "kind": "narration",
+                "text": "这里是一段待配音解说。",
+                "status": "draft",
+                "recorded_refs": [],
+            },
+            {
+                "block_id": "byline_after_narration",
+                "kind": "source_excerpt",
+                "refs": [
+                    {
+                        "source_id": "src_b",
+                        "transcript_version_id": "tr_b",
+                        "segment_id": "seg_b_fine",
+                        "start_ticks": 0,
+                        "end_ticks": 100_000,
+                    }
+                ],
+                "canonical_text": "重复你好",
+            },
+            *(
+                [
+                    {
+                        "block_id": "byline_unmapped_a",
+                        "kind": "source_excerpt",
+                        "refs": [
+                            {
+                                "source_id": "src_a",
+                                "transcript_version_id": "tr_a",
+                                "segment_id": "seg_a_other",
+                                "start_ticks": 800_000,
+                                "end_ticks": 880_000,
+                            }
+                        ],
+                        "canonical_text": "另一人物",
+                    }
+                ]
+                if include_unmapped_a
+                else []
+            ),
+        ],
+        expected_revision=project.revision,
+    )
+    return root, bindings, draft.content_draft.content_draft_id
+
+
+def test_draft_bylines_show_first_switch_section_and_narration_resets(tmp_path: Path) -> None:
+    root, bindings, draft_id = _byline_draft(tmp_path)
+    snapshot = load_draft_editor_snapshot(
+        root,
+        source_bindings=bindings,
+        content_draft_id=draft_id,
+    )
+    paragraphs = list(snapshot.paragraphs)
+    bylines = {
+        paragraph["paragraph_id"]: paragraph["bylines"]
+        for paragraph in paragraphs
+        if paragraph["kind"] == "source_excerpt"
+    }
+    assert [paragraph["kind"] for paragraph in paragraphs] == [
+        "source_excerpt",
+        "source_excerpt",
+        "narration",
+        "source_excerpt",
+    ]
+    assert paragraphs[1]["section_title"] == "人物章节"
+    assert list(bylines.values()) == [
+        [{"start_offset": 0, "end_offset": 4, "text": "人物甲 · 主持人"}],
+        [{"start_offset": 0, "end_offset": 4, "text": "人物甲 · 主持人"}],
+        [{"start_offset": 0, "end_offset": 4, "text": "人物丙 · 学生"}],
+    ]
+    first_paragraph = next(
+        paragraph
+        for paragraph in paragraphs
+        if paragraph["kind"] == "source_excerpt"
+    )
+    # The byline never enters the body text or the display-only run identity.
+    assert first_paragraph["text"] == "你😀好"
+    assert isinstance(first_paragraph["bylines"], list)
+    assert "人物甲" not in str(first_paragraph["text"])
+    assert first_paragraph["source_runs"][0]["byline_key"] == "person:person_a"
+    assert first_paragraph["source_runs"][0]["byline_text"] == "人物甲 · 主持人"
+
+
+def test_draft_bylines_never_merge_unmapped_speakers_across_sources(tmp_path: Path) -> None:
+    root, bindings, draft_id = _byline_draft(
+        tmp_path,
+        speaker_maps=(SpeakerMap("src_a", "tr_a", "spk_0", "person_a", True),),
+        persons=(Person("person_a", "人物甲", "主持人", ""),),
+        include_unmapped_a=True,
+    )
+    snapshot = load_draft_editor_snapshot(
+        root,
+        source_bindings=bindings,
+        content_draft_id=draft_id,
+    )
+    runs = [
+        run
+        for paragraph in snapshot.paragraphs
+        if paragraph["kind"] == "source_excerpt"
+        for run in paragraph["source_runs"]
+    ]
+    keys = [run["byline_key"] for run in runs]
+    assert keys[0] == "person:person_a"
+    assert keys[-2] == "speaker:src_b:tr_b:spk_0"
+    assert keys[-1] == "speaker:src_a:tr_a:spk_1"
+    assert len(set(keys)) == 3
+    bylines = [
+        paragraph["bylines"][0]["text"]
+        for paragraph in snapshot.paragraphs
+        if paragraph["kind"] == "source_excerpt"
+    ]
+    assert bylines == [
+        "人物甲 · 主持人",
+        "人物甲 · 主持人",
+        "未命名发言人 · 素材 src_b · spk_0",
+        "未命名发言人 · 素材 src_a · spk_1",
+    ]
+
+
+def test_mixed_person_paragraph_bylines_follow_the_actual_run_switch(tmp_path: Path) -> None:
+    fixture = _different_person_sectioned_snapshot(tmp_path)
+    source = _paragraph(fixture, kind="source_excerpt", contains="你😀好")
+    target = _paragraph(fixture, kind="source_excerpt", contains="另一人物")
+    selection = resolve_draft_editor_selection(
+        fixture,
+        surface="draft",
+        anchor={"paragraph_id": source["paragraph_id"], "offset": 1},
+        focus={"paragraph_id": source["paragraph_id"], "offset": 2},
+    )
+    caret = resolve_draft_editor_caret(
+        fixture,
+        paragraph_id=str(target["paragraph_id"]),
+        offset=2,
+    )
+    mutation = edit_draft_candidate(
+        fixture,
+        operation="move",
+        selection=selection,
+        caret=caret,
+        accept_degraded=False,
+    )
+    reloaded = load_draft_editor_snapshot(
+        Path(fixture.workflow.project_path),
+        source_bindings=[binding.to_dict() for binding in fixture.workflow.source_bindings],
+        content_draft_id=mutation.content_draft.content_draft_id,
+    )
+    mixed = next(
+        paragraph
+        for paragraph in reloaded.paragraphs
+        if paragraph["kind"] == "source_excerpt"
+        and len(paragraph["source_runs"]) == 3
+    )
+    runs = mixed["source_runs"]
+    assert [run["byline_key"] for run in runs] == [
+        "person:person_other",
+        "person:person_a",
+        "person:person_other",
+    ]
+    assert mixed["bylines"] == [
+        {"start_offset": 0, "end_offset": 2, "text": "人物乙 · 老师"},
+        {"start_offset": 2, "end_offset": 4, "text": "人物甲 · 主持人"},
+        {"start_offset": 4, "end_offset": 6, "text": "人物乙 · 老师"},
+    ]
+    assert mixed["text"] == "另一😀人物"

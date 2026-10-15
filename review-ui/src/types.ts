@@ -1,12 +1,21 @@
 export interface Clip {
   clip_id: string;
-  source_id: string;
-  transcript_version_id: string;
-  segment_id: string;
+  kind?: "source" | "narration_placeholder";
+  source_id?: string;
+  transcript_version_id?: string;
+  segment_id?: string;
+  narration_block_id?: string;
+  media_id?: string;
+  media_version?: number;
+  media_frames?: number;
   source_in_ticks: number;
   source_out_ticks: number;
   reason: string;
   display_text: string;
+}
+
+export function isNarrationPlaceholderClip(clip: Clip): boolean {
+  return clip.kind === "narration_placeholder";
 }
 
 export interface TimelineSpan {

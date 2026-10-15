@@ -51,6 +51,7 @@ import {
   type WorkflowProposalHandoff,
 } from "./workflow-handoff";
 import type {
+  DraftEditorByline,
   DraftEditorCaret,
   DraftEditorParagraph,
   DraftEditorRequestPoint,
@@ -1266,8 +1267,8 @@ export class WorkflowReviewController {
       state === "reading"
         ? '<p class="draft-narration-copy"></p><button type=BUTTON_ELEMENT data-narration-action="edit">修改</button><span class="draft-narration-drag-handle" data-narration-drag-handle="true" role=BUTTON_ELEMENT aria-label="拖动解说块">⋮⋮</span>'
         : state === "warning"
-          ? '<p class="draft-narration-warning" role="alert">保存变化会创建不可变 child、清除旧录音绑定并回到待录音；重新录音、校对并绑定前不能生成粗剪。</p><div class="draft-narration-actions"><button type=BUTTON_ELEMENT class="primary" data-narration-action="continue">继续修改</button><button type=BUTTON_ELEMENT data-narration-action="cancel">取消</button></div>'
-          : '<textarea rows="2" aria-label="解说文字"></textarea><div class="draft-narration-actions"><button type=BUTTON_ELEMENT class="primary" data-narration-action="save">保存</button><button type=BUTTON_ELEMENT data-narration-action="cancel">取消</button></div>',
+          ? '<p class="draft-narration-warning" role="alert">保存变化会创建不可变 child、清除旧录音绑定并回到待录音；保存后可以生成占位粗剪，绑定真实录音前不会使用录音。</p><div class="draft-narration-actions"><button type=BUTTON_ELEMENT class="primary" data-narration-action="continue">继续修改</button><button type=BUTTON_ELEMENT data-narration-action="cancel">取消</button></div>'
+          : '<textarea rows="2" aria-label="解说文字"></textarea><div class="draft-narration-duration"><label>时长（秒）<input type="number" min="1" step="1" inputmode="numeric" data-narration-duration aria-label="解说估算时长（秒）"></label><span class="draft-narration-duration-help"></span></div><div class="draft-narration-actions"><button type=BUTTON_ELEMENT class="primary" data-narration-action="save">保存</button><button type=BUTTON_ELEMENT data-narration-action="cancel">取消</button></div>',
     );
     row.append(card);
     const copy = card.querySelector<HTMLElement>(".draft-narration-copy");
@@ -1282,10 +1283,30 @@ export class WorkflowReviewController {
     }
     const input = card.querySelector<HTMLTextAreaElement>("textarea");
     if (input !== null) input.value = paragraph.text;
+    const durationInput = card.querySelector<HTMLInputElement>("[data-narration-duration]");
+    if (durationInput !== null) {
+      durationInput.value = paragraph.narration_duration_seconds === null
+          || paragraph.narration_duration_seconds === undefined
+        ? ""
+        : String(paragraph.narration_duration_seconds);
+      durationInput.placeholder = paragraph.narration_estimated_seconds === undefined
+        ? "自动"
+        : String(paragraph.narration_estimated_seconds);
+    }
+    const durationHelp = card.querySelector<HTMLElement>(".draft-narration-duration-help");
+    if (durationHelp !== null) {
+      durationHelp.textContent = paragraph.narration_duration_seconds === null
+          || paragraph.narration_duration_seconds === undefined
+        ? paragraph.narration_estimated_seconds === undefined
+          ? "留空按文字估算"
+          : `留空按文字估算（约 ${paragraph.narration_estimated_seconds} 秒）`
+        : `已指定 ${paragraph.narration_duration_seconds} 秒；留空恢复自动估算`;
+    }
     const label = document.createElement("span");
     label.className = "draft-narration-label";
-    label.textContent = `解说 · ${narrationStatus}`;
-    label.setAttribute(ARIA_LABEL, `解说，${narrationStatus}`);
+    const durationLabel = narrationDurationLabel(paragraph);
+    label.textContent = `解说 · ${narrationStatus} · ${durationLabel}`;
+    label.setAttribute(ARIA_LABEL, `解说，${narrationStatus}，${durationLabel}`);
     card.prepend(label);
     const disabled = this.view.locked || this.busy;
     row.querySelectorAll<HTMLButtonElement>(BUTTON_ELEMENT).forEach((button) => {
@@ -1305,7 +1326,20 @@ export class WorkflowReviewController {
     const action = button.dataset.narrationAction;
     if (action === "save") {
       const input = row?.querySelector<HTMLTextAreaElement>("textarea");
-      if (input !== null && input !== undefined) void this.saveNarration(paragraph, input.value);
+      const durationInput = row?.querySelector<HTMLInputElement>("[data-narration-duration]");
+      if (input !== null && input !== undefined) {
+        let duration: number | null;
+        try {
+          duration = parseNarrationDurationSeconds(durationInput?.value ?? "");
+        } catch (error) {
+          this.onStatus(
+            error instanceof Error ? error.message : "解说时长无效",
+            true,
+          );
+          return;
+        }
+        void this.saveNarration(paragraph, input.value, duration);
+      }
       return;
     }
     if (action !== "edit" && action !== "continue" && action !== "cancel") return;
@@ -1499,12 +1533,24 @@ export class WorkflowReviewController {
           role: null,
           local_speaker_id: paragraph.local_speaker_id,
         };
-    const bylineText = visibleBylineForSurface(surface, person);
-    const byline = bylineText === null ? null : document.createElement("span");
-    if (byline !== null) {
+    // Draft bylines come from the read-only snapshot (one entry per person
+    // switch) and are inserted at their exact run boundary inside the body
+    // container. The source surface keeps the single person byline above the
+    // paragraph. Both variants are display-only: they carry no text-fragment
+    // identity and never join selection, copy, search, caret or drop hits.
+    const draftBylines = surface === DRAFT_SURFACE && "bylines" in paragraph
+      ? paragraph.bylines
+      : [];
+    const surfaceByline = surface === DRAFT_SURFACE
+      ? null
+      : visibleBylineForSurface(surface, person);
+    const makeByline = (bylineText: string): HTMLSpanElement => {
+      const byline = document.createElement("span");
       byline.className = "draft-byline";
+      byline.dataset.editorAnnotation = "byline";
       byline.textContent = bylineText;
-    }
+      return byline;
+    };
 
     const text = document.createElement("span");
     text.className = "draft-paragraph-text";
@@ -1515,10 +1561,21 @@ export class WorkflowReviewController {
       : null;
     const value = localPreview ?? paragraph.text;
     const decoration = this.decorationFor(surface, paragraph.paragraph_id, value);
-    const sourceRuns = "source_runs" in paragraph && localPreview === null
-      ? paragraph.source_runs
-      : [];
-    decoration.boundaries = sourceRuns.map((run) => run.start_offset);
+    const paragraphRuns = "source_runs" in paragraph ? paragraph.source_runs : [];
+    const sourceRuns = localPreview === null ? paragraphRuns : [];
+    // Server run offsets are UTF-16 while partitionText splits on code points,
+    // so a boundary that follows an emoji must be converted (乙 0-1, 甲😀 1-3).
+    // The conversion stays anchored on the stored paragraph text so inline
+    // bylines keep their exact run anchor even during punctuation preview.
+    decoration.boundaries = paragraphRuns
+      .map((run) => {
+        try {
+          return utf16ToCodePoint(paragraph.text, run.start_offset);
+        } catch {
+          return null;
+        }
+      })
+      .filter((offset): offset is number => offset !== null);
     const runs = partitionText(value, paragraph.paragraph_id, decoration);
     appendDraftTextRuns(text, value, runs, () => this.caretElement());
     if (sourceRuns.length > 0) {
@@ -1531,7 +1588,16 @@ export class WorkflowReviewController {
         if (run !== undefined && run.block_id !== undefined) fragment.dataset.blockId = run.block_id;
       }
     }
-    if (byline !== null) row.append(byline);
+    const unplaced = insertInlineBylines(
+      text,
+      draftBylines,
+      makeByline,
+      localPreview === null,
+    );
+    if (surfaceByline !== null) unplaced.push(surfaceByline);
+    if (unplaced.length > 0) {
+      row.append(...unplaced.map((bylineText) => makeByline(bylineText)));
+    }
     row.append(text);
     return row;
   }
@@ -3134,6 +3200,7 @@ export class WorkflowReviewController {
   private async saveNarration(
     paragraph: DraftEditorParagraph,
     text: string,
+    estimatedDurationSeconds: number | null,
   ): Promise<void> {
     if (
       paragraph.block_id === undefined
@@ -3141,7 +3208,8 @@ export class WorkflowReviewController {
       || !await this.flushPunc()
       || this.busy
     ) return;
-    if (text === paragraph.text) {
+    const storedDuration = paragraph.narration_duration_seconds ?? null;
+    if (text === paragraph.text && estimatedDurationSeconds === storedDuration) {
       this.narrationEditorStates.delete(paragraph.paragraph_id);
       this.replaceNarrationParagraph(paragraph);
       return;
@@ -3157,6 +3225,7 @@ export class WorkflowReviewController {
           candidate_id: this.requireSnapshot().candidate.candidate_id,
           block_id: paragraph.block_id,
           text,
+          estimated_duration_seconds: estimatedDurationSeconds,
         })),
       );
       this.view.clearSelections();
@@ -3170,8 +3239,8 @@ export class WorkflowReviewController {
       await this.refreshSearches();
       this.onStatus(
         paragraph.narration_status === "recorded"
-          ? "解说已保存为新的不可变 child；旧录音绑定已清除，状态回到待录音。重新录音、校对并绑定前不能生成粗剪。"
-          : "解说文字已保存为新的初稿版本；录音状态为待录音。",
+          ? "解说已保存为新的不可变 child；旧录音绑定已清除，状态回到待录音。保存后可以生成占位粗剪，绑定真实录音前不会使用录音。"
+          : "解说文字与时长已保存为新的初稿版本；可以随初稿确认生成占位粗剪。",
       );
     } catch (error) {
       this.handleError(error);
@@ -3217,10 +3286,6 @@ export class WorkflowReviewController {
     if (this.view.locked || !await this.flushPunc() || this.busy) return;
     this.invalidateCaretResolve();
     const initial = this.requireSnapshot();
-    if (initial.candidate.has_unrecorded_narration) {
-      this.onStatus("还有解说尚未录音，完成录音并加入真实素材后才能生成粗剪预览。", true);
-      return;
-    }
     this.busy = true;
     this.renderInteractionState();
     let confirmedContentDraftId = initial.candidate.confirmed_by_user
@@ -3338,7 +3403,7 @@ export class WorkflowReviewController {
     const button = element<HTMLButtonElement>("draft-confirm");
     const confirmed = snapshot.candidate.confirmed_by_user;
     const unrecorded = snapshot.candidate.has_unrecorded_narration;
-    button.disabled = this.view.locked || this.busy || unrecorded;
+    button.disabled = this.view.locked || this.busy;
     button.textContent = this.proposalRetryRequired
       ? "重新生成粗剪预览"
       : confirmed
@@ -3348,7 +3413,7 @@ export class WorkflowReviewController {
     const copy = element<HTMLElement>("draft-confirm-copy");
     heading.textContent = confirmed ? "初稿已确认" : "确认初稿并生成粗剪预览";
     copy.textContent = unrecorded
-      ? "还有解说尚未录音，生成粗剪预览前需要先加入真实录音素材。"
+      ? "未录音的解说会按文字估算时长生成“解说待配音”占位视频；绑定真实录音前预览和导出使用占位。"
       : confirmed
         ? "将从这版已确认初稿生成待审阅粗剪；不会自动采用或渲染。"
         : "确认后生成待审阅粗剪；不会自动采用、正式渲染或导出。";
@@ -3913,8 +3978,13 @@ function endpointFromPoint(
   };
   const position = modern.caretPositionFromPoint?.(x, y);
   if (position !== undefined && position !== null) {
-    return endpointFromDom(position.offsetNode, position.offset, surface);
+    const fromCaret = endpointFromDom(position.offsetNode, position.offset, surface);
+    if (fromCaret !== null) return fromCaret;
   }
+  // Unselectable display annotations (draft bylines) have no caret position;
+  // resolve to the nearest body boundary of the containing paragraph.
+  const fromGeometry = endpointFromRenderedFragments(x, y, surface);
+  if (fromGeometry !== null) return fromGeometry;
   const legacy = document as Document & {
     caretRangeFromPoint?: (clientX: number, clientY: number) => Range | null;
   };
@@ -4077,10 +4147,71 @@ export function visibleBylineForSurface(
   return identity.join(" · ") || person.local_speaker_id || "未标注人物";
 }
 
+export function insertInlineBylines(
+  container: HTMLElement,
+  bylines: readonly DraftEditorByline[],
+  createByline: (text: string) => HTMLElement,
+  allowInline: boolean,
+): string[] {
+  // Insert each byline directly before the fragment that starts its source
+  // run, so the label reads exactly at the person switch. Offsets that cannot
+  // be matched (punctuation preview rebuilds, empty paragraphs) fall back to
+  // the caller's row-level placement in their original order.
+  const unplaced: string[] = [];
+  if (bylines.length === 0) return unplaced;
+  const fragments = [...container.querySelectorAll<HTMLElement>("[data-text-fragment='true']")];
+  for (const byline of bylines) {
+    const anchor = allowInline
+      ? fragments.find(
+          (fragment) => Number(fragment.dataset.utf16Start) === byline.start_offset,
+        )
+      : undefined;
+    if (anchor === undefined) {
+      unplaced.push(byline.text);
+      continue;
+    }
+    anchor.before(createByline(byline.text));
+  }
+  return unplaced;
+}
+
 export function narrationStatusLabel(
   status: DraftEditorParagraph["narration_status"],
 ): string {
-  return status === "recorded" ? "已绑定录音" : "待录音";
+  if (status === "recorded") return "已绑定录音";
+  if (status === "approved") return "待配音";
+  return "待录音";
+}
+
+export function narrationDurationLabel(
+  paragraph: Pick<
+    DraftEditorParagraph,
+    "narration_status" | "narration_duration_seconds" | "narration_estimated_seconds"
+  >,
+): string {
+  if (paragraph.narration_status === "recorded") return "按实际录音时长";
+  if (
+    paragraph.narration_duration_seconds !== null
+    && paragraph.narration_duration_seconds !== undefined
+  ) {
+    return `指定 ${paragraph.narration_duration_seconds} 秒`;
+  }
+  return paragraph.narration_estimated_seconds === undefined
+    ? "按文字估算"
+    : `约 ${paragraph.narration_estimated_seconds} 秒`;
+}
+
+export function parseNarrationDurationSeconds(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error("解说时长必须是正整数秒");
+  }
+  const seconds = Number(trimmed);
+  if (!Number.isSafeInteger(seconds) || seconds <= 0) {
+    throw new Error("解说时长必须是正整数秒");
+  }
+  return seconds;
 }
 
 export function appendDraftTextRuns(
@@ -4122,6 +4253,11 @@ function paragraphSignature(paragraph: DraftEditorParagraph): string {
     text: paragraph.text,
     section_title: paragraph.section_title,
     narration_status: paragraph.narration_status,
+    // Display-only facts are part of the row identity so a local patch never
+    // leaves stale bylines or narration duration next to changed content.
+    narration_duration_seconds: paragraph.narration_duration_seconds ?? null,
+    narration_estimated_seconds: paragraph.narration_estimated_seconds ?? null,
+    bylines: paragraph.bylines,
     source_runs: paragraph.source_runs.map((run) => ({
       source_id: run.source_id,
       paragraph_id: run.paragraph_id,
@@ -4132,6 +4268,8 @@ function paragraphSignature(paragraph: DraftEditorParagraph): string {
       source_start_offset: run.source_start_offset,
       source_end_offset: run.source_end_offset,
       text: run.text,
+      byline_key: run.byline_key,
+      byline_text: run.byline_text,
     })),
   });
 }

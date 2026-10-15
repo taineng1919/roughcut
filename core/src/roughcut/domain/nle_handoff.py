@@ -511,6 +511,62 @@ class NleSourceSnapshot:
 
 
 @dataclass(frozen=True)
+class NlePlaceholderMediaBinding:
+    """The delivered companion identity of one managed narration placeholder media."""
+
+    media_id: str
+    media_version: int
+    content_sha256: str
+    locator_hash: str
+    duration_ticks: int
+
+    def __post_init__(self) -> None:
+        _safe_id(self.media_id, field="placeholder media_id")
+        _integer(self.media_version, field="placeholder media version", minimum=1)
+        _sha256(self.content_sha256, field="placeholder media content hash")
+        _sha256(self.locator_hash, field="placeholder media locator hash")
+        _integer(self.duration_ticks, field="placeholder media duration_ticks", minimum=1)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "media_id": self.media_id,
+            "media_version": self.media_version,
+            "content_sha256": self.content_sha256,
+            "locator_hash": self.locator_hash,
+            "duration_ticks": self.duration_ticks,
+        }
+
+    @classmethod
+    def from_dict(cls, data: object) -> NlePlaceholderMediaBinding:
+        if not isinstance(data, dict) or set(data) != {
+            "media_id",
+            "media_version",
+            "content_sha256",
+            "locator_hash",
+            "duration_ticks",
+        }:
+            raise _error(
+                "nle_export_integrity_error",
+                "rejected a closed placeholder media binding",
+            )
+        return cls(
+            media_id=_safe_id(data["media_id"], field="placeholder media_id"),
+            media_version=_integer(
+                data["media_version"], field="placeholder media version", minimum=1
+            ),
+            content_sha256=_sha256(
+                data["content_sha256"], field="placeholder media content hash"
+            ),
+            locator_hash=_sha256(
+                data["locator_hash"], field="placeholder media locator hash"
+            ),
+            duration_ticks=_integer(
+                data["duration_ticks"], field="placeholder media duration_ticks", minimum=1
+            ),
+        )
+
+
+@dataclass(frozen=True)
 class NleExportReceipt:
     """Immutable proof of one published NLE export."""
 
@@ -532,6 +588,7 @@ class NleExportReceipt:
     output_sha256: str
     output_bytes: int
     created_at: str
+    placeholder_media: tuple[NlePlaceholderMediaBinding, ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != NLE_EXPORT_SCHEMA_VERSION:
@@ -555,13 +612,23 @@ class NleExportReceipt:
             raise _error("nle_export_integrity_error", "rejected a route/profile mismatch")
         if not Path(self.destination).is_absolute():
             raise _error("nle_export_integrity_error", "rejected a non-absolute destination")
-        if not self.source_snapshots:
+        if not self.source_snapshots and not self.placeholder_media:
             raise _error(
                 "nle_export_integrity_error", "rejected a receipt without source snapshots"
             )
         source_ids = [snapshot.source_id for snapshot in self.source_snapshots]
         if len(source_ids) != len(set(source_ids)):
             raise _error("nle_export_integrity_error", "rejected duplicate source snapshots")
+        placeholder_ids = [binding.media_id for binding in self.placeholder_media]
+        if len(placeholder_ids) != len(set(placeholder_ids)):
+            raise _error(
+                "nle_export_integrity_error", "rejected duplicate placeholder media bindings"
+            )
+        if set(placeholder_ids) & set(source_ids):
+            raise _error(
+                "nle_export_integrity_error",
+                "rejected placeholder media reusing a Source identity",
+            )
         if (self.alignment_artifact_id is None) != (self.alignment_content_hash is None):
             raise _error("nle_export_integrity_error", "rejected an incomplete alignment identity")
         if self.alignment_artifact_id is not None:
@@ -572,7 +639,7 @@ class NleExportReceipt:
         _string(self.created_at, field="receipt created_at")
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "schema_version": self.schema_version,
             "action_id": self.action_id,
             "request_hash": self.request_hash,
@@ -592,6 +659,13 @@ class NleExportReceipt:
             "output_bytes": self.output_bytes,
             "created_at": self.created_at,
         }
+        if self.placeholder_media:
+            # Omitting the empty default keeps pre-feature receipts byte- and
+            # hash-identical, so their canonical bytes still validate.
+            payload["placeholder_media"] = [
+                binding.to_dict() for binding in self.placeholder_media
+            ]
+        return payload
 
     @classmethod
     def from_dict(cls, data: object) -> NleExportReceipt:
@@ -617,11 +691,18 @@ class NleExportReceipt:
             "output_bytes",
             "created_at",
         }
-        if set(data) != fields:
+        legacy_fields = fields
+        if set(data) not in (legacy_fields, legacy_fields | {"placeholder_media"}):
             raise _error("nle_export_integrity_error", "rejected receipt fields")
         snapshots = data["source_snapshots"]
         if not isinstance(snapshots, list):
             raise _error("nle_export_integrity_error", "rejected receipt source snapshots")
+        placeholder_media = data.get("placeholder_media", [])
+        if not isinstance(placeholder_media, list):
+            raise _error(
+                "nle_export_integrity_error",
+                "rejected receipt placeholder media bindings",
+            )
         return cls(
             schema_version=_integer(data["schema_version"], field="receipt schema_version"),
             action_id=_safe_id(data["action_id"], field="receipt action_id"),
@@ -656,6 +737,9 @@ class NleExportReceipt:
             output_sha256=_sha256(data["output_sha256"], field="receipt output_sha256"),
             output_bytes=_integer(data["output_bytes"], field="receipt output_bytes", minimum=1),
             created_at=_string(data["created_at"], field="receipt created_at"),
+            placeholder_media=tuple(
+                NlePlaceholderMediaBinding.from_dict(item) for item in placeholder_media
+            ),
         )
 
 
@@ -669,6 +753,13 @@ def nle_export_request_hash(request: dict[str, object]) -> str:
             "request": request,
         }
     )
+
+
+def placeholder_companion_directory(destination: Path | str) -> Path:
+    """Return the deterministic companion media directory for one export destination."""
+
+    path = Path(destination)
+    return path.with_name(path.stem + "_placeholder_media")
 
 
 def source_snapshot_hash(source: SourceAsset) -> str:
@@ -690,8 +781,10 @@ __all__ = [
     "NleHandoffGap",
     "NleHandoffTimeline",
     "NleHandoffTrack",
+    "NlePlaceholderMediaBinding",
     "NleSourceSnapshot",
     "TimelineItem",
     "nle_export_request_hash",
+    "placeholder_companion_directory",
     "source_snapshot_hash",
 ]

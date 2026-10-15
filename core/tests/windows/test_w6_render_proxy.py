@@ -20,6 +20,7 @@ from windows.w6_support import (
 )
 
 from roughcut.adapters.project_store import ProjectStore
+from roughcut.adapters.workflow_store import WorkflowStore
 from roughcut.application.media_operations import (
     media_operation_status,
     run_approve_export_operation,
@@ -111,6 +112,7 @@ def test_w6_real_render_uses_original_sources_with_ready_proxies_and_restarts(
     manifest_text = manifest_path.read_text(encoding="utf-8")
     manifest = json.loads(manifest_text)
     assert manifest["schema_version"] == 3
+    assert "generated_sources" not in manifest
     assert manifest["acceptance"]["accepted"] is True
     assert all(manifest["acceptance"]["checks"].values())
     assert [clip["source_id"] for clip in manifest["clips"]] == [
@@ -225,6 +227,104 @@ def test_w6_real_render_uses_original_sources_with_ready_proxies_and_restarts(
         )
     assert output_path.read_bytes() == output_before_failed_retry
     assert manifest_path.read_bytes() == manifest_before_failed_retry
+
+
+def test_w6_real_placeholder_export_binds_generated_sources_and_recovers(
+    tmp_path: Path,
+    persistent_runtime: Path,
+) -> None:
+    del persistent_runtime
+    media_root = tmp_path / "占位素材 中文 with spaces"
+    media_root.mkdir()
+    source_a = media_root / "A 中文 source with spaces.mp4"
+    source_b = media_root / "B 中文 source with spaces.mp4"
+    make_av_source(source_a, color="red", frequency=440)
+    make_av_source(source_b, color="blue", frequency=660)
+
+    fixture = seed_export_review_project(
+        tmp_path / "Placeholder fixture root",
+        (source_a, source_b),
+        narration_blocks=(
+            {
+                "block_id": "block_w6_placeholder_narration",
+                "kind": "narration",
+                "text": "未配音解说占位。",
+                "status": "approved",
+                "recorded_refs": [],
+                "estimated_duration_seconds": 2,
+            },
+        ),
+    )
+    status_before = workflow_status(fixture.project_path, fixture.run_id)
+    export_ref = status_before["presented_subjects"]["export_ref"]
+    action_input = {"schema_version": 1, "export_ref": export_ref}
+
+    result = run_approve_export_operation(
+        fixture.project_path,
+        run_id=fixture.run_id,
+        action_id="act_w6_placeholder_export",
+        action_input=action_input,
+    )
+
+    assert result.readback is False
+    assert result.record.status == "succeeded"
+    assert result.result is not None
+    assert result.result.workflow_run.lifecycle == "completed"
+    render_ref = result.record.result_ref
+    assert render_ref is not None
+    assert render_ref.manifest_ref.schema_version == 3
+    output_path = fixture.project_path / render_ref.mp4_ref.project_relative_path
+    manifest_path = (
+        fixture.project_path / render_ref.manifest_ref.project_relative_path
+    )
+    assert output_path.is_file()
+    assert manifest_path.is_file()
+
+    manifest_text = manifest_path.read_text(encoding="utf-8")
+    manifest = json.loads(manifest_text)
+    generated = manifest["generated_sources"]
+    assert isinstance(generated, list) and len(generated) == 1
+    generated_source_id = generated[0]["source_id"]
+    placeholder_clips = [
+        clip for clip in manifest["clips"] if clip["source_id"] == generated_source_id
+    ]
+    assert len(placeholder_clips) == 1
+    assert placeholder_clips[0]["source_in_ticks"] == 0
+    assert placeholder_clips[0]["source_out_ticks"] == 2 * 120_000
+    assert "locator" not in manifest_text
+    assert str(media_root.resolve()) not in manifest_text
+
+    output_probe = ffprobe_json(output_path)
+    streams = output_probe["streams"]
+    assert isinstance(streams, list)
+    video = next(stream for stream in streams if stream["codec_type"] == "video")
+    assert video["codec_name"] == "h264"
+    assert int(video["nb_read_frames"]) == 95
+
+    staging_root = fixture.project_path / "workflow" / "export-staging"
+    assert not staging_root.exists() or {
+        path.name for path in staging_root.iterdir()
+    } <= {".claim.lock"}
+    assert not list(fixture.project_path.rglob("owner.json"))
+    assert not list(
+        (fixture.project_path / "workflow" / "transactions").glob("*.json")
+    )
+    assert WorkflowStore(fixture.project_path).recover_pending() == ()
+
+    readback = run_approve_export_operation(
+        fixture.project_path,
+        run_id=fixture.run_id,
+        action_id="act_w6_placeholder_export",
+        action_input=action_input,
+    )
+    assert readback.readback is True
+    assert readback.record == result.record
+    assert media_operation_status(
+        fixture.project_path, "act_w6_placeholder_export"
+    ) == result.record
+    restarted = workflow_status(fixture.project_path, fixture.run_id)
+    assert restarted["workflow_run"]["lifecycle"] == "completed"
+    assert manifest_path.read_text(encoding="utf-8") == manifest_text
 
 
 def test_w6_real_proxy_operation_publishes_reuses_reads_stales_and_fails_closed(

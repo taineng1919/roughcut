@@ -243,6 +243,8 @@ describe("production draft editor view state", () => {
       source_end_offset: 7,
       text: "原话片段",
       refs: [],
+      byline_key: null,
+      byline_text: null,
     })).toEqual({
       paragraphId: "source_paragraph_a",
       start: 3,

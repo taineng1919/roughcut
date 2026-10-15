@@ -322,6 +322,9 @@ current-approved Draft。第一个合法 rebase child 的 `submit_draft` receipt
 - Render manifest 不由 `artifact_refs.render` 保存或合并进其 hash；它继续作为
   `approve_export` receipt 的独立 `manifest` output ref，单/多素材分别使用既有
   manifest schema 2/3 和各自的 exact content hash；
+  仅含解说占位时增加非空 `generated_sources`（source ID、fingerprint、probe），纳入
+  manifest subject hash，生成端与事务清理/恢复端使用同一闭集投影；无占位省略该字段，
+  保持旧 manifest 形状及 hash。未知字段、空或非列表的生成素材扩展继续拒绝；
 - ref 只指当前 run 候选。返回初稿时，Proposal/Decision/Render ref 置 `null`，旧文件仍是
   Project 历史，不删除、不覆盖。
 
@@ -1183,7 +1186,9 @@ source ID 唯一且逐项等于 run ordered bindings；`brief_ref` 是当前 Bri
 
 `source_excerpt` block 恰好含
 `block_id/kind/refs/canonical_text`；`narration` block 恰好含
-`block_id/kind/text/status/recorded_refs`；独立 `section_title` block 恰好含
+`block_id/kind/text/status/recorded_refs`，并可选含正整数秒的
+`estimated_duration_seconds`（缺省视为 null，即按文字自动估算）；独立
+`section_title` block 恰好含
 `block_id/kind/title`。source/narration 不得内嵌标题。所有 ref 恰好含
 `source_id/transcript_version_id/segment_id/start_ticks/end_ticks`，ticks 是非负整数半开
 区间。block ID 全局唯一；来源 canonical text、连续 ref、narration 状态和 recorded refs
@@ -1278,8 +1283,8 @@ Draft ApprovalRecord subject 仍是用户看到的 unconfirmed ref，其 depende
 - subject：用户实际看到且属于 run 当前 anchor 的 exact unconfirmed Content Draft
   ID/schema/content hash。
 - 前置：Outline approval current；Draft dependency 当前；candidate 的完整 parent chain
-  属于 anchor，且 exact candidate 与 Review 展示 ID/hash 相同；所有需要入片的 narration
-  已绑定 recorded refs。
+  属于 anchor，且 exact candidate 与 Review 展示 ID/hash 相同；所有 narration 处于已
+  approved 或已 recorded 状态（未 recorded 的解说编译为项目管理的占位视频）。
 - 唯一 transition：`draft_review -> roughcut_review`。
 - 固定 intent writes：现有 Content Draft confirm 语义创建 confirmed child、激活它并增加
   一次 Project revision；随后只从该 confirmed Draft 固定编译一个 current Proposal，并把

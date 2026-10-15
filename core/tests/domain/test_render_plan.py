@@ -20,8 +20,10 @@ from roughcut.domain.render import (
     ToolResolution,
     derive_render_schedule,
     parse_render_plan,
+    render_manifest_projection,
 )
 from roughcut.domain.time import RationalRate
+from roughcut.domain.workflow import subject_content_hash
 
 
 def _source() -> SourceAsset:
@@ -318,3 +320,186 @@ def test_schedule_rejects_a_nonempty_clip_that_quantizes_to_no_output_frame() ->
 
     with pytest.raises(ProjectError, match="empty output frame range"):
         derive_render_schedule(plan)
+
+
+def test_pre_feature_render_plans_roundtrip_without_generated_sources_key() -> None:
+    """Plans written before generated sources existed must not drift.
+
+    ``generated_sources`` is a place-only addition; parsing an old plan dict and
+    re-serializing it must reproduce the original mapping exactly so the stored
+    plan and its hashes stay valid.
+    """
+
+    for plan in (_plan(), _multi_plan()):
+        legacy = {
+            key: value
+            for key, value in plan.to_dict().items()
+            if key != "generated_sources"
+        }
+        assert "generated_sources" not in legacy
+        parsed = parse_render_plan(legacy)
+        assert parsed.to_dict() == legacy
+        assert parsed.generated_sources == ()
+        assert plan.to_dict() == legacy
+        direct = type(plan).from_dict(legacy)
+        assert direct.to_dict() == legacy
+
+
+def _generated_source(source_id: str) -> dict[str, object]:
+    return {
+        "source_id": source_id,
+        "fingerprint": {
+            "size": 1_024,
+            "mtime_ns": 2_048,
+            "sha256_head_tail": "c" * 64,
+        },
+        "probe": {"duration_ticks": 240_000},
+    }
+
+
+def _manifest_bundle(schema_version: int) -> tuple[dict[str, object], dict[str, object]]:
+    """Return one closed Render manifest and its frozen legacy projection.
+
+    The projection is written by hand instead of calling the production helper
+    so this test independently pins the pre-placeholder bytes and subject hash.
+    """
+
+    clips = [RenderClip("clip_a", "src_render", 0, 120_000).to_dict()]
+    output_settings = {"width": 320, "height": 180}
+    acceptance = {"accepted": True, "checks": {"duration": True}}
+    output = {
+        "mp4_path": "renders/render_fixture.mp4",
+        "probe": {"duration_ticks": 120_000},
+    }
+    payload: dict[str, object] = {
+        "schema_version": schema_version,
+        "render_id": "render_fixture",
+        "project_id": "proj_fixture",
+        "project_revision": 4,
+        "edit_version_id": "edit_fixture",
+        "tools": {"ffmpeg_version": "fixture", "ffprobe_version": "fixture"},
+        "output_settings": output_settings,
+        "clips": clips,
+        "total_duration_ticks": 120_000,
+        "render_schedule": {"strategy": "fixture", "clips": []},
+        "command_summary": {"video_encoder": "fixture"},
+        "performance": {"wall_seconds": 0},
+        "output": output,
+        "acceptance": acceptance,
+    }
+    if schema_version == 2:
+        inputs: dict[str, object] = {
+            "input_source": {
+                "source_id": "src_render",
+                "fingerprint": {"size": 1, "mtime_ns": 2, "sha256_head_tail": "a" * 64},
+                "probe": {"duration_ticks": 120_000},
+            }
+        }
+    else:
+        inputs = {
+            "source_bindings": [
+                {"source_id": "src_render", "transcript_version_id": "tr_a"}
+            ],
+            "input_sources": [
+                {
+                    "source_id": "src_render",
+                    "fingerprint": {
+                        "size": 1,
+                        "mtime_ns": 2,
+                        "sha256_head_tail": "a" * 64,
+                    },
+                    "probe": {"duration_ticks": 120_000},
+                }
+            ],
+        }
+    payload.update(inputs)
+    projection = {
+        "render_id": "render_fixture",
+        "edit_version_id": "edit_fixture",
+        **inputs,
+        "clips": clips,
+        "output_settings": output_settings,
+        "output": {"mp4_path": output["mp4_path"]},
+        "acceptance": acceptance,
+    }
+    return payload, projection
+
+
+@pytest.mark.parametrize("schema_version", [2, 3])
+def test_manifest_projection_keeps_pre_placeholder_bytes_and_hash(
+    schema_version: int,
+) -> None:
+    payload, projection = _manifest_bundle(schema_version)
+
+    assert render_manifest_projection(payload) == projection
+    assert subject_content_hash(
+        "render_manifest", schema_version, render_manifest_projection(payload)
+    ) == subject_content_hash("render_manifest", schema_version, projection)
+
+
+@pytest.mark.parametrize("schema_version", [2, 3])
+def test_manifest_projection_binds_generated_sources_into_the_subject(
+    schema_version: int,
+) -> None:
+    payload, projection = _manifest_bundle(schema_version)
+    generated = _generated_source("src_placeholder")
+    payload["generated_sources"] = [generated]
+
+    placeholder_projection = render_manifest_projection(payload)
+
+    assert placeholder_projection == {**projection, "generated_sources": [generated]}
+    assert subject_content_hash(
+        "render_manifest", schema_version, placeholder_projection
+    ) != subject_content_hash("render_manifest", schema_version, projection)
+    tampered = _generated_source("src_placeholder")
+    tampered["fingerprint"] = {
+        "size": 2_048,
+        "mtime_ns": 2_048,
+        "sha256_head_tail": "c" * 64,
+    }
+    payload["generated_sources"] = [tampered]
+    assert render_manifest_projection(payload) != placeholder_projection
+
+
+@pytest.mark.parametrize("schema_version", [2, 3])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"unexpected": True},
+        {"generated_sources": []},
+        {"generated_sources": None},
+        {"generated_sources": "src_placeholder"},
+        {"generated_sources": ["src_placeholder"]},
+        {"generated_sources": [{"source_id": "src_placeholder"}]},
+        {
+            "generated_sources": [
+                {**_generated_source("src_placeholder"), "locator": {}}
+            ]
+        },
+    ],
+)
+def test_manifest_projection_rejects_unknown_or_malformed_fields(
+    schema_version: int,
+    mutation: dict[str, object],
+) -> None:
+    payload, _projection = _manifest_bundle(schema_version)
+    payload.update(mutation)
+
+    with pytest.raises(ProjectError, match="Render manifest"):
+        render_manifest_projection(payload)
+
+
+def test_manifest_projection_rejects_an_unsupported_schema_version() -> None:
+    payload, _projection = _manifest_bundle(2)
+    payload["schema_version"] = 1
+
+    with pytest.raises(ProjectError, match="unsupported Render manifest schema"):
+        render_manifest_projection(payload)
+
+
+def test_manifest_projection_rejects_an_invalid_output_payload() -> None:
+    payload, _projection = _manifest_bundle(3)
+    payload["output"] = {"mp4_path": "renders/render_fixture.mp4"}
+
+    with pytest.raises(ProjectError, match="Render manifest output is invalid"):
+        render_manifest_projection(payload)

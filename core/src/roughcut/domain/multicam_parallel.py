@@ -70,8 +70,14 @@ def _error(code: str, evidence: str) -> ParallelRenderError:
     )
 
 
-def _closed(value: object, fields: set[str], description: str) -> dict[str, Any]:
-    if not isinstance(value, dict) or set(value) != fields:
+def _closed(
+    value: object,
+    fields: set[str],
+    description: str,
+    *,
+    optional: frozenset[str] = frozenset(),
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or not fields <= set(value) or not set(value) <= fields | optional:
         raise _error("parallel_render_prepare_stale", f"rejected non-closed {description}")
     return cast(dict[str, Any], value)
 
@@ -261,6 +267,9 @@ def _validate_slot(value: object) -> dict[str, object]:
             "video_frame_quota", "audio_sample_start", "audio_sample_end", "audio_sample_quota",
         },
         "parallel slot",
+        # placeholder_ref only exists for the narration_placeholder
+        # classification; pre-feature slots omit the key entirely.
+        optional=frozenset({"placeholder_ref"}),
     )
     _id(data["slot_id"], "slot_id")
     clip = _closed(
@@ -276,18 +285,42 @@ def _validate_slot(value: object) -> dict[str, object]:
     if clip_end <= clip_start:
         raise _error("parallel_render_prepare_stale", "rejected an empty decision clip range")
     classification = data["classification"]
-    if classification not in {"mapped", "missing", "uncertain", "conflict"}:
+    if classification not in {
+        "mapped", "missing", "uncertain", "conflict", "narration_placeholder",
+    }:
         raise _error("parallel_render_prepare_stale", "rejected slot classification")
     auxiliary = data["auxiliary_ref"]
-    if classification == "mapped":
+    placeholder = data.get("placeholder_ref")
+    if classification == "narration_placeholder":
+        if auxiliary is not None:
+            raise _error("parallel_render_prepare_stale", "rejected an auxiliary ref on a placeholder slot")
+        ref = _closed(
+            placeholder,
+            {"media_id", "media_version", "source_start_ticks", "source_end_ticks"},
+            "placeholder slot ref",
+        )
+        media_id = _id(ref["media_id"], "placeholder_ref.media_id")
+        _integer(ref["media_version"], "placeholder_ref.media_version", 1)
+        ref_start = _integer(ref["source_start_ticks"], "placeholder_ref.source_start_ticks", 0)
+        ref_end = _integer(ref["source_end_ticks"], "placeholder_ref.source_end_ticks", 1)
+        if (
+            media_id != clip["source_id"]
+            or ref_start != clip_start
+            or ref_end != clip_end
+        ):
+            raise _error("parallel_render_prepare_stale", "rejected a placeholder slot ref mismatch")
+    elif classification == "mapped":
+        if placeholder is not None:
+            raise _error("parallel_render_prepare_stale", "rejected a placeholder ref on a mapped slot")
         aux = _closed(auxiliary, {"source_id", "source_start_ticks", "source_end_ticks"}, "auxiliary slot ref")
         _id(aux["source_id"], "auxiliary_ref.source_id")
         aux_start = _integer(aux["source_start_ticks"], "auxiliary_ref.source_start_ticks", 0)
         aux_end = _integer(aux["source_end_ticks"], "auxiliary_ref.source_end_ticks", 1)
         if aux_end <= aux_start or aux_end - aux_start != clip_end - clip_start:
             raise _error("parallel_render_prepare_stale", "rejected an unequal mapped slot")
-    elif auxiliary is not None:
-        raise _error("parallel_render_prepare_stale", "rejected an auxiliary ref on a non-mapped slot")
+    else:
+        if auxiliary is not None or placeholder is not None:
+            raise _error("parallel_render_prepare_stale", "rejected a ref on a non-mapped slot")
     output_start = _integer(data["output_start_ticks"], "output_start_ticks", 0)
     output_end = _integer(data["output_end_ticks"], "output_end_ticks", 1)
     if output_end <= output_start:
@@ -315,10 +348,13 @@ def _validate_camera_plan(value: object, *, render_status: str) -> dict[str, obj
         value,
         {
             "camera_id", "alignment_status", "coverage_status", "render_status", "mapped_ticks",
-            "missing_ticks", "uncertain_ticks", "conflict_ticks", "black_silence_ticks",
-            "planned_output", "slots",
+            "missing_ticks", "uncertain_ticks", "conflict_ticks",
+            "black_silence_ticks", "planned_output", "slots",
         },
         "parallel camera plan",
+        # placeholder_ticks only exists once a compiled narration placeholder
+        # appears in the Decision; older plans omit it.
+        optional=frozenset({"placeholder_ticks"}),
     )
     camera_id = _id(data["camera_id"], "camera_id")
     if data["alignment_status"] not in {"complete", "partial"}:
@@ -327,8 +363,11 @@ def _validate_camera_plan(value: object, *, render_status: str) -> dict[str, obj
         raise _error("parallel_render_prepare_stale", "rejected camera coverage status")
     if data["render_status"] != render_status:
         raise _error("parallel_render_prepare_stale", "rejected camera render status")
-    ticks = [_integer(data[field], field, 0) for field in ("mapped_ticks", "missing_ticks", "uncertain_ticks", "conflict_ticks", "black_silence_ticks")]
-    if ticks[0] <= 0 or ticks[4] != ticks[1] + ticks[2] + ticks[3]:
+    ticks = [_integer(data[field], field, 0) for field in ("mapped_ticks", "missing_ticks", "uncertain_ticks", "conflict_ticks")] + [
+        _integer(data.get("placeholder_ticks", 0), "placeholder_ticks", 0),
+        _integer(data["black_silence_ticks"], "black_silence_ticks", 0),
+    ]
+    if ticks[0] <= 0 or ticks[5] != ticks[1] + ticks[2] + ticks[3]:
         raise _error("parallel_render_prepare_stale", "rejected camera tick equation")
     planned = _closed(data["planned_output"], {"filename", "relative_path"}, "planned output")
     expected_output = _planned_output(camera_id)
@@ -397,7 +436,14 @@ def _validate_prepare_summary(value: object) -> dict[str, object]:
         parsed = _validate_camera_plan(camera, render_status="planned")
         camera_ids.append(cast(str, parsed["camera_id"]))
         slots = cast(list[dict[str, object]], parsed["slots"])
-        if cast(int, parsed["mapped_ticks"]) + cast(int, parsed["missing_ticks"]) + cast(int, parsed["uncertain_ticks"]) + cast(int, parsed["conflict_ticks"]) != total:
+        if (
+            cast(int, parsed["mapped_ticks"])
+            + cast(int, parsed["missing_ticks"])
+            + cast(int, parsed["uncertain_ticks"])
+            + cast(int, parsed["conflict_ticks"])
+            + cast(int, parsed.get("placeholder_ticks", 0))
+            != total
+        ):
             raise _error("parallel_render_prepare_stale", "rejected camera total ticks")
         output_end = 0
         frame_sum = 0
@@ -534,20 +580,29 @@ def validate_manifest(value: object) -> dict[str, object]:
     frame_quota = _integer(data["video_frame_quota"], "manifest.video_frame_quota", 0)
     sample_quota = _integer(data["audio_sample_quota"], "manifest.audio_sample_quota", 0)
     for raw in cameras:
-        camera = _closed(raw, {"camera_id", "alignment_status", "coverage_status", "render_status", "mapped_ticks", "missing_ticks", "uncertain_ticks", "conflict_ticks", "black_silence_ticks", "output", "error", "slots"}, "manifest camera")
+        camera = _closed(
+            raw,
+            {
+                "camera_id", "alignment_status", "coverage_status", "render_status",
+                "mapped_ticks", "missing_ticks", "uncertain_ticks", "conflict_ticks",
+                "black_silence_ticks", "output", "error", "slots",
+            },
+            "manifest camera",
+            optional=frozenset({"placeholder_ticks"}),
+        )
         camera_id = _id(camera["camera_id"], "manifest.camera_id")
         if camera_id in camera_ids:
             raise _error("parallel_render_publish_failed", "rejected duplicate manifest camera")
         camera_ids.add(camera_id)
         if camera_id not in expected_camera_ids:
             raise _error("parallel_render_publish_failed", "rejected an unplanned manifest camera")
-        plan_fields = {
+        plan_fields = (
             "camera_id", "alignment_status", "coverage_status", "render_status",
             "mapped_ticks", "missing_ticks", "uncertain_ticks", "conflict_ticks",
-            "black_silence_ticks", "slots",
-        }
+            "placeholder_ticks", "black_silence_ticks", "slots",
+        )
         plan_camera = {
-            **{field: camera[field] for field in plan_fields},
+            **{field: camera[field] for field in plan_fields if field in camera},
             "planned_output": _planned_output(camera_id),
         }
         _validate_camera_plan(plan_camera, render_status=cast(str, camera["render_status"]))

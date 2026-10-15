@@ -426,6 +426,7 @@ def seed_export_review_project(
     source_paths: tuple[Path, Path],
     *,
     import_modes: tuple[ImportMode, ImportMode] | None = None,
+    narration_blocks: tuple[dict[str, object], ...] = (),
 ) -> ExportReviewFixture:
     project_path = root / "项目 中文 Export with spaces"
     project = create_project(project_path, "W6 Export 中文 project")
@@ -646,6 +647,7 @@ def seed_export_review_project(
             "canonical_text": "素材0 重点。",
         },
     ]
+    blocks.extend(narration_blocks)
     draft = workflow_action(
         project_path,
         run_id,

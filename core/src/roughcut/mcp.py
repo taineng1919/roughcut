@@ -271,6 +271,10 @@ CONTENT_DRAFT_BLOCK_SCHEMA = {
                     "type": "array",
                     "items": CONTENT_DRAFT_REF_SCHEMA,
                 },
+                "estimated_duration_seconds": {
+                    "type": ["integer", "null"],
+                    "minimum": 1,
+                },
             },
             "required": ["block_id", "kind", "text", "status", "recorded_refs"],
             "additionalProperties": False,
@@ -738,6 +742,10 @@ _WORKFLOW_ACTION_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
                                 "recorded_refs": {
                                     "type": "array",
                                     "items": _WORKFLOW_RANGE_REF_SCHEMA,
+                                },
+                                "estimated_duration_seconds": {
+                                    "type": ["integer", "null"],
+                                    "minimum": 1,
                                 },
                             },
                             "required": [
@@ -1464,7 +1472,7 @@ TOOLS = (
     },
     {
         "name": "content_draft_propose",
-        "description": "Compile the active current fully recorded Content Draft through Proposal services.",
+        "description": "Compile the active current Content Draft through Proposal services; approved unrecorded narration compiles to managed placeholders.",
         "inputSchema": {
             "type": "object",
             "properties": {

@@ -66,8 +66,12 @@ def _brief_content_hash(payload: dict[str, object] | None = None) -> str:
     return subject_content_hash("brief", parsed.schema_version, parsed.to_dict())
 
 
-def _manifest_payload(project_id: str) -> dict[str, object]:
-    return {
+def _manifest_payload(
+    project_id: str,
+    *,
+    generated_sources: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
         "schema_version": 2,
         "render_id": "render_test",
         "project_id": project_id,
@@ -110,6 +114,21 @@ def _manifest_payload(project_id: str) -> dict[str, object]:
             "probe": {"duration_ticks": 120000},
         },
     }
+    if generated_sources is not None:
+        payload["generated_sources"] = generated_sources
+    return payload
+
+
+def _generated_source() -> dict[str, object]:
+    return {
+        "source_id": "src_placeholder",
+        "fingerprint": {
+            "size": 2,
+            "mtime_ns": 2,
+            "sha256_head_tail": HASH_B,
+        },
+        "probe": {"duration_ticks": 240000},
+    }
 
 
 def _manifest_content_hash(payload: dict[str, object]) -> str:
@@ -124,6 +143,8 @@ def _manifest_content_hash(payload: dict[str, object]) -> str:
         "output": {"mp4_path": output["mp4_path"]},
         "acceptance": payload["acceptance"],
     }
+    if "generated_sources" in payload:
+        projection["generated_sources"] = payload["generated_sources"]
     return subject_content_hash(
         "render_manifest",
         int(payload["schema_version"]),
@@ -393,6 +414,8 @@ def _hard_exit_during_recovery(root_value: str) -> None:
 def _export_candidate_scenario(
     root: Path,
     candidate_kind: str,
+    *,
+    generated_sources: list[dict[str, object]] | None = None,
 ) -> tuple[TransactionMarker, Path, bytes]:
     project = create_project(root, "Export recovery")
     store = WorkflowStore(root)
@@ -411,7 +434,9 @@ def _export_candidate_scenario(
         schema_version = 1
         relative_path = "renders/render_test.mp4"
     elif candidate_kind == "manifest":
-        manifest = _manifest_payload(project.project_id)
+        manifest = _manifest_payload(
+            project.project_id, generated_sources=generated_sources
+        )
         payload = json.dumps(manifest).encode("utf-8")
         content_hash = _manifest_content_hash(manifest)
         schema_version = 2
@@ -1590,6 +1615,48 @@ def test_recovery_uses_real_export_candidate_hash_rules(
 
     assert WorkflowStore(root).recover_pending()[0].disposition == "rolled_back"
     assert not candidate.exists()
+
+
+def test_recovery_matches_placeholder_manifest_hash_with_generated_sources(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "manifest"
+    _marker, candidate, _payload = _export_candidate_scenario(
+        root, "manifest", generated_sources=[_generated_source()]
+    )
+
+    assert WorkflowStore(root).recover_pending()[0].disposition == "rolled_back"
+    assert not candidate.exists()
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        {"generated_sources": [{**_generated_source(), "probe": {"duration_ticks": 1}}]},
+        {"generated_sources": []},
+        {"generated_sources": None},
+        {"unexpected": True},
+    ],
+)
+def test_recovery_fails_closed_on_tampered_placeholder_manifest(
+    tmp_path: Path,
+    tamper: dict[str, object],
+) -> None:
+    root = tmp_path / "manifest"
+    marker, candidate, _payload = _export_candidate_scenario(
+        root, "manifest", generated_sources=[_generated_source()]
+    )
+    manifest = json.loads(candidate.read_text(encoding="utf-8"))
+    manifest.update(tamper)
+    candidate.write_text(json.dumps(manifest), encoding="utf-8")
+    marker_path = root / "workflow" / "transactions" / f"{marker.action_id}.json"
+
+    with pytest.raises(WorkflowError) as captured:
+        WorkflowStore(root).recover_pending()
+
+    assert captured.value.code == "workflow_recovery_conflict"
+    assert candidate.exists()
+    assert marker_path.exists()
 
 
 @pytest.mark.parametrize("candidate_kind", ["brief", "mp4", "manifest"])

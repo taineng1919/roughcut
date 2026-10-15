@@ -5420,8 +5420,9 @@ def test_proposal_coverage_pages_use_core_overlay_after_workflow_handoff(
         assert error["error"]["code"] == "invalid_review_change"  # type: ignore[index]
 
 
-def test_unrecorded_narration_blocks_workflow_proposal_without_mode_switch(
+def test_unrecorded_narration_confirms_and_proposes_with_managed_placeholder(
     tmp_path: Path,
+    synthetic_media_runtime: tuple[str, str],
 ) -> None:
     fixture = _workflow_project(tmp_path)
     root = Path(fixture["root"])
@@ -5457,14 +5458,64 @@ def test_unrecorded_narration_blocks_workflow_proposal_without_mode_switch(
             headers=_headers(review, write=True),
             body={"content_draft_id": candidate_id},
         )
-        assert status == 400
-        assert confirmed["error"]["code"] == "workflow_not_ready"  # type: ignore[index]
-        assert _request(review, "GET", "/api/workflow")[0] == 200
-        status, retained = _request(review, "GET", "/api/workflow/draft-editor")
-        assert status == 200
-        assert retained["candidate"]["candidate_id"] == candidate_id  # type: ignore[index]
-        assert retained["candidate"]["confirmed_by_user"] is False  # type: ignore[index]
-        assert ProjectStore(root).load().active_edit_version_id is None
+        assert status == 200, confirmed
+        confirmed_id = confirmed["content_draft_mutation"]["content_draft"][  # type: ignore[index]
+            "content_draft_id"
+        ]
+        assert "content_draft_propose" in confirmed["workflow"]["allowed_operations"]  # type: ignore[index]
+        status, proposed = _request(
+            review,
+            "POST",
+            "/api/workflow/content-draft-propose",
+            headers=_headers(review, write=True),
+            body={"content_draft_id": confirmed_id},
+        )
+        assert status == 200, proposed
+        proposal = proposed["content_draft_proposal"]["proposal"]  # type: ignore[index]
+        placeholder = proposal["clips"][-1]
+        assert placeholder["kind"] == "narration_placeholder"
+        assert placeholder["narration_block_id"] == "block_narration"
+        assert placeholder["display_text"] == "尚未录音的旁白。"
+        assert placeholder["media_id"].startswith("phm_")
+        review_payload = proposed["review"]  # type: ignore[index]
+        assert review_payload["basis"] == {
+            "type": "proposal",
+            "id": proposal["proposal_id"],
+        }
+        assert review_payload["proposal"]["clips"] == proposal["clips"]
+        placeholder_sources = [
+            item
+            for item in review_payload["sources"]
+            if item["source_id"] == placeholder["media_id"]
+        ]
+        assert len(placeholder_sources) == 1
+        assert placeholder_sources[0]["display_name"] == "解说待配音"
+        assert placeholder_sources[0]["media_url"] == f"/media/{placeholder['media_id']}"
+        media_path = (
+            root
+            / "generated"
+            / "narration-placeholder"
+            / f"{placeholder['media_id']}.mp4"
+        )
+        assert media_path.is_file()
+        status, adopted = _request(
+            review,
+            "POST",
+            "/api/roughcut-adopt",
+            headers=_headers(review, write=True),
+            body={
+                "basis_id": proposal["proposal_id"],
+                "expected_revision": review_payload["project"]["revision"],
+            },
+        )
+        assert status == 200, adopted
+        decision_review = adopted["review"]  # type: ignore[index]
+        assert decision_review["basis"]["type"] == "decision"
+        assert [
+            clip for clip in decision_review["proposal"]["clips"]
+            if clip.get("kind") == "narration_placeholder"
+        ][0]["media_id"] == placeholder["media_id"]
+        assert ProjectStore(root).load().active_edit_version_id is not None
 
 
 def test_proposal_diff_uses_existing_service_when_active_decision_exists(

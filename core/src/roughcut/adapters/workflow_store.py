@@ -29,7 +29,7 @@ from roughcut.domain.edit import (
 )
 from roughcut.domain.errors import WorkflowError
 from roughcut.domain.project import Project, ProjectError
-from roughcut.domain.render import parse_render_plan
+from roughcut.domain.render import parse_render_plan, render_manifest_projection
 from roughcut.domain.workflow import (
     ActionReceipt,
     ApprovalRecord,
@@ -1331,35 +1331,7 @@ class WorkflowStore:
         candidate_ref: OutputRef,
         payload: dict[str, Any],
     ) -> dict[str, object]:
-        common_fields = {
-            "schema_version",
-            "render_id",
-            "project_id",
-            "project_revision",
-            "edit_version_id",
-            "tools",
-            "output_settings",
-            "clips",
-            "total_duration_ticks",
-            "render_schedule",
-            "command_summary",
-            "performance",
-            "output",
-            "acceptance",
-        }
-        if candidate_ref.schema_version == 2:
-            expected_fields = common_fields | {"input_source"}
-            ordered_inputs = {"input_source": payload.get("input_source")}
-        elif candidate_ref.schema_version == 3:
-            expected_fields = common_fields | {"source_bindings", "input_sources"}
-            ordered_inputs = {
-                "source_bindings": payload.get("source_bindings"),
-                "input_sources": payload.get("input_sources"),
-            }
-        else:
-            raise ProjectError("unsupported Render manifest schema version")
-        if set(payload) != expected_fields:
-            raise ProjectError("Render manifest fields do not match its closed schema")
+        projection = render_manifest_projection(payload)
         if (
             payload.get("schema_version") != candidate_ref.schema_version
             or payload.get("render_id") != candidate_ref.artifact_id
@@ -1367,20 +1339,11 @@ class WorkflowStore:
         ):
             raise ProjectError("Render manifest identity does not match its candidate ref")
         output = payload.get("output")
-        if not isinstance(output, dict) or set(output) != {"mp4_path", "probe"}:
-            raise ProjectError("Render manifest output is invalid")
+        assert isinstance(output, dict)
         expected_output_path = f"renders/{candidate_ref.artifact_id}.mp4"
         if output.get("mp4_path") != expected_output_path:
             raise ProjectError("Render manifest output path does not match its identity")
-        return {
-            "render_id": payload["render_id"],
-            "edit_version_id": payload["edit_version_id"],
-            **ordered_inputs,
-            "clips": payload["clips"],
-            "output_settings": payload["output_settings"],
-            "output": {"mp4_path": output["mp4_path"]},
-            "acceptance": payload["acceptance"],
-        }
+        return projection
 
     def _delete_owned_candidate_locked(
         self,
