@@ -393,6 +393,28 @@ git diff --check → 通过
 完整独立记录在 acceptance 文档 R7 节，失败/复跑输出在 `.acceptance/independent-final/`。
 修正后重新提交 PR #1 并运行 Windows CI；不得将首次 CI 失败归因于环境或漏报。
 
+### 2.3.4 R8 Windows 字体路径收尾（主代理修正记录）
+
+R7 修正后的 Windows CI `38791133203`：普通正式导出已通过，但新增含占位用例报
+FFmpeg `Error opening output files: Invalid argument`（1 failed、109 passed）。
+主代理用真实字体别名在本机复现：盘符/反斜杠及引号/括号/分隔符路径两个用例均失败。
+原因是 `_escape_filter_value` 未分别处理 filtergraph 和 drawtext 选项两次解析。
+
+所有施工会话归档冻结后，主代理最小修改这一函数，分两层转义，未改生成参数/媒体
+身份、字体来源或渲染架构。新增两个真实 FFmpeg 回归，要求同一字体的别名与原路径
+生成内容 hash 完全相同，不能静默回退字体；不跳过平台用例。
+
+```text
+修正前：pytest test_placeholder_publishing.py -q -k escape_layers → 2 failed / 1.43s
+修正后：同命令 → 2 passed / 1.71s
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python -m pytest core/tests/application/test_placeholder_publishing.py core/tests/windows/test_w6_render_proxy.py core/tests/integration/test_narration_placeholder_acceptance.py -q
+→ 19 passed in 30.17s（含真实正式导出、并发和全链小样）
+ruff check（两个变更文件） / git diff --check → 全通过
+```
+
+随后更新同一 PR #1，等待实际 Windows CI 验证后合并；第二次失败亦作为真实产品缺陷
+保留记录，不归因于环境，不通过删测试/跳过/更改 CI 绕开。
+
 ### 2.4 验收短合成工程（A1–A8 的真实证据入口）
 
 单一命令重建小样并自动检查（默认输出 `.acceptance/narration-placeholder-sample/`，

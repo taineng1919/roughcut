@@ -721,12 +721,16 @@ def _require_drawtext(ffmpeg_path: str) -> None:
 
 
 def _escape_filter_value(value: str) -> str:
-    escaped = []
-    for character in value:
-        if character in "\\':,;[]=":
-            escaped.append("\\")
-        escaped.append(character)
-    return "".join(escaped)
+    # FFmpeg parses the filtergraph before drawtext parses its option values.
+    # Each layer consumes its own escapes, including the Windows drive colon.
+    option_value = "".join(
+        f"\\{character}" if character in "\\':" else character
+        for character in value
+    )
+    return "".join(
+        f"\\{character}" if character in "\\'[],;" else character
+        for character in option_value
+    )
 
 
 def _file_sha256(path: Path) -> str:

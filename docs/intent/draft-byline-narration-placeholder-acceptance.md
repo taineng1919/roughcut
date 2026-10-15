@@ -2,7 +2,7 @@
 
 日期：2026-10-16。基线 `2863355`。
 
-当前结论：**R1–R7 已修正并通过本地独立复核；PR 合并须等待修正后的 Windows CI。
+当前结论：**R1–R8 已修正并通过本地复核；PR 合并须等待最新修正后的 Windows CI。
 FCP/Premiere 实机导入仍未验证，本机未安装这两款软件，不能声称全部验收要求完成。**
 未使用生产长素材重跑；以可重建的 14 秒合成工程验证链路。已创建 PR #1，尚未合并。
 施工记录不是独立验收证据。本文件由主代理维护，执行代理更新施工结果文档及修正测试。
@@ -321,3 +321,28 @@ PYTHONPATH=core/src:core/tests:. core/.venv/bin/python -m pytest core/tests/doma
 **281 passed、1 skipped / 29.95s**（新增 27 项）；source 和新增测试的 Ruff 全通过，
 `git diff --check` 通过。结果保存为 `pr-r7-final-regression.txt`。主代理已补施工结果与
 直接受影响的 finite-workflow 契约。R7 本地独立验收关闭；远端结果以 PR #1 检查为准。
+
+## R8：Windows 字体路径的 FFmpeg 双层转义
+
+提交 `c1d21cd` 的 Windows PR CI `38791133203` 在 W6 真实渲染出现 1 failed、109 passed。
+原有普通正式导出已通过；新增真实占位用例报
+`narration placeholder generation failed: Error opening output files: Invalid argument`。
+日志保存为 `.acceptance/independent-final/pr-second-ci.log`。本次不能把普通路径恢复通过
+等同于 Windows 新功能通过，继续暂停合并。
+
+主代理在所有施工会话归档后完成本次最小修正。先增加两个真实 FFmpeg 回归：
+在本机使用包含 `C:\Windows\Fonts`、盘符冒号、反斜杠，以及引号/空格/中文/括号/
+逗号/分号/等号的字体别名。修正前两个用例均复现同一 Invalid argument（2 failed / 1.43s），
+证明原 `_escape_filter_value` 只处理一层，无法通过 filtergraph 和 drawtext 选项两次解析。
+
+修正只将该函数改为两层转义，不改变路径权限、字体来源、生成媒体身份或管线。
+两个用例修正后 2 passed / 1.71s；相同字体的别名必须产生与正常路径相同的媒体 hash，
+同时防止 FFmpeg 静默回退其他字体。测试跨平台执行，不为 Windows 跳过新增用例。
+
+```sh
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python -m pytest core/tests/application/test_placeholder_publishing.py core/tests/windows/test_w6_render_proxy.py core/tests/integration/test_narration_placeholder_acceptance.py -q
+```
+
+结果：**19 passed / 30.17s**，覆盖发布/并发、正常及占位正式导出、双机位 MP4/NLE
+小样及真实 CLI 入口。Ruff 与 diff 检查通过。日志在 `pr-r8-before.txt`、`pr-r8-after.txt`。
+无需再次执行前端测试，R8 没有前端或资源变化。Windows 实际平台结果仍须由最新 PR CI 确认。

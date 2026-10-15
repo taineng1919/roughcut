@@ -73,6 +73,29 @@ def _ensure(project_path: Path, frames: int = 12):
     )
 
 
+@pytest.mark.parametrize("special_name", [False, True])
+def test_placeholder_font_path_survives_both_ffmpeg_escape_layers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, special_name: bool
+) -> None:
+    original_font = Path(narration_media._resolve_font_path())
+    baseline = _ensure(_project(tmp_path / "baseline"))
+    name = (
+        f"font's [标题],;={original_font.suffix}"
+        if special_name
+        else ("msyh.ttc" if os.name == "nt" else r"C:\Windows\Fonts\msyh.ttc")
+    )
+    alias = tmp_path / name
+    shutil.copyfile(original_font, alias)
+    monkeypatch.setattr(narration_media, "_resolve_font_path", lambda: str(alias))
+
+    generated = _ensure(_project(tmp_path / "escaped"))
+
+    assert generated.font_path == str(alias)
+    # The same font must produce the same actual card, rather than silently
+    # falling back to another installed font after parsing a broken path.
+    assert generated.content_sha256 == baseline.content_sha256
+
+
 def test_ensure_is_no_replace_idempotent_and_heals_crash_orphans(tmp_path: Path) -> None:
     project_path = _project(tmp_path)
     media = _ensure(project_path)
