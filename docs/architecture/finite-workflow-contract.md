@@ -322,6 +322,9 @@ current-approved Draft。第一个合法 rebase child 的 `submit_draft` receipt
 - Render manifest 不由 `artifact_refs.render` 保存或合并进其 hash；它继续作为
   `approve_export` receipt 的独立 `manifest` output ref，单/多素材分别使用既有
   manifest schema 2/3 和各自的 exact content hash；
+  仅含解说占位时增加非空 `generated_sources`（source ID、fingerprint、probe），纳入
+  manifest subject hash，生成端与事务清理/恢复端使用同一闭集投影；无占位省略该字段，
+  保持旧 manifest 形状及 hash。未知字段、空或非列表的生成素材扩展继续拒绝；
 - ref 只指当前 run 候选。返回初稿时，Proposal/Decision/Render ref 置 `null`，旧文件仍是
   Project 历史，不删除、不覆盖。
 

@@ -72,6 +72,7 @@ from roughcut.domain.workflow import (
     TransactionMarker,
     WorkflowRun,
     canonical_sha256_v1,
+    subject_content_hash,
     workflow_action_input_hash,
 )
 from roughcut.domain.workflow_actions import parse_workflow_action_input
@@ -896,6 +897,65 @@ def _fixture_multi_render_manifest(
             for source in plan.sources
         ],
     }
+
+
+def test_manifest_hash_pins_legacy_projection_and_binds_generated_sources(
+    tmp_path: Path,
+) -> None:
+    root = _workflow_project(tmp_path)
+    _advance_multi_to_export_review(root)
+    current = ProjectStore(root).load()
+    plan = _fixture_multi_render_plan(
+        root,
+        edit_version_id="edit_manifest_hash",
+        expected_revision=current.revision,
+        render_id="render_manifest_hash",
+    )
+    legacy = _fixture_multi_render_manifest(plan)
+    output = legacy["output"]
+    assert isinstance(output, dict)
+    legacy_projection = {
+        "render_id": legacy["render_id"],
+        "edit_version_id": legacy["edit_version_id"],
+        "source_bindings": legacy["source_bindings"],
+        "input_sources": legacy["input_sources"],
+        "clips": legacy["clips"],
+        "output_settings": legacy["output_settings"],
+        "output": {"mp4_path": output["mp4_path"]},
+        "acceptance": legacy["acceptance"],
+    }
+    assert workflows_module._manifest_hash(legacy) == subject_content_hash(
+        "render_manifest", 3, legacy_projection
+    )
+    generated = {
+        "source_id": "src_placeholder",
+        "fingerprint": {"size": 1, "mtime_ns": 2, "sha256_head_tail": "c" * 64},
+        "probe": {"duration_ticks": 240_000},
+    }
+    placeholder = {**legacy, "generated_sources": [generated]}
+    assert workflows_module._manifest_hash(placeholder) == subject_content_hash(
+        "render_manifest",
+        3,
+        {**legacy_projection, "generated_sources": [generated]},
+    )
+    assert workflows_module._manifest_hash(
+        placeholder
+    ) != workflows_module._manifest_hash(legacy)
+    tampered = {
+        **placeholder,
+        "generated_sources": [{**generated, "probe": {"duration_ticks": 241_000}}],
+    }
+    assert workflows_module._manifest_hash(
+        tampered
+    ) != workflows_module._manifest_hash(placeholder)
+    for invalid in (
+        {**placeholder, "unexpected": True},
+        {**placeholder, "generated_sources": []},
+        {**placeholder, "generated_sources": None},
+    ):
+        with pytest.raises(WorkflowError) as captured:
+            workflows_module._manifest_hash(invalid)
+        assert captured.value.code == "workflow_integrity_error"
 
 
 @pytest.mark.skipif(os.name == "nt", reason="real POSIX hard-exit regression")

@@ -62,8 +62,8 @@ from roughcut.domain.edit import (
     NarrationPlaceholderClip,
 )
 from roughcut.domain.errors import WorkflowError
-from roughcut.domain.project import Project, SourceAsset
-from roughcut.domain.render import RenderPlanLike
+from roughcut.domain.project import Project, ProjectError, SourceAsset
+from roughcut.domain.render import RenderPlanLike, render_manifest_projection
 from roughcut.domain.transcript import TimedTranscript
 from roughcut.domain.workflow import (
     APPROVAL_GATES,
@@ -4318,30 +4318,14 @@ def _clean_terminal_tracked_export_orphan(
 
 
 def _manifest_hash(payload: dict[str, object]) -> str:
-    output = cast(dict[str, object], payload["output"])
-    if payload["schema_version"] == 2:
-        inputs = {"input_source": payload["input_source"]}
-    elif payload["schema_version"] == 3:
-        inputs = {
-            "source_bindings": payload["source_bindings"],
-            "input_sources": payload["input_sources"],
-        }
-    else:
-        raise _facade_error(
-            "workflow_integrity_error", "Render manifest schema is unsupported"
-        )
+    try:
+        projection = render_manifest_projection(payload)
+    except ProjectError as error:
+        raise _facade_error("workflow_integrity_error", str(error)) from error
     return subject_content_hash(
         "render_manifest",
-        payload["schema_version"],
-        {
-            "render_id": payload["render_id"],
-            "edit_version_id": payload["edit_version_id"],
-            **inputs,
-            "clips": payload["clips"],
-            "output_settings": payload["output_settings"],
-            "output": {"mp4_path": output["mp4_path"]},
-            "acceptance": payload["acceptance"],
-        },
+        cast(int, payload["schema_version"]),
+        projection,
     )
 
 

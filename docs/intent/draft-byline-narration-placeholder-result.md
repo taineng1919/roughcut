@@ -355,6 +355,44 @@ run 的 exact multicam continuation/adoption 绑定失效；按结果文档执�
     --run-id wfr_sample --json
   ```
 
+### 2.3.3 合并检查 R7：正式导出 manifest 与事务恢复（主代理收尾记录）
+
+PR #1 首次 Windows CI 发现正式 `approve_export` 在 receipt 后清理 staging 失败：
+`Render manifest fields do not match its closed schema`。原因是 `_render_manifest`
+无条件写入 `generated_sources`，而 WorkflowStore 闭集未同步；正式 manifest hash
+投影也遗漏生成素材。主代理以现有 W6 真实测试及独立新建含占位工程复现，暂停合并。
+
+同模型执行会话修正四个 source 文件并补测试；旧会话先归档中断再由新会话接续，始终
+只有一位施工代理。主代理最终归档冻结施工，独立读 diff、完成验证并补本节记录。
+
+- 无占位 manifest 不写空扩展，保持旧形状和 subject hash。
+- `domain/render.py::render_manifest_projection` 复用现有闭集及投影规则，供正式
+  hash 生成与 WorkflowStore 清理/recovery 同时使用；非空生成媒体摘要纳入 hash。
+- 未知字段/空数组/null/错误生成项形状拒绝，篡改会造成候选 hash 冲突并保留现场。
+- 没有改变工作流状态机或事务顺序，没有放宽审批、来源或复制工程的 scope 校验。
+- 持久回归：schema 2/3 兼容与 hash、恢复失败保留现场、真实含占位正式导出、
+  清理、restart/readback/幂等；既有无占位真实导出明确断言不含新字段。
+
+主代理真实命令与结果：
+
+```text
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python -m pytest core/tests/domain/test_render_plan.py core/tests/adapters/test_workflow_store.py core/tests/application/test_workflows.py core/tests/application/test_renders.py core/tests/windows/test_w6_render_proxy.py -q
+→ 281 passed, 1 skipped in 29.95s（新增 27 项）
+
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python .acceptance/independent-r7-formal-check.py
+→ 小样重建 1 passed in 16.78s；正式导出 completed，同 receipt 幂等回读；recovery clean；1 份生成媒体、2 段引用
+
+PYTHONPATH=core/src:. core/.venv/bin/python .acceptance/independent-r7-projection-check.py
+→ schema 2/3：legacy projection unchanged、generated hash bound、unknown fields rejected
+
+ruff check（R7 source + 测试） → All checks passed
+mypy core/src/roughcut --no-incremental → 原基线 2 errors，无新增
+git diff --check → 通过
+```
+
+完整独立记录在 acceptance 文档 R7 节，失败/复跑输出在 `.acceptance/independent-final/`。
+修正后重新提交 PR #1 并运行 Windows CI；不得将首次 CI 失败归因于环境或漏报。
+
 ### 2.4 验收短合成工程（A1–A8 的真实证据入口）
 
 单一命令重建小样并自动检查（默认输出 `.acceptance/narration-placeholder-sample/`，

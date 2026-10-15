@@ -646,7 +646,7 @@ def _render_manifest(
         },
     }
     if isinstance(plan, RenderPlan):
-        return {
+        manifest: dict[str, object] = {
             "schema_version": 2,
             **common,
             "input_source": {
@@ -654,18 +654,22 @@ def _render_manifest(
                 "fingerprint": plan.source.fingerprint.to_dict(),
                 "probe": plan.source.probe.to_dict(),
             },
-            "generated_sources": [
+        }
+        if plan.generated_sources:
+            # Place-only extension: no-placeholder manifests keep their exact
+            # pre-feature bytes and subject hash.
+            manifest["generated_sources"] = [
                 {
                     "source_id": source.source_id,
                     "fingerprint": source.fingerprint.to_dict(),
                     "probe": source.probe.to_dict(),
                 }
                 for source in plan.generated_sources
-            ],
-        }
+            ]
+        return manifest
     checks = _acceptance_checks(plan, report)
     common["acceptance"] = {"accepted": all(checks.values()), "checks": checks}
-    return {
+    manifest = {
         "schema_version": 3,
         **common,
         "source_bindings": [binding.to_dict() for binding in plan.source_bindings],
@@ -677,15 +681,19 @@ def _render_manifest(
             }
             for source in plan.sources
         ],
-        "generated_sources": [
+    }
+    if plan.generated_sources:
+        # Place-only extension: no-placeholder manifests keep their exact
+        # pre-feature bytes and subject hash.
+        manifest["generated_sources"] = [
             {
                 "source_id": source.source_id,
                 "fingerprint": source.fingerprint.to_dict(),
                 "probe": source.probe.to_dict(),
             }
             for source in plan.generated_sources
-        ],
-    }
+        ]
+    return manifest
 
 
 def _acceptance_checks(

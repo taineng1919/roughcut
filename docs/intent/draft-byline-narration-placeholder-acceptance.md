@@ -2,9 +2,9 @@
 
 日期：2026-10-16。基线 `2863355`。
 
-当前结论：**自动化工程验收及本机生产预览独立验收通过。R1–R6 均已关闭；
+当前结论：**R1–R7 已修正并通过本地独立复核；PR 合并须等待修正后的 Windows CI。
 FCP/Premiere 实机导入仍未验证，本机未安装这两款软件，不能声称全部验收要求完成。**
-未使用生产长素材重跑；以可重建的 14 秒合成工程验证链路。代码未提交、未推送。
+未使用生产长素材重跑；以可重建的 14 秒合成工程验证链路。已创建 PR #1，尚未合并。
 施工记录不是独立验收证据。本文件由主代理维护，执行代理更新施工结果文档及修正测试。
 
 以下保留各轮真实发现和修正过程；最终结论及当前证据见末节。
@@ -254,3 +254,70 @@ Python 独立验证覆盖合计 2411 项通过（非声称重新全量执行）�
 明确允许在无软件时保留的独立证据项，本次不冒充通过；PR 必须披露该限制。保留
 14 秒小样供后续轻量导入，无需重跑真实长片。可按用户授权提交并合并，仍须核对 PR
 检查结果，不绕过远端合并约束。
+
+## PR 检查发现 R7：正式导出事务清理遗漏（2026-10-16）
+
+首次提交 `9b4e602`，PR #1。Windows PR CI `38786404147` 在 W6 真实 FFmpeg 检查
+出现 1 failed / 108 passed；此前各检查包括生产浏览器已通过。
+
+失败测试：`test_w6_real_render_uses_original_sources_with_ready_proxies_and_restarts`。
+主代理在本机独立运行相同现有测试：
+
+```sh
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python -m pytest core/tests/windows/test_w6_render_proxy.py::test_w6_real_render_uses_original_sources_with_ready_proxies_and_restarts -q
+```
+
+结果：1 failed / 3.14s，与 CI 相同错误：
+`receipt recovery could not clean its marker: Render manifest fields do not match its closed schema`。
+日志在 `.acceptance/independent-final/pr-first-ci.log` 和 `pr-r7-before.txt`。
+
+`application/renders.py::_render_manifest` 无条件新增 `generated_sources`，但正式
+WorkflowStore 事务清理的 manifest 闭集未同步，普通无占位导出也会在 receipt 后清理失败。
+同时应检查占位正式 `approve_export` 的 manifest hash 与 recovery 一致性；原小样的
+直接 render_roughcut 不能替代该正式事务验证。本问题确认为本轮遗漏，不归因于环境。
+已暂停合并，交原同一施工代理修复，主代理独立复核后重跑远端检查。
+
+### R7 本地独立复核
+
+旧会话被归档中断后，由同模型新会话接续其部分改动，始终只有一位可写施工代理。
+共享清单投影只复用生成端/事务校验端的既有规则，不改状态机；无占位不写新字段，
+有占位的 `generated_sources` 进入闭集及 subject hash。
+
+主代理独立执行（完整输出在 `.acceptance/independent-final/pr-r7-*.txt`）：
+
+```sh
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python -m pytest core/tests/windows/test_w6_render_proxy.py -q
+PYTHONPATH=core/src:. core/.venv/bin/python -m pytest core/tests/application/test_workflows.py core/tests/adapters/test_workflow_store.py core/tests/domain/test_render_plan.py core/tests/application/test_renders.py -q
+PYTHONPATH=core/src:. core/.venv/bin/python .acceptance/independent-r7-projection-check.py
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python .acceptance/independent-r7-formal-check.py
+```
+
+- 现有 W6 真实 FFmpeg / proxy / 正式导出：2 passed / 6.89s，原失败用例通过。
+- 工作流、事务存储、渲染计划及渲染应用：252 passed、1 skipped / 22.79s。
+- 独立构造 schema 2/3 清单：旧 projection/hash 与原规则相等；生成媒体指纹变化会
+  改变 hash；未知顶层/生成项字段、空数组及 null 均拒绝。
+- 独立脚本以新绝对根原地重建小样（1 passed / 16.78s），随后真实
+  `workflow_action(..., approve_export, ...)`：lifecycle=completed，同请求 receipt
+  相同，重启 status/readback 成功，无 transaction/待清理 staging（仅保留设计中的
+  `.claim.lock`），新正式清单含 1 份生成媒体、2 个引用它的 RenderClip。
+- 脚本初版对常驻锁和 RenderClip 的断言过严，已按现有契约更正后完整复跑；这两次
+  验收脚本自身错误不记作产品缺陷，也不冒充通过记录。
+- 变更 source 的 Ruff 全通过；全 source mypy 仍仅原 2 项 reconfigure 基线错误。
+
+本地修正复核通过；持久回归测试与施工记录交回后提交修正，再核对远端 CI 后合并。
+
+### R7 冻结后的持久回归与提交
+
+施工会话完成生产修正并留下持久测试后，主代理归档中断以冻结工作区，接手检查和记录；
+没有并发施工。最终读取 diff 确认四个 source 文件仅涉及 manifest 生成/投影/校验，
+未改状态机、审批门、对轨或 CI。持久回归覆盖 schema 2/3 旧 projection、生成素材 hash、
+闭集错误、recovery 保留被篡改文件；现有 Windows W6 fixture 新增 approved 解说输入，
+真实调用 run_approve_export_operation 验证正常清理及重启/重试。
+
+```sh
+PYTHONPATH=core/src:core/tests:. core/.venv/bin/python -m pytest core/tests/domain/test_render_plan.py core/tests/adapters/test_workflow_store.py core/tests/application/test_workflows.py core/tests/application/test_renders.py core/tests/windows/test_w6_render_proxy.py -q
+```
+
+**281 passed、1 skipped / 29.95s**（新增 27 项）；source 和新增测试的 Ruff 全通过，
+`git diff --check` 通过。结果保存为 `pr-r7-final-regression.txt`。主代理已补施工结果与
+直接受影响的 finite-workflow 契约。R7 本地独立验收关闭；远端结果以 PR #1 检查为准。
