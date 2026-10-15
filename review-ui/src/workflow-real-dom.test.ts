@@ -45,7 +45,7 @@ describe("real Chromium direct-drag regression", () => {
         expect(await matches.count()).toBe(1);
         expect(await matches.isVisible()).toBe(true);
       }
-      expect(await page.locator("#draft-document .draft-narration-label").textContent()).toBe("解说 · 待录音");
+      expect(await page.locator("#draft-document .draft-narration-label").textContent()).toBe("解说 · 待录音 · 按文字估算");
 
       const sizes = await page.locator("#draft-document").evaluate((host) => {
         const body = Number.parseFloat(getComputedStyle(host).fontSize);
@@ -568,6 +568,7 @@ describe("real Chromium direct-drag regression", () => {
       narration_status: "draft",
       block_id: "block_narration",
       source_runs: [],
+      bylines: [],
       exact_refs: [],
     };
     const base = reviewSnapshot();
@@ -692,6 +693,7 @@ describe("real Chromium direct-drag regression", () => {
       narration_status: "draft",
       block_id: "block_narration",
       source_runs: [],
+      bylines: [],
       exact_refs: [],
     };
     const base = reviewSnapshot();
@@ -1090,6 +1092,7 @@ describe("real Chromium direct-drag regression", () => {
       narration_status: "draft",
       block_id: "block_narration",
       source_runs: [],
+      bylines: [],
       exact_refs: [],
     };
     const base = reviewSnapshot();
@@ -1246,6 +1249,7 @@ describe("real Chromium direct-drag regression", () => {
       narration_status: "draft",
       block_id: "block_narration",
       source_runs: [],
+      bylines: [],
       exact_refs: [],
     };
     const base = reviewSnapshot();
@@ -2036,7 +2040,345 @@ type ReviewState = {
   selectionPosts: number;
   pointermoveApiCalls: number;
   lastEdit: Record<string, unknown> | null;
+  narrationPosts: number;
+  lastNarration: Record<string, unknown> | null;
+  lastCaret: Record<string, unknown> | null;
 };
+
+function mixedBylinesSelectionResponse(
+  snapshot: DraftEditorSnapshot,
+): DraftEditorSelectionResponse {
+  const paragraphId = "paragraph_byline_mixed";
+  const paragraph = snapshot.paragraphs.find((item) => item.paragraph_id === paragraphId);
+  if (paragraph === undefined) throw new Error("missing mixed byline paragraph");
+  return {
+    candidate_id: snapshot.candidate.candidate_id,
+    surface: "draft",
+    resolution: {
+      direction: "forward",
+      canonical_text: "乙甲😀",
+      refs: [{
+        ...paragraph.exact_refs[0]!,
+        canonical_text: "乙甲😀",
+      }],
+      start_caret: null,
+      end_caret: null,
+      adjusted: false,
+      degraded: false,
+      degradation_reasons: [],
+    },
+    display_range: {
+      anchor: { paragraph_id: paragraphId, character_offset: 0, utf16_offset: 0 },
+      focus: { paragraph_id: paragraphId, character_offset: 3, utf16_offset: 4 },
+    },
+    correspondence_groups: [],
+    resolution_hash: "c".repeat(64),
+  };
+}
+
+function bylineSnapshot(): DraftEditorSnapshot {
+  const base = reviewSnapshot();
+  const first = {
+    ...paragraph("paragraph_byline_a", "甲说的话", "block_byline_a"),
+    bylines: [{ start_offset: 0, end_offset: 4, text: "人物甲 · 主持人" }],
+  };
+  const afterSection = {
+    ...paragraph("paragraph_byline_b", "甲还在说", "block_byline_b"),
+    section_title: "第二章人物",
+    bylines: [{ start_offset: 0, end_offset: 4, text: "人物甲 · 主持人" }],
+  };
+  const narration: DraftEditorSnapshot["paragraphs"][number] = {
+    paragraph_id: "paragraph_byline_narration",
+    kind: "narration",
+    person: { person_id: null, name: "解说", role: "解说", local_speaker_id: null },
+    text: "这里的解说还没有配音。",
+    section_title: null,
+    narration_status: "draft",
+    narration_duration_seconds: null,
+    narration_estimated_seconds: 3,
+    block_id: "block_byline_narration",
+    source_runs: [],
+    bylines: [],
+    exact_refs: [],
+  };
+  const mixedBase = paragraph("paragraph_byline_mixed", "乙甲😀乙", "block_byline_mixed");
+  const mixedRunRef = mixedBase.exact_refs[0]!;
+  const mixed = {
+    ...mixedBase,
+    // Runs split on UTF-16 boundaries: 乙(0-1), 甲😀(1-4), 乙(4-5).
+    source_runs: [
+      {
+        ...mixedBase.source_runs[0]!,
+        start_offset: 0,
+        end_offset: 1,
+        text: "乙",
+        refs: [mixedRunRef],
+        byline_key: "person:person_b",
+        byline_text: "人物乙 · 老师",
+      },
+      {
+        ...mixedBase.source_runs[0]!,
+        start_offset: 1,
+        end_offset: 4,
+        text: "甲😀",
+        refs: [mixedRunRef],
+        byline_key: "person:person_a",
+        byline_text: "人物甲 · 主持人",
+      },
+      {
+        ...mixedBase.source_runs[0]!,
+        start_offset: 4,
+        end_offset: 5,
+        text: "乙",
+        refs: [mixedRunRef],
+        byline_key: "person:person_b",
+        byline_text: "人物乙 · 老师",
+      },
+    ],
+    bylines: [
+      { start_offset: 0, end_offset: 1, text: "人物乙 · 老师" },
+      { start_offset: 1, end_offset: 4, text: "人物甲 · 主持人" },
+      { start_offset: 4, end_offset: 5, text: "人物乙 · 老师" },
+    ],
+  };
+  return {
+    ...base,
+    paragraphs: [first, afterSection, narration, mixed],
+    blocks: [
+      { block_id: "block_byline_a", kind: "source_excerpt", refs: first.exact_refs, canonical_text: first.text },
+      { block_id: "block_byline_b", kind: "source_excerpt", refs: afterSection.exact_refs, canonical_text: afterSection.text },
+      { block_id: "block_byline_narration", kind: "narration", text: narration.text, status: "draft", recorded_refs: [] },
+      { block_id: "block_byline_mixed", kind: "source_excerpt", refs: mixed.exact_refs, canonical_text: mixed.text },
+    ],
+  };
+}
+
+describe("draft bylines and narration duration in real Chromium", () => {
+  it("renders display-only bylines outside the body text and refreshes them on undo", async () => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const initial = bylineSnapshot();
+    const undo = {
+      ...initial,
+      history: { ...initial.history, can_undo: true, can_redo: true },
+      paragraphs: initial.paragraphs.map((paragraph) =>
+        paragraph.paragraph_id === "paragraph_byline_mixed"
+          ? {
+              ...paragraph,
+              bylines: [{ start_offset: 0, end_offset: 4, text: "人物丙 · 学生" }],
+            }
+          : paragraph
+      ),
+    };
+    const state = await installReview(
+      page,
+      { ...initial, history: { ...initial.history, can_undo: true, can_redo: true } },
+      { undo, redo: initial },
+      {
+        selectionResponse: (snapshot, surface) =>
+          surface === "draft" && snapshot.paragraphs.some(
+            (paragraph) => paragraph.paragraph_id === "paragraph_byline_mixed",
+          )
+            ? mixedBylinesSelectionResponse(snapshot)
+            : selectionResponse(snapshot),
+      },
+    );
+    try {
+      const firstRow = page.locator('[data-editor-paragraph="paragraph_byline_a"]');
+      const mixedRow = page.locator('[data-editor-paragraph="paragraph_byline_mixed"]');
+      const sectionRow = page.locator('[data-editor-paragraph="paragraph_byline_b"]');
+      expect(await page.locator("#draft-document .draft-byline").count()).toBe(5);
+      expect(await firstRow.locator(".draft-byline").allTextContents()).toEqual(["人物甲 · 主持人"]);
+      expect(await sectionRow.locator(".draft-section-title").textContent()).toBe("第二章人物");
+      expect(await sectionRow.locator(".draft-byline").allTextContents()).toEqual(["人物甲 · 主持人"]);
+      expect(await mixedRow.locator(".draft-byline").allTextContents()).toEqual([
+        "人物乙 · 老师",
+        "人物甲 · 主持人",
+        "人物乙 · 老师",
+      ]);
+
+      // Bylines sit at their exact run boundary: label, fragment, label,
+      // fragment ... in reading order, with UTF-16 fragment starts that keep
+      // the emoji pair intact (乙 0-1, 甲😀 1-4, 乙 4-5).
+      const inlineOrder = await mixedRow.evaluate((row) => {
+        const container = row.querySelector<HTMLElement>("[data-editor-text]");
+        return {
+          children: Array.from(container?.childNodes ?? []).map((child) => {
+            const element = child as HTMLElement;
+            if (element.dataset?.editorAnnotation === "byline") {
+              return `byline:${element.textContent ?? ""}`;
+            }
+            if (element.dataset?.textFragment === "true") {
+              return `fragment:${element.dataset.utf16Start}:${element.textContent ?? ""}`;
+            }
+            return `node:${element.textContent ?? ""}`;
+          }),
+          bylineCount: container?.querySelectorAll(".draft-byline").length ?? 0,
+          bylineSelectability: Array.from(
+            container?.querySelectorAll<HTMLElement>(".draft-byline") ?? [],
+          ).map((byline) => ({
+            userSelect: window.getComputedStyle(byline).userSelect,
+            textFragment: byline.dataset.textFragment ?? null,
+            editorText: byline.dataset.editorText ?? null,
+          })),
+          bodyText: container?.querySelectorAll('[data-text-fragment="true"]').length === 0
+            ? null
+            : Array.from(container?.querySelectorAll<HTMLElement>('[data-text-fragment="true"]') ?? [])
+              .map((fragment) => fragment.textContent ?? "")
+              .join(""),
+        };
+      });
+      expect(inlineOrder.children).toEqual([
+        "byline:人物乙 · 老师",
+        "fragment:0:乙",
+        "byline:人物甲 · 主持人",
+        "fragment:1:甲😀",
+        "byline:人物乙 · 老师",
+        "fragment:4:乙",
+      ]);
+      expect(inlineOrder.bylineCount).toBe(3);
+      expect(inlineOrder.bodyText).toBe("乙甲😀乙");
+      expect(inlineOrder.bylineSelectability).toEqual([
+        { userSelect: "none", textFragment: null, editorText: null },
+        { userSelect: "none", textFragment: null, editorText: null },
+        { userSelect: "none", textFragment: null, editorText: null },
+      ]);
+
+      // Playwright creates missing parent directories for screenshot paths.
+      const screenshotDirectory = new URL(
+        "../../.acceptance/byline-dom/",
+        import.meta.url,
+      ).pathname;
+      // Capture the live mixed-person picture (人物乙 → 人物甲 → 人物乙) before
+      // any edit interaction; the mock move transforms the paragraph text.
+      await mixedRow.screenshot({ path: `${screenshotDirectory}mixed-bylines.png` });
+
+      // A caret placed on the second run's first character resolves to that
+      // run's exact body offset, not to an annotation-shifted offset.
+      const runFragment = mixedRow.locator('[data-text-fragment][data-utf16-start="1"]');
+      const runBox = await runFragment.boundingBox();
+      if (runBox === null) throw new Error("mixed run fragment has no layout box");
+      await page.mouse.click(runBox.x + 1, runBox.y + runBox.height / 2);
+      await expect.poll(() => state.caretPosts).toBeGreaterThan(0);
+      expect(state.lastCaret?.paragraph_id).toBe("paragraph_byline_mixed");
+      expect(state.lastCaret?.offset).toBe(1);
+
+      // Clicking straight on an annotation still resolves to the boundary of
+      // the run it introduces instead of failing the caret request.
+      const middleByline = mixedRow.locator(".draft-byline").nth(1);
+      const bylineBox = await middleByline.boundingBox();
+      if (bylineBox === null) throw new Error("inline byline has no layout box");
+      const caretPostsBefore = state.caretPosts;
+      await page.mouse.click(bylineBox.x + 4, bylineBox.y + bylineBox.height / 2);
+      await expect.poll(() => state.caretPosts).toBeGreaterThan(caretPostsBefore);
+      expect(state.lastCaret?.paragraph_id).toBe("paragraph_byline_mixed");
+      // Any boundary of the run this label introduces is valid; only an
+      // annotation-shifted offset (annotation text lengths) would be wrong.
+      expect([0, 1]).toContain(state.lastCaret?.offset);
+
+      // A drag selection across the mixed runs contains body text only: the
+      // selected fragments are exactly 乙甲 while every annotation stays
+      // unselected (the editor's selection is what copy and handoff use).
+      const firstRunFragment = mixedRow.locator('[data-text-fragment][data-utf16-start="0"]');
+      const secondRunFragment = mixedRow.locator('[data-text-fragment][data-utf16-start="1"]');
+      const firstRunBox = await firstRunFragment.boundingBox();
+      const secondRunBox = await secondRunFragment.boundingBox();
+      if (firstRunBox === null || secondRunBox === null) throw new Error("run fragments lack layout");
+      await page.mouse.move(firstRunBox.x + 1, firstRunBox.y + firstRunBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(secondRunBox.x + secondRunBox.width - 1, secondRunBox.y + secondRunBox.height / 2);
+      await page.mouse.up();
+      await expect.poll(async () => {
+        const selected = await mixedRow
+          .locator("[data-text-fragment].is-selected")
+          .allTextContents();
+        return selected.join("");
+      }).toBe("乙甲😀");
+      expect(await page.locator(".draft-byline.is-selected").count()).toBe(0);
+
+      // Dragging the selected runs out of the mixed paragraph posts a move
+      // whose source point stays in body offsets (annotations never shift it).
+      const dropTarget = sectionRow.locator("[data-text-fragment]").first();
+      const dropBox = await dropTarget.boundingBox();
+      if (dropBox === null) throw new Error("drop target has no layout box");
+      await page.mouse.move(firstRunBox.x + 2, firstRunBox.y + firstRunBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(dropBox.x + 4, dropBox.y + dropBox.height / 2);
+      await page.mouse.up();
+      await expect.poll(() => state.draftEditPosts).toBeGreaterThan(0);
+      expect(state.lastEdit?.operation).toBe("move_selection");
+      const moveSource = state.lastEdit?.source as
+        | {
+            kind?: string;
+            display_range?: {
+              anchor?: { paragraph_id?: string; utf16_offset?: number };
+              focus?: { paragraph_id?: string; utf16_offset?: number };
+            };
+          }
+        | undefined;
+      expect(moveSource?.kind).toBe("resolved_selection");
+      expect(moveSource?.display_range?.anchor?.paragraph_id).toBe("paragraph_byline_mixed");
+      expect(moveSource?.display_range?.focus?.paragraph_id).toBe("paragraph_byline_mixed");
+      expect(moveSource?.display_range?.anchor?.utf16_offset).toBe(0);
+      expect(moveSource?.display_range?.focus?.utf16_offset).toBe(4);
+      const moveTarget = state.lastEdit?.target as
+        | { paragraph_id?: string }
+        | undefined;
+      expect(moveTarget?.paragraph_id).toBe("paragraph_byline_b");
+
+      await page.locator("#draft-undo").click();
+      await expect.poll(() => state.undoPosts).toBe(1);
+      await expect.poll(async () => mixedRow.locator(".draft-byline").allTextContents()).toEqual([
+        "人物丙 · 学生",
+      ]);
+      const undoOrder = await mixedRow.locator("[data-editor-text]").evaluate((container) =>
+        Array.from(container.childNodes).map((child) => {
+          const element = child as HTMLElement;
+          if (element.dataset?.editorAnnotation === "byline") {
+            return `byline:${element.textContent ?? ""}`;
+          }
+          return `fragment:${element.dataset?.utf16Start ?? ""}:${element.textContent ?? ""}`;
+        }),
+      );
+      expect(undoOrder[0]).toBe("byline:人物丙 · 学生");
+      expect(undoOrder[1]).toBe("fragment:0:乙");
+      await mixedRow.screenshot({ path: `${screenshotDirectory}mixed-bylines-after-undo.png` });
+    } finally {
+      await page.close();
+    }
+  });
+
+  it("edits narration minutes manually while keeping the automatic estimate readable", async () => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const state = await installReview(page, bylineSnapshot());
+    try {
+      const narrationRow = page.locator('[data-editor-paragraph="paragraph_byline_narration"]');
+      expect(await narrationRow.locator(".draft-narration-label").textContent()).toBe(
+        "解说 · 待录音 · 约 3 秒",
+      );
+      await narrationRow.locator('[data-narration-action="edit"]').click();
+      const durationInput = narrationRow.locator("[data-narration-duration]");
+      expect(await durationInput.inputValue()).toBe("");
+      expect(await durationInput.getAttribute("placeholder")).toBe("3");
+      await durationInput.fill("5");
+      await narrationRow.locator('[data-narration-action="save"]').click();
+      await expect.poll(() => state.narrationPosts).toBe(1);
+      expect(state.lastNarration?.block_id).toBe("block_byline_narration");
+      expect(state.lastNarration?.estimated_duration_seconds).toBe(5);
+      await expect.poll(async () => narrationRow.locator(".draft-narration-label").textContent())
+        .toBe("解说 · 待录音 · 指定 5 秒");
+
+      await narrationRow.locator('[data-narration-action="edit"]').click();
+      await narrationRow.locator("[data-narration-duration]").fill("");
+      await narrationRow.locator('[data-narration-action="save"]').click();
+      await expect.poll(() => state.narrationPosts).toBe(2);
+      expect(state.lastNarration?.estimated_duration_seconds).toBeNull();
+      await expect.poll(async () => narrationRow.locator(".draft-narration-label").textContent())
+        .toBe("解说 · 待录音 · 约 3 秒");
+    } finally {
+      await page.close();
+    }
+  });
+});
 
 async function installReview(
   page: Page,
@@ -2060,6 +2402,10 @@ async function installReview(
     selectionResolveStatus?: number;
     selectionResolveMessage?: string;
     selectionResolveFailFirst?: boolean;
+    narrationSnapshot?: (
+      snapshot: DraftEditorSnapshot,
+      body: Record<string, unknown> | null,
+    ) => DraftEditorSnapshot;
   } = {},
 ): Promise<ReviewState> {
   const state: ReviewState = {
@@ -2071,6 +2417,9 @@ async function installReview(
     selectionPosts: 0,
     pointermoveApiCalls: 0,
     lastEdit: null,
+    narrationPosts: 0,
+    lastNarration: null,
+    lastCaret: null,
   };
   let currentSnapshot = initialSnapshot;
   await page.route("**/api/**", async (route: Route) => {
@@ -2132,6 +2481,7 @@ async function installReview(
     }
     if (url.pathname === "/api/workflow/draft-caret-resolve") {
       state.caretPosts += 1;
+      state.lastCaret = body;
       await json(route, {
         candidate_id: currentSnapshot.candidate.candidate_id,
         paragraph_id: String(body?.paragraph_id ?? "paragraph_a"),
@@ -2165,6 +2515,15 @@ async function installReview(
       });
       return;
     }
+    if (url.pathname === "/api/workflow/draft-narration") {
+      state.narrationPosts += 1;
+      state.lastNarration = body;
+      currentSnapshot = options.narrationSnapshot === undefined
+        ? narrationSnapshot(currentSnapshot, body)
+        : options.narrationSnapshot(currentSnapshot, body);
+      await json(route, { draft_editor: currentSnapshot });
+      return;
+    }
     if (url.pathname === "/api/workflow/draft-undo") {
       state.undoPosts += 1;
       currentSnapshot = historySnapshots?.undo ?? currentSnapshot;
@@ -2188,6 +2547,29 @@ async function installReview(
   await page.goto(`${baseUrl}index.html`);
   await page.locator("#draft-document").waitFor({ state: "visible" });
   return state;
+}
+
+function narrationSnapshot(
+  snapshot: DraftEditorSnapshot,
+  body: Record<string, unknown> | null,
+): DraftEditorSnapshot {
+  const blockId = typeof body?.block_id === "string" ? body.block_id : null;
+  const text = typeof body?.text === "string" ? body.text : null;
+  const duration = body?.estimated_duration_seconds;
+  const estimated = typeof duration === "number" ? duration : null;
+  return {
+    ...snapshot,
+    paragraphs: snapshot.paragraphs.map((paragraph) => paragraph.block_id === blockId
+      ? {
+          ...paragraph,
+          text: text ?? paragraph.text,
+          narration_status: paragraph.narration_status === "recorded"
+            ? "draft"
+            : paragraph.narration_status,
+          narration_duration_seconds: estimated,
+        }
+      : paragraph),
+  };
 }
 
 function serverTiming(): Record<string, number> {
@@ -2263,6 +2645,7 @@ function headingHierarchySnapshot(): DraftEditorSnapshot {
     narration_status: "draft",
     block_id: "narration_heading",
     source_runs: [],
+    bylines: [],
     exact_refs: [],
   };
   const empty: DraftEditorSnapshot["paragraphs"][number] = {
@@ -2274,6 +2657,7 @@ function headingHierarchySnapshot(): DraftEditorSnapshot {
     narration_status: null,
     block_id: "heading_empty",
     source_runs: [],
+    bylines: [],
     exact_refs: [],
   };
   return {
@@ -2655,7 +3039,8 @@ function paragraph(paragraphId: string, value: string, blockId: string): DraftEd
     text: value,
     section_title: null,
     narration_status: null,
-    source_runs: [{ block_id: blockId, source_id: "source_a", source_display_name: "fixture", paragraph_id: paragraphId, start_ticks: 0, end_ticks: 120, start_offset: 0, end_offset: characterLength, source_start_offset: 0, source_end_offset: characterLength, text: value, refs: [ref] }],
+    source_runs: [{ block_id: blockId, source_id: "source_a", source_display_name: "fixture", paragraph_id: paragraphId, start_ticks: 0, end_ticks: 120, start_offset: 0, end_offset: characterLength, source_start_offset: 0, source_end_offset: characterLength, text: value, refs: [ref], byline_key: null, byline_text: null }],
+    bylines: [],
     exact_refs: [ref],
   };
 }

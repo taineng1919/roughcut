@@ -24,15 +24,24 @@ from roughcut.domain.content_draft import (
     SectionTitleBlock,
     SourceExcerptBlock,
     legacy_section_block_id,
+    narration_effective_duration_ticks,
+    narration_requested_seconds,
     project_schema1_to_schema2,
     split_display_text_for_canonical_parts,
 )
 from roughcut.domain.edit import (
+    PLACEHOLDER_MEDIA_VERSION,
     EditClip,
+    EditClipLike,
     EditDecision,
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
+)
+from roughcut.domain.narration_placeholder import (
+    placeholder_media_frames,
+    placeholder_media_id,
 )
 from roughcut.domain.project import Project, ProjectError, SourceAsset
 from roughcut.domain.readable_transcript import (
@@ -40,6 +49,7 @@ from roughcut.domain.readable_transcript import (
     exact_fine_unit_spans,
     trusted_fine_unit_spans,
 )
+from roughcut.domain.time import TICKS_PER_SECOND, RationalRate
 from roughcut.domain.transcript import TimedTranscript
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -54,6 +64,7 @@ class ContentDraftState:
     project_revision: int
     status: str
     stale_reasons: tuple[str, ...]
+    frame_rate: RationalRate | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -61,7 +72,9 @@ class ContentDraftState:
             "project_revision": self.project_revision,
             "status": self.status,
             "stale_reasons": list(self.stale_reasons),
-            "duration_acceptance": duration_acceptance_summary(self.content_draft),
+            "duration_acceptance": duration_acceptance_summary(
+                self.content_draft, self.frame_rate
+            ),
         }
 
 
@@ -72,6 +85,7 @@ class ContentDraftMutation:
     status: str
     stale_reasons: tuple[str, ...]
     changed: bool
+    frame_rate: RationalRate | None = None
 
     def to_dict(self) -> dict[str, object]:
         payload = ContentDraftState(
@@ -79,6 +93,7 @@ class ContentDraftMutation:
             self.project_revision,
             self.status,
             self.stale_reasons,
+            self.frame_rate,
         ).to_dict()
         payload["changed"] = self.changed
         return payload
@@ -95,6 +110,7 @@ class ScopedContentDraftRevision:
     unchanged_block_ids: tuple[str, ...]
     before_duration_ticks: int
     after_duration_ticks: int
+    frame_rate: RationalRate | None = None
 
     @property
     def duration_delta_ticks(self) -> int:
@@ -107,6 +123,7 @@ class ScopedContentDraftRevision:
             self.status,
             self.stale_reasons,
             self.changed,
+            self.frame_rate,
         ).to_dict()
         payload["revision_summary"] = {
             "changed_block_ids": list(self.changed_block_ids),
@@ -204,7 +221,9 @@ def create_content_draft(
         if latest.revision != project.revision:
             draft_path.unlink(missing_ok=True)
             raise ProjectError("project revision conflict")
-        return ContentDraftMutation(draft, project.revision, "current", (), True)
+        return ContentDraftMutation(
+            draft, project.revision, "current", (), True, _project_frame_rate(project)
+        )
 
 
 def create_content_draft_editor_child(
@@ -231,7 +250,14 @@ def create_content_draft_editor_child(
         if latest.revision != expected_revision:
             child_path.unlink(missing_ok=True)
             raise ProjectError("project revision conflict")
-        return ContentDraftMutation(child, expected_revision, "current", (), True)
+        return ContentDraftMutation(
+            child,
+            expected_revision,
+            "current",
+            (),
+            True,
+            _project_frame_rate(project),
+        )
 
 
 def prepare_content_draft_editor_child(
@@ -292,7 +318,14 @@ def publish_prepared_content_draft_editor_child(
         if latest.revision != expected_revision:
             child_path.unlink(missing_ok=True)
             raise ProjectError("project revision conflict")
-        return ContentDraftMutation(child, expected_revision, "current", (), True)
+        return ContentDraftMutation(
+            child,
+            expected_revision,
+            "current",
+            (),
+            True,
+            _project_frame_rate(project),
+        )
 
 
 def read_content_draft_editor_child(
@@ -324,7 +357,9 @@ def read_content_draft_editor_child(
         or child.display_title != parent.display_title
     ):
         raise ProjectError("draft editor child basis does not match")
-    return ContentDraftState(child, project.revision, "current", ())
+    return ContentDraftState(
+        child, project.revision, "current", (), _project_frame_rate(project)
+    )
 
 
 def revise_content_draft_scoped(
@@ -346,8 +381,8 @@ def revise_content_draft_scoped(
     parent_state = read_content_draft(project_path, parent_draft_id)
     parent = parent_state.content_draft
     context_hash = parent.context_hash
+    project = ProjectStore(project_path).load()
     if parent_state.status != "current":
-        project = ProjectStore(project_path).load()
         allowed_post_adoption_rebase = (
             project.revision == expected_revision
             and parent.confirmed_by_user
@@ -468,6 +503,7 @@ def revise_content_draft_scoped(
             expected_parent_draft_id=parent_draft_id,
         )
         raise
+    frame_rate = _project_frame_rate(project)
     return ScopedContentDraftRevision(
         child,
         created.project_revision,
@@ -476,8 +512,9 @@ def revise_content_draft_scoped(
         created.changed,
         changed_ids,
         unchanged_ids,
-        _content_draft_duration(parent),
-        _content_draft_duration(child),
+        _content_draft_duration(parent, frame_rate),
+        _content_draft_duration(child, frame_rate),
+        frame_rate,
     )
 
 
@@ -493,6 +530,7 @@ def read_content_draft(project_path: Path, content_draft_id: str) -> ContentDraf
         project.revision,
         "stale" if reasons else "current",
         reasons,
+        _project_frame_rate(project),
     )
 
 
@@ -536,7 +574,9 @@ def confirm_content_draft(
         if draft.confirmed_by_user:
             if project.active_content_draft_id != draft.content_draft_id:
                 raise ProjectError("confirmed content draft is not active")
-            return ContentDraftMutation(draft, project.revision, "current", (), False)
+            return ContentDraftMutation(
+                draft, project.revision, "current", (), False, _project_frame_rate(project)
+            )
         updated_project, child = prepare_confirmed_content_draft(
             store.project_path,
             project,
@@ -551,7 +591,14 @@ def confirm_content_draft(
         except Exception:
             child_path.unlink(missing_ok=True)
             raise
-        return ContentDraftMutation(child, updated_project.revision, "current", (), True)
+        return ContentDraftMutation(
+            child,
+            updated_project.revision,
+            "current",
+            (),
+            True,
+            _project_frame_rate(updated_project),
+        )
 
 
 def prepare_confirmed_content_draft(
@@ -612,14 +659,60 @@ def prepare_content_draft_proposal(
     if not draft.confirmed_by_user:
         raise ProjectError("content draft must be confirmed")
     if any(
-        isinstance(block, NarrationBlock) and block.status != "recorded"
+        isinstance(block, NarrationBlock) and block.status == "draft"
         for block in draft.blocks
     ):
-        raise ProjectError("content draft narration is not recorded")
-    clips: list[EditClip] = []
+        raise ProjectError("content draft narration must be approved or recorded")
+    frame_rate = _project_frame_rate(project)
+    output_settings = _project_output_settings(project)
+    narration_placeholders: list[tuple[NarrationBlock, int]] = [
+        (block, narration_effective_duration_ticks(block, frame_rate))
+        for block in draft.blocks
+        if isinstance(block, NarrationBlock) and block.status != "recorded"
+    ]
+    # One managed media per compiled Proposal covers the longest placeholder
+    # segment plus a deterministic tail margin; every placeholder clip cuts
+    # from that same immutable media.
+    shared_media_frames = (
+        placeholder_media_frames(
+            max(effective_ticks for _, effective_ticks in narration_placeholders),
+            frame_rate,
+        )
+        if narration_placeholders
+        else 0
+    )
+    shared_media_id = (
+        placeholder_media_id(
+            media_version=PLACEHOLDER_MEDIA_VERSION,
+            width=output_settings.width,
+            height=output_settings.height,
+            frame_rate=frame_rate,
+            audio_sample_rate=output_settings.audio_sample_rate,
+            video_frames=shared_media_frames,
+        )
+        if narration_placeholders
+        else ""
+    )
+    clips: list[EditClipLike] = []
     occurrences: dict[tuple[str, str, str], int] = {}
     for block in draft.blocks:
         if isinstance(block, SectionTitleBlock):
+            continue
+        if isinstance(block, NarrationBlock) and block.status != "recorded":
+            effective_ticks = narration_effective_duration_ticks(block, frame_rate)
+            clips.append(
+                NarrationPlaceholderClip(
+                    clip_id=_placeholder_clip_id(block.block_id),
+                    narration_block_id=block.block_id,
+                    media_version=PLACEHOLDER_MEDIA_VERSION,
+                    media_id=shared_media_id,
+                    media_frames=shared_media_frames,
+                    source_in_ticks=0,
+                    source_out_ticks=effective_ticks,
+                    reason="Unrecorded Content Draft narration",
+                    display_text=block.text,
+                )
+            )
             continue
         refs = block.refs if isinstance(block, SourceExcerptBlock) else block.recorded_refs
         reason = (
@@ -818,9 +911,17 @@ def _parse_blocks(
                 raise ProjectError("content draft source canonical text does not match refs")
             parsed.append(replace(source_block, canonical_text=canonical))
         elif kind == "narration":
-            if schema_version == 2 and set(item) != {
-                "block_id", "kind", "text", "status", "recorded_refs"
-            }:
+            if schema_version == 2 and set(item) not in (
+                {"block_id", "kind", "text", "status", "recorded_refs"},
+                {
+                    "block_id",
+                    "kind",
+                    "text",
+                    "status",
+                    "recorded_refs",
+                    "estimated_duration_seconds",
+                },
+            ):
                 raise ProjectError("schema 2 narration block fields are invalid")
             narration_block = NarrationBlock.from_dict(item, schema_version=schema_version)
             if narration_block.status == "recorded":
@@ -935,6 +1036,7 @@ def _normalize_editor_child_blocks(
                 text=item.text,
                 status=item.status,
                 recorded_refs=item.recorded_refs,
+                estimated_duration_seconds=item.estimated_duration_seconds,
             )
         else:
             raise ProjectError("content draft editor child block kind is invalid")
@@ -1142,6 +1244,11 @@ def _validate_ref_sequence(
         raise ProjectError("content draft block refs must be consecutive and ordered")
 
 
+def _placeholder_clip_id(block_id: str) -> str:
+    digest = hashlib.sha256(block_id.encode("utf-8")).hexdigest()[:20]
+    return f"clip_placeholder_{digest}"
+
+
 def _stable_clip_id(ref: ContentDraftRef, occurrence: int) -> str:
     identity = (
         f"{ref.source_id}\0{ref.transcript_version_id}\0{ref.segment_id}"
@@ -1150,23 +1257,33 @@ def _stable_clip_id(ref: ContentDraftRef, occurrence: int) -> str:
     return f"clip_ref_{digest}_{occurrence}"
 
 
-def _content_draft_duration(draft: ContentDraft) -> int:
-    return sum(
-        ref.end_ticks - ref.start_ticks
-        for block in draft.blocks
-        if not isinstance(block, SectionTitleBlock)
-        for ref in (
-            block.refs
-            if isinstance(block, SourceExcerptBlock)
-            else block.recorded_refs
-        )
-    )
+def _content_draft_duration(
+    draft: ContentDraft, frame_rate: RationalRate | None
+) -> int:
+    total = 0
+    for block in draft.blocks:
+        if isinstance(block, SectionTitleBlock):
+            continue
+        if isinstance(block, NarrationBlock):
+            if block.status == "recorded":
+                total += sum(
+                    ref.end_ticks - ref.start_ticks for ref in block.recorded_refs
+                )
+            elif frame_rate is None:
+                total += narration_requested_seconds(block) * TICKS_PER_SECOND
+            else:
+                total += narration_effective_duration_ticks(block, frame_rate)
+        else:
+            total += sum(ref.end_ticks - ref.start_ticks for ref in block.refs)
+    return total
 
 
-def duration_acceptance_summary(draft: ContentDraft) -> dict[str, object]:
+def duration_acceptance_summary(
+    draft: ContentDraft, frame_rate: RationalRate | None = None
+) -> dict[str, object]:
     """Return deterministic duration acceptance facts for one immutable draft."""
     target_duration_ticks = draft.brief_snapshot.target_duration_ticks
-    actual_duration_ticks = _content_draft_duration(draft)
+    actual_duration_ticks = _content_draft_duration(draft, frame_rate)
     delta_ticks = actual_duration_ticks - target_duration_ticks
     tolerance_ticks = (
         target_duration_ticks * DURATION_ACCEPTANCE_TOLERANCE_PERCENT
@@ -1186,6 +1303,42 @@ def duration_acceptance_summary(draft: ContentDraft) -> dict[str, object]:
         "tolerance_ticks": tolerance_ticks,
         "accepted_upper_bound_ticks": accepted_upper_bound_ticks,
     }
+
+
+def _project_frame_rate(project: Project) -> RationalRate:
+    rate = project.settings.get("frame_rate")
+    if not isinstance(rate, dict):
+        raise ProjectError("project frame rate is invalid")
+    numerator = rate.get("numerator")
+    denominator = rate.get("denominator")
+    if isinstance(numerator, bool) or not isinstance(numerator, int) or isinstance(
+        denominator, bool
+    ) or not isinstance(denominator, int):
+        raise ProjectError("project frame rate is invalid")
+    try:
+        return RationalRate(numerator, denominator)
+    except ValueError as error:
+        raise ProjectError("project frame rate is invalid") from error
+
+
+def _project_output_settings(project: Project):
+    from roughcut.domain.render import OutputSettings
+
+    settings = project.settings
+    return OutputSettings(
+        width=_project_positive_int(settings.get("width"), "width"),
+        height=_project_positive_int(settings.get("height"), "height"),
+        frame_rate=_project_frame_rate(project),
+        audio_sample_rate=_project_positive_int(
+            settings.get("audio_sample_rate"), "audio sample rate"
+        ),
+    )
+
+
+def _project_positive_int(value: object, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ProjectError(f"project {name} is invalid")
+    return value
 
 
 def _validate_stored_blocks(project: Project, project_path: Path, draft: ContentDraft) -> None:

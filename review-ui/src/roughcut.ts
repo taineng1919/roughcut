@@ -12,6 +12,7 @@ import {
   transitionAtBoundary,
 } from "./player";
 import { formatReviewTime, manuscriptRuns } from "./roughcut-model";
+import { isNarrationPlaceholderClip } from "./types";
 import type {
   ReviewPayload,
   ReviewSource,
@@ -435,7 +436,9 @@ export class RoughcutReviewController {
     if (clip === undefined) return;
     element<HTMLElement>("roughcut-current-clip").textContent = clip.display_text;
     element<HTMLElement>("roughcut-current-source").textContent =
-      this.sourceById(clip.source_id).display_name;
+      isNarrationPlaceholderClip(clip)
+        ? "解说 / 待配音"
+        : this.sourceById(clip.source_id!).display_name;
   }
 
   private preloadNextSource(index: number): void {

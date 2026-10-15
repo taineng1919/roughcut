@@ -145,9 +145,46 @@ def test_mcp_content_draft_block_union_matches_submit_draft_shape() -> None:
     }
     assert fields_by_kind == {
         "source_excerpt": {"block_id", "kind", "refs", "canonical_text"},
-        "narration": {"block_id", "kind", "text", "status", "recorded_refs"},
+        "narration": {
+            "block_id",
+            "kind",
+            "text",
+            "status",
+            "recorded_refs",
+            "estimated_duration_seconds",
+        },
         "section_title": {"block_id", "kind", "title"},
     }
     assert parse_workflow_action_input(
         "submit_draft", _input([_heading("section_a", "章节"), _source()])
     )["blocks"]
+
+
+def test_submit_draft_omits_default_duration_from_parsed_projection() -> None:
+    """Pre-feature submit_draft inputs must keep their exact action input hash.
+
+    The parsed projection is what the workflow receipt hashes, so an absent (or
+    explicit null) ``estimated_duration_seconds`` must not appear in it.
+    """
+
+    payload = _input([_source(), _narration()])
+    parsed = parse_workflow_action_input("submit_draft", payload)
+    narration = next(
+        block for block in parsed["blocks"] if block["kind"] == "narration"
+    )
+    assert "estimated_duration_seconds" not in narration
+
+    with_null = _input(
+        [_source(), {**_narration(), "estimated_duration_seconds": None}]
+    )
+    parsed_null = parse_workflow_action_input("submit_draft", with_null)
+    assert parsed_null == parsed
+
+    with_value = _input(
+        [_source(), {**_narration(), "estimated_duration_seconds": 4}]
+    )
+    parsed_value = parse_workflow_action_input("submit_draft", with_value)
+    narration_value = next(
+        block for block in parsed_value["blocks"] if block["kind"] == "narration"
+    )
+    assert narration_value["estimated_duration_seconds"] == 4

@@ -17,6 +17,7 @@ from roughcut.application.agent_context import _read_transcript
 from roughcut.application.content_drafts import (
     ContentDraftMutation,
     ContentDraftState,
+    _project_frame_rate,
     duration_acceptance_summary,
     prepare_content_draft_editor_child,
     publish_prepared_content_draft_editor_child,
@@ -42,6 +43,7 @@ from roughcut.domain.content_draft import (
     NarrationBlock,
     SectionTitleBlock,
     SourceExcerptBlock,
+    estimated_narration_seconds,
     legacy_section_block_id,
     project_schema1_to_schema2,
     punctuation_stripped,
@@ -179,7 +181,9 @@ class DraftEditorSnapshot:
                 "focus": list(brief.focus),
                 "allow_reorder": brief.allow_reorder,
             },
-            "duration_acceptance": duration_acceptance_summary(self.candidate),
+            "duration_acceptance": duration_acceptance_summary(
+                self.candidate, _project_frame_rate(self._transcript_base.project)
+            ),
             "candidate": {
                 "candidate_id": self.candidate.content_draft_id,
                 "parent_candidate_id": self.candidate.parent_draft_id,
@@ -1025,12 +1029,14 @@ def update_draft_narration(
     *,
     block_id: str,
     text: str,
+    estimated_duration_seconds: int | None = None,
 ) -> ContentDraftMutation:
     child = prepare_draft_narration(
         snapshot,
         block_id=block_id,
         text=text,
         child_id=f"draft_{uuid4().hex}",
+        estimated_duration_seconds=estimated_duration_seconds,
     )
     return publish_prepared_content_draft_editor_child(
         snapshot.workflow.project_path,
@@ -1047,6 +1053,7 @@ def prepare_draft_narration(
     block_id: str,
     text: str,
     child_id: str,
+    estimated_duration_seconds: int | None = None,
 ) -> ContentDraft:
     """Apply narration validation without publishing a child."""
 
@@ -1055,12 +1062,22 @@ def prepare_draft_narration(
         raise ProjectError("draft narration block ID is invalid")
     if not isinstance(text, str) or not text.strip():
         raise ProjectError("draft narration text is required")
+    if estimated_duration_seconds is not None and (
+        isinstance(estimated_duration_seconds, bool)
+        or not isinstance(estimated_duration_seconds, int)
+        or estimated_duration_seconds <= 0
+    ):
+        raise ProjectError("draft narration estimated duration is invalid")
     updated: list[_WorkingAtom] = []
     found = False
     for item_index, item in enumerate(snapshot._items):
         if isinstance(item, _NarrationItem) and item.block.block_id == block_id:
             found = True
-            if item.block.text == text.strip() and item.block.status == "draft":
+            if (
+                item.block.text == text.strip()
+                and item.block.status == "draft"
+                and item.block.estimated_duration_seconds == estimated_duration_seconds
+            ):
                 raise ProjectError("draft narration text is unchanged")
             updated.append(
                 _WorkingAtom(
@@ -1070,6 +1087,7 @@ def prepare_draft_narration(
                         text=text.strip(),
                         status="draft",
                         recorded_refs=(),
+                        estimated_duration_seconds=estimated_duration_seconds,
                     ),
                     item_index,
                     item.section_title,
@@ -1308,7 +1326,11 @@ def prepare_draft_editor_result_selection(
         workflow=replace(
             snapshot.workflow,
             content_draft=ContentDraftState(
-                child, snapshot.workflow.project_revision, "current", ()
+                child,
+                snapshot.workflow.project_revision,
+                "current",
+                (),
+                _project_frame_rate(snapshot.transcript_base.project),
             ),
         ),
         candidate=child,
@@ -1728,8 +1750,13 @@ def _draft_paragraphs(
                         else None
                     ),
                     "narration_status": first.block.status,
+                    "narration_duration_seconds": first.block.estimated_duration_seconds,
+                    "narration_estimated_seconds": estimated_narration_seconds(
+                        first.block.text
+                    ),
                     "block_id": first.block.block_id,
                     "source_runs": [],
+                    "bylines": [],
                     "exact_refs": [],
                 }
             )
@@ -1749,6 +1776,7 @@ def _draft_paragraphs(
         for item_index, item in source_items:
             text = item.display_text
             text_parts.append(text)
+            byline_key, byline_text = _byline_identity(item)
             source_runs.append(
                 {
                     "block_id": item.block_id,
@@ -1762,6 +1790,8 @@ def _draft_paragraphs(
                     "source_start_offset": item.original_start_offset,
                     "source_end_offset": item.original_end_offset,
                     "text": text,
+                    "byline_key": byline_key,
+                    "byline_text": byline_text,
                     "refs": [_content_ref_dict(item.ref)],
                 }
             )
@@ -1807,6 +1837,7 @@ def _draft_paragraphs(
                 ),
                 "narration_status": None,
                 "source_runs": source_runs,
+                "bylines": [],
                 "exact_refs": exact_refs,
             }
         )
@@ -1850,6 +1881,7 @@ def _draft_paragraphs(
             "narration_status": None,
             "block_id": heading.block_id,
             "source_runs": [],
+            "bylines": [],
             "exact_refs": [],
         }
         insert_at = next(
@@ -1859,7 +1891,97 @@ def _draft_paragraphs(
         paragraphs.insert(insert_at, paragraph)
         paragraph_item_starts.insert(insert_at, insertion_item_index)
         spans.append(_DraftSpan(paragraph_id, 0, 0, insertion_item_index, None))
-    return tuple(paragraphs), tuple(spans)
+    return _paragraphs_with_bylines(paragraphs), tuple(spans)
+
+
+def _byline_identity(item: _SourceItem) -> tuple[str, str]:
+    """Return the stable display identity for one source run and its byline."""
+    if item.person_id is not None:
+        return (
+            f"person:{item.person_id}",
+            _byline_text(item.person_name, item.person_role)
+            or item.person_id,
+        )
+    if item.local_speaker_id is not None:
+        return (
+            (
+                "speaker:"
+                f"{item.ref.source_id}:{item.ref.transcript_version_id}:"
+                f"{item.local_speaker_id}"
+            ),
+            (
+                "未命名发言人 · "
+                f"{item.source_display_name} · {item.local_speaker_id}"
+            ),
+        )
+    # Without a local speaker the conservative segment identity is used; the
+    # same local speaker label in another source is never merged.
+    return (
+        (
+            "segment:"
+            f"{item.ref.source_id}:{item.ref.transcript_version_id}:{item.ref.segment_id}"
+        ),
+        _byline_text(item.person_name, item.person_role)
+        or _byline_text(None, item.source_display_name)
+        or "未标注人物",
+    )
+
+
+def _byline_text(name: str | None, role: str | None) -> str | None:
+    parts = [
+        value
+        for value in (name, role)
+        if isinstance(value, str) and value.strip()
+    ]
+    return " · ".join(parts) if parts else None
+
+
+def _paragraphs_with_bylines(
+    paragraphs: list[dict[str, object]],
+) -> tuple[dict[str, object], ...]:
+    """Attach display-only bylines: first run, switches, sections and narration reset."""
+    last_key: str | None = None
+    for paragraph in paragraphs:
+        kind = paragraph.get("kind")
+        section_title = paragraph.get("section_title")
+        if kind != "source_excerpt" or (
+            isinstance(section_title, str) and section_title.strip()
+        ):
+            # A displayed heading starts a new reading context, so the next
+            # source run shows its person again even when it is unchanged.
+            last_key = None
+        if kind != "source_excerpt":
+            continue
+        runs = paragraph.get("source_runs")
+        if not isinstance(runs, list):
+            raise ProjectError("draft editor source runs are invalid")
+        paragraph_text = paragraph.get("text")
+        if not isinstance(paragraph_text, str):
+            raise ProjectError("draft editor paragraph text is invalid")
+        bylines: list[dict[str, object]] = []
+        for run in runs:
+            if not isinstance(run, dict):
+                raise ProjectError("draft editor source run is invalid")
+            key = run.get("byline_key")
+            if not isinstance(key, str):
+                continue
+            if key != last_key:
+                text = run.get("byline_text")
+                if isinstance(text, str) and text:
+                    bylines.append(
+                        {
+                            "start_offset": codepoint_to_utf16_offset(
+                                paragraph_text, int(run["start_offset"])
+                            ),
+                            "end_offset": codepoint_to_utf16_offset(
+                                paragraph_text, int(run["end_offset"])
+                            ),
+                            "text": text,
+                        }
+                    )
+                last_key = key
+        paragraph["bylines"] = bylines
+    return tuple(paragraphs)
 
 
 def _draft_request_point(

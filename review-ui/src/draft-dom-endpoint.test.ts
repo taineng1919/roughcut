@@ -43,6 +43,7 @@ function element(
     matches(selector: string): boolean {
       return (selector === "[data-text-fragment]" && this.dataset.textFragment === "true")
         || (selector === "[data-editor-text]" && this.dataset.editorText === "true")
+        || (selector === "[data-editor-annotation]" && this.dataset.editorAnnotation !== undefined)
         || (selector === "[data-editor-paragraph]" && this.dataset.editorParagraph !== undefined);
     },
     closest(selector: string): FakeElement | null {
@@ -80,7 +81,50 @@ function paragraphFixture(): {
   return { paragraph, editorText, firstText, secondText, caret };
 }
 
+function annotationFixture(): {
+  paragraph: FakeElement;
+  editorText: FakeElement;
+  first: FakeElement;
+  annotation: FakeElement;
+  second: FakeElement;
+} {
+  const first = element({ textFragment: "true", start: "0", utf16Start: "0" }, [text("乙")]);
+  const annotation = element({ editorAnnotation: "byline" }, [text("人物甲 · 主持人")]);
+  const second = element({ textFragment: "true", start: "1", utf16Start: "1" }, [text("甲😀")]);
+  const editorText = element({ editorText: "true" }, [first, annotation, second]);
+  const paragraph = element({ editorParagraph: "paragraph_mixed", surface: "draft" }, [editorText]);
+  return { paragraph, editorText, first, annotation, second };
+}
+
 describe("draft DOM endpoint normalization", () => {
+  it("maps display annotations to the body boundary they introduce", () => {
+    const fixture = annotationFixture();
+    const annotationText = fixture.annotation.childNodes[0]!;
+    // A caret landing on or inside the annotation resolves to the following
+    // run start, never to an annotation-shifted offset.
+    expect(endpointFromDom(fixture.annotation as unknown as Node, 0, "draft")).toEqual({
+      paragraph_id: "paragraph_mixed", offset: 1, offset_encoding: "utf16",
+    });
+    expect(endpointFromDom(annotationText as unknown as Node, 4, "draft")).toEqual({
+      paragraph_id: "paragraph_mixed", offset: 1, offset_encoding: "utf16",
+    });
+    // Body fragments on both sides keep their exact offsets.
+    expect(endpointFromDom(fixture.first.childNodes[0] as unknown as Node, 1, "draft")).toEqual({
+      paragraph_id: "paragraph_mixed", offset: 1, offset_encoding: "utf16",
+    });
+    expect(endpointFromDom(fixture.second.childNodes[0] as unknown as Node, 1, "draft")).toEqual({
+      paragraph_id: "paragraph_mixed", offset: 2, offset_encoding: "utf16",
+    });
+    // Editor-text child boundaries skip annotations instead of counting them.
+    expect(endpointFromDom(fixture.editorText as unknown as Node, 1, "draft")).toEqual({
+      paragraph_id: "paragraph_mixed", offset: 1, offset_encoding: "utf16",
+    });
+    expect(endpointFromDom(fixture.editorText as unknown as Node, 3, "draft")).toEqual({
+      paragraph_id: "paragraph_mixed", offset: 4, offset_encoding: "utf16",
+    });
+  });
+
+
   it("normalizes start, end-after-punctuation, and full-paragraph child boundaries", () => {
     const fixture = paragraphFixture();
 

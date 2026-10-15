@@ -22,11 +22,15 @@ from roughcut.domain.bindings import SourceTranscriptBinding, parse_source_bindi
 from roughcut.domain.brief import EditBrief
 from roughcut.domain.content_draft import punctuation_stripped
 from roughcut.domain.edit import (
+    NARRATION_PLACEHOLDER_KIND,
     EditClip,
+    EditClipLike,
     EditDecision,
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
+    parse_edit_clip,
 )
 from roughcut.domain.project import Project, ProjectError, SourceAsset
 from roughcut.domain.readable_transcript import canonical_text_for_range
@@ -113,8 +117,8 @@ class ProposalRejection:
 class ProposalClipChange:
     clip_id: str
     changed_fields: tuple[str, ...]
-    before: EditClip
-    after: EditClip
+    before: EditClipLike
+    after: EditClipLike
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -135,8 +139,8 @@ class ProposalDiff:
     before_total_duration_ticks: int
     after_total_duration_ticks: int
     duration_delta_ticks: int
-    added: tuple[EditClip, ...]
-    removed: tuple[EditClip, ...]
+    added: tuple[EditClipLike, ...]
+    removed: tuple[EditClipLike, ...]
     changed: tuple[ProposalClipChange, ...]
     order_changed: bool
     before_order: tuple[str, ...]
@@ -324,8 +328,8 @@ def prepare_proposal_decision(
 def _edit_lineage_clips(
     project_path: Path,
     project: Project,
-) -> tuple[EditClip, ...]:
-    clips: list[EditClip] = []
+) -> tuple[EditClipLike, ...]:
+    clips: list[EditClipLike] = []
     seen_edits: set[str] = set()
     current_id = project.active_edit_version_id
     while current_id is not None:
@@ -339,10 +343,10 @@ def _edit_lineage_clips(
 
 
 def _is_verified_edit_lineage_clips(
-    clips: tuple[EditClip, ...],
-    trusted_clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
+    trusted_clips: tuple[EditClipLike, ...],
 ) -> bool:
-    trusted_by_id: dict[str, EditClip] = {}
+    trusted_by_id: dict[str, EditClipLike] = {}
     for trusted in trusted_clips:
         trusted_by_id.setdefault(trusted.clip_id, trusted)
     seen: set[str] = set()
@@ -356,7 +360,15 @@ def _is_verified_edit_lineage_clips(
     return True
 
 
-def _clip_display_identity(clip: EditClip) -> tuple[str, str, str, str]:
+def _clip_display_identity(clip: EditClipLike) -> tuple[object, ...]:
+    if isinstance(clip, NarrationPlaceholderClip):
+        return (
+            clip.kind,
+            clip.media_id,
+            clip.media_version,
+            clip.narration_block_id,
+            clip.display_text,
+        )
     return (clip.source_id, clip.transcript_version_id, clip.segment_id, clip.display_text)
 
 
@@ -406,7 +418,7 @@ def _is_verified_content_draft_clips(
     project_path: Path,
     project: Project,
     proposal: EditProposalLike,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
 ) -> bool:
     """Verify an edit candidate's displays against an active draft compilation."""
 
@@ -444,18 +456,13 @@ def _is_verified_content_draft_clips(
             return False
         seen.add(clip.clip_id)
         expected = compiled_by_id.get(clip.clip_id)
-        if expected is None:
+        if expected is None or type(expected) is not type(clip):
+            return False
+        if _clip_display_identity(clip) != _clip_display_identity(expected):
             return False
         if (
-            clip.source_id,
-            clip.transcript_version_id,
-            clip.segment_id,
-            clip.display_text,
-        ) != (
-            expected.source_id,
-            expected.transcript_version_id,
-            expected.segment_id,
-            expected.display_text,
+            clip.source_in_ticks != expected.source_in_ticks
+            or clip.source_out_ticks != expected.source_out_ticks
         ):
             return False
     return True
@@ -465,7 +472,7 @@ def _are_trusted_editorial_clips(
     project_path: Path,
     project: Project,
     proposal: EditProposalLike,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
 ) -> bool:
     if _is_verified_edit_lineage_clips(
         clips, _edit_lineage_clips(project_path, project)
@@ -491,6 +498,12 @@ def _validate_proposal_decision_basis(
     allow_editorial_display = _are_trusted_editorial_clips(
         project_path, project, proposal, proposal.clips
     )
+    if any(
+        isinstance(clip, NarrationPlaceholderClip) for clip in proposal.clips
+    ) and not allow_editorial_display:
+        raise ProjectError(
+            "narration placeholders must come from the active confirmed Content Draft"
+        )
     if isinstance(proposal, EditProposal):
         _validate_revision_scope(
             project_path,
@@ -780,7 +793,7 @@ def _validate_revision_scope(
     *,
     schema_version: int,
     source_bindings: tuple[SourceTranscriptBinding, ...],
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
 ) -> EditDecisionLike | None:
     active_id = project.active_edit_version_id
     if active_id is None:
@@ -809,6 +822,21 @@ def _validate_revision_scope(
         base_clip = base_by_id.get(clip.clip_id)
         if base_clip is None:
             continue
+        if isinstance(clip, NarrationPlaceholderClip):
+            if not isinstance(base_clip, NarrationPlaceholderClip):
+                raise ProjectError(
+                    "revision proposal reused clip ID with a different identity"
+                )
+            if (
+                clip.narration_block_id != base_clip.narration_block_id
+                or clip.media_id != base_clip.media_id
+            ):
+                raise ProjectError(
+                    "revision proposal reused clip ID with a different identity"
+                )
+            continue
+        if not isinstance(base_clip, EditClip):
+            raise ProjectError("revision proposal reused clip ID with a different identity")
         if (
             clip.source_id,
             clip.transcript_version_id,
@@ -887,7 +915,7 @@ def _validate_snapshot(
     transcript_version_id: str,
     brief_id: str,
     context_hash: str,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     total_duration_ticks: int,
     expected_revision: int,
     allow_editorial_display: bool = False,
@@ -936,7 +964,7 @@ def _validate_multi_source_snapshot(
     source_bindings: tuple[SourceTranscriptBinding, ...],
     brief_id: str,
     context_hash: str,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     total_duration_ticks: int,
     expected_revision: int,
     allow_editorial_display: bool = False,
@@ -990,7 +1018,7 @@ def _validate_multi_source_clips(
     sources: dict[str, SourceAsset],
     transcripts: dict[tuple[str, str], TimedTranscript],
     brief: EditBrief,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     *,
     require_canonical_text: bool = True,
     allow_editorial_display: bool = False,
@@ -1012,6 +1040,8 @@ def _validate_multi_source_clips(
         if clip.clip_id in seen_clip_ids:
             raise ProjectError("proposal clip IDs must be unique")
         seen_clip_ids.add(clip.clip_id)
+        if isinstance(clip, NarrationPlaceholderClip):
+            continue
         source = sources.get(clip.source_id)
         transcript_key = (clip.source_id, clip.transcript_version_id)
         transcript_segments = segments.get(transcript_key)
@@ -1057,7 +1087,7 @@ def _validate_clips(
     source_duration_ticks: int,
     transcript: TimedTranscript,
     brief: EditBrief,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     *,
     require_canonical_text: bool = True,
     allow_editorial_display: bool = False,
@@ -1074,6 +1104,8 @@ def _validate_clips(
         if clip.clip_id in seen_clip_ids:
             raise ProjectError("proposal clip IDs must be unique")
         seen_clip_ids.add(clip.clip_id)
+        if isinstance(clip, NarrationPlaceholderClip):
+            continue
         if clip.source_id != transcript.source_id:
             raise ProjectError("proposal clip references an unknown source")
         if clip.transcript_version_id != transcript.transcript_version_id:
@@ -1117,14 +1149,18 @@ def _validate_clip_range(
         raise ProjectError("proposal clip is outside its transcript segment")
 
 
-def _parse_clips(clips: list[dict[str, Any]]) -> tuple[EditClip, ...]:
+def _parse_clips(clips: list[dict[str, Any]]) -> tuple[EditClipLike, ...]:
     if not isinstance(clips, list):
         raise ProjectError("proposal clips must be a list")
-    parsed: list[EditClip] = []
+    parsed: list[EditClipLike] = []
     for clip in clips:
         if not isinstance(clip, dict):
             raise ProjectError("proposal clip must be an object")
-        parsed.append(EditClip.from_dict(clip))
+        if clip.get("kind") == NARRATION_PLACEHOLDER_KIND:
+            raise ProjectError(
+                "public proposal input cannot contain narration placeholders"
+            )
+        parsed.append(parse_edit_clip(clip))
     return tuple(parsed)
 
 

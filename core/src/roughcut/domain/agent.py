@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from roughcut.domain.bindings import SourceTranscriptBinding
 from roughcut.domain.brief import EditBrief
-from roughcut.domain.edit import EditClip
+from roughcut.domain.edit import EditClipLike
 
 
 @dataclass(frozen=True)
@@ -98,7 +98,7 @@ class RevisionContextPage:
     edit_schema_version: int
     source_bindings: tuple[SourceTranscriptBinding, ...]
     sources: tuple[dict[str, object], ...]
-    base_clips: tuple[EditClip, ...]
+    base_clips: tuple[EditClipLike, ...]
     base_total_duration_ticks: int
     brief: EditBrief
     settings: dict[str, object]

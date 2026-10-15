@@ -26,13 +26,15 @@ from roughcut.application.proposals import (
 )
 from roughcut.domain.agent import AgentContextPage, MultiSourceAgentContextPage
 from roughcut.domain.edit import (
-    EditClip,
+    EditClipLike,
     EditDecision,
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
 )
 from roughcut.domain.project import Project, ProjectError
+from roughcut.domain.time import RationalRate
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -118,7 +120,7 @@ class EditHistoryState:
     ancestors: tuple[EditHistoryEntry, ...]
     redo_stack: tuple[str, ...]
     restorable_clips: tuple[dict[str, object], ...]
-    current_clips: tuple[EditClip, ...]
+    current_clips: tuple[EditClipLike, ...]
     total_duration_ticks: int
 
     def to_dict(self) -> dict[str, object]:
@@ -149,7 +151,7 @@ def propose_review_edit_change(
     proposal: EditProposalLike,
     operation: dict[str, Any],
     expected_revision: int,
-    restoration_clips: tuple[EditClip, ...] = (),
+    restoration_clips: tuple[EditClipLike, ...] = (),
 ) -> ReviewProposalChangeState:
     """Create an immutable Review candidate without adopting a new Decision."""
 
@@ -222,14 +224,14 @@ def read_review_restorable_clips(
     project_path: Path,
     *,
     proposal: EditProposalLike,
-    restoration_clips: tuple[EditClip, ...] = (),
-) -> tuple[EditClip, ...]:
+    restoration_clips: tuple[EditClipLike, ...] = (),
+) -> tuple[EditClipLike, ...]:
     store = ProjectStore(project_path)
     project = store.load()
     history = _validate_history(store.project_path, project)
     _validate_review_proposal_basis(project, proposal, history)
     current_ids = {clip.clip_id for clip in proposal.clips}
-    pool: dict[str, EditClip] = {}
+    pool: dict[str, EditClipLike] = {}
     for clip in restoration_clips:
         pool.setdefault(clip.clip_id, clip)
     for decision in history.ancestors:
@@ -458,17 +460,7 @@ def read_edit_history(project_path: Path) -> EditHistoryState:
             if clip.clip_id in discovered:
                 continue
             discovered.add(clip.clip_id)
-            restorable.append(
-                {
-                    "clip_id": clip.clip_id,
-                    "source_id": clip.source_id,
-                    "transcript_version_id": clip.transcript_version_id,
-                    "segment_id": clip.segment_id,
-                    "source_in_ticks": clip.source_in_ticks,
-                    "source_out_ticks": clip.source_out_ticks,
-                    "from_edit_version_id": decision.edit_version_id,
-                }
-            )
+            restorable.append(_restorable_clip_summary(clip, decision.edit_version_id))
     return EditHistoryState(
         project_revision=project.revision,
         active_edit_version_id=history.active.edit_version_id,
@@ -481,6 +473,39 @@ def read_edit_history(project_path: Path) -> EditHistoryState:
         current_clips=history.active.proposal_snapshot.clips,
         total_duration_ticks=history.active.proposal_snapshot.total_duration_ticks,
     )
+
+
+def _restorable_clip_summary(
+    clip: EditClipLike, from_edit_version_id: str
+) -> dict[str, object]:
+    """Describe one restorable clip without inventing transcript identity.
+
+    Real source clips keep their historical shape. Managed narration
+    placeholders are explicitly typed and reference their narration block and
+    generated media instead of a Transcript segment.
+    """
+
+    if isinstance(clip, NarrationPlaceholderClip):
+        return {
+            "clip_id": clip.clip_id,
+            "kind": clip.kind,
+            "source_in_ticks": clip.source_in_ticks,
+            "source_out_ticks": clip.source_out_ticks,
+            "narration_block_id": clip.narration_block_id,
+            "media_version": clip.media_version,
+            "media_id": clip.media_id,
+            "media_frames": clip.media_frames,
+            "from_edit_version_id": from_edit_version_id,
+        }
+    return {
+        "clip_id": clip.clip_id,
+        "source_id": clip.source_id,
+        "transcript_version_id": clip.transcript_version_id,
+        "segment_id": clip.segment_id,
+        "source_in_ticks": clip.source_in_ticks,
+        "source_out_ticks": clip.source_out_ticks,
+        "from_edit_version_id": from_edit_version_id,
+    }
 
 
 def _current_project(
@@ -569,9 +594,9 @@ def _operation_type(operation: dict[str, Any]) -> str:
 def _apply_operation(
     operation_type: str,
     operation: dict[str, Any],
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     ancestors: tuple[EditDecisionLike, ...],
-) -> tuple[EditClip, ...]:
+) -> tuple[EditClipLike, ...]:
     clip_id: str | None = None
     if operation_type in {"delete", "restore", "trim"}:
         clip_id = _required_id(operation.get("clip_id"), "clip_id")
@@ -627,17 +652,17 @@ def _apply_operation(
 def _apply_review_proposal_operation(
     operation_type: str,
     operation: dict[str, Any],
-    clips: tuple[EditClip, ...],
-    restoration_clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
+    restoration_clips: tuple[EditClipLike, ...],
     ancestors: tuple[EditDecisionLike, ...],
-) -> tuple[EditClip, ...]:
+) -> tuple[EditClipLike, ...]:
     if operation_type != "restore":
         return _apply_operation(operation_type, operation, clips, ancestors)
     clip_id = _required_id(operation.get("clip_id"), "clip_id")
     positions = {clip.clip_id: index for index, clip in enumerate(clips)}
     if clip_id in positions:
         raise ProjectError("restore clip already exists in the Review candidate")
-    restoration_pool: dict[str, EditClip] = {}
+    restoration_pool: dict[str, EditClipLike] = {}
     for clip in restoration_clips:
         restoration_pool.setdefault(clip.clip_id, clip)
     for decision in ancestors:
@@ -657,7 +682,7 @@ def _apply_review_proposal_operation(
     return (*clips[:index], restored, *clips[index:])
 
 
-def _nearest_ancestor_clip(ancestors: tuple[EditDecisionLike, ...], clip_id: str) -> EditClip:
+def _nearest_ancestor_clip(ancestors: tuple[EditDecisionLike, ...], clip_id: str) -> EditClipLike:
     for decision in ancestors[1:]:
         for clip in decision.proposal_snapshot.clips:
             if clip.clip_id == clip_id:
@@ -679,14 +704,51 @@ def _validate_active_transcript_bindings(project: Project, proposal: EditProposa
             raise ProjectError("Edit Decision has stale Transcript bindings")
 
 
+def _validate_placeholder_clip_ranges(
+    project: Project, clips: tuple[EditClipLike, ...]
+) -> None:
+    """Reject trims or fabricated ranges beyond a placeholder's media.
+
+    The compiled placeholder media covers exactly ``media_frames`` project
+    frames; any edited range must stay inside that generated media so preview,
+    render and NLE delivery cannot reference missing frames.
+    """
+
+    rate_data = project.settings.get("frame_rate")
+    if not isinstance(rate_data, dict):
+        raise ProjectError("project frame rate is invalid")
+    numerator = rate_data.get("numerator")
+    denominator = rate_data.get("denominator")
+    if (
+        isinstance(numerator, bool)
+        or not isinstance(numerator, int)
+        or isinstance(denominator, bool)
+        or not isinstance(denominator, int)
+    ):
+        raise ProjectError("project frame rate is invalid")
+    try:
+        ticks_per_frame = RationalRate(numerator, denominator).ticks_per_frame
+    except ValueError as error:
+        raise ProjectError("project frame rate is invalid") from error
+    for clip in clips:
+        if not isinstance(clip, NarrationPlaceholderClip):
+            continue
+        coverage_ticks = clip.media_frames * ticks_per_frame
+        if clip.source_in_ticks < 0 or clip.source_out_ticks > coverage_ticks:
+            raise ProjectError(
+                "narration placeholder clip exceeds its generated media range"
+            )
+
+
 def _validate_changed_clips(
     project_path: Path,
     project: Project,
     decision: EditDecisionLike,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     *,
     allow_editorial_display: bool,
 ) -> None:
+    _validate_placeholder_clip_ranges(project, clips)
     proposal = decision.proposal_snapshot
     if isinstance(proposal, EditProposal):
         source = _find_source(project, proposal.source_id)
@@ -727,10 +789,11 @@ def _validate_changed_proposal_clips(
     project_path: Path,
     project: Project,
     proposal: EditProposalLike,
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     *,
     allow_editorial_display: bool,
 ) -> None:
+    _validate_placeholder_clip_ranges(project, clips)
     if isinstance(proposal, EditProposal):
         source = _find_source(project, proposal.source_id)
         transcript = _read_transcript(

@@ -33,6 +33,10 @@ from roughcut.application.media_operations import (
     _terminal_record,
     _validate_media_runtime,
 )
+from roughcut.application.narration_media import (
+    NarrationPlaceholderMediaError,
+    ensure_narration_placeholder_media,
+)
 from roughcut.application.renders import _resolve_source_path
 from roughcut.application.sources import fingerprint_file
 from roughcut.application.workflows import _roughcut_dependency
@@ -44,11 +48,12 @@ from roughcut.domain.alignment import (
     project_alignment_intervals,
 )
 from roughcut.domain.edit import (
-    EditClip,
+    EditClipLike,
     EditDecision,
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
 )
 from roughcut.domain.media_operation import (
     AlignmentOperationResult,
@@ -74,6 +79,7 @@ from roughcut.domain.multicam_parallel import (
     validate_output_settings,
     validate_parallel_prepare_pair,
 )
+from roughcut.domain.narration_placeholder import placeholder_source_asset
 from roughcut.domain.project import Project, ProjectError, SourceAsset
 from roughcut.domain.time import TICKS_PER_SECOND
 from roughcut.domain.workflow import (
@@ -155,6 +161,15 @@ def prepare_multicam_parallel_render(
             "adopted Decision has no positive output duration",
         )
     source_by_id = {source.source_id: source for source in project.sources}
+    generated_sources = _ensure_placeholder_sources(
+        root, project, decision.proposal_snapshot.clips
+    )
+    for source_id in generated_sources:
+        if source_id in source_by_id:
+            raise ParallelRenderError(
+                "parallel_render_source_stale",
+                "generated placeholder media collides with a Source identity",
+            )
     frame_rate = cast(dict[str, object], settings["frame_rate"])
     frame_rate_numerator = cast(int, frame_rate["numerator"])
     frame_rate_denominator = cast(int, frame_rate["denominator"])
@@ -178,24 +193,29 @@ def prepare_multicam_parallel_render(
         missing = sum(cast(int, slot["output_end_ticks"]) - cast(int, slot["output_start_ticks"]) for slot in slots if slot["classification"] == "missing")
         uncertain = sum(cast(int, slot["output_end_ticks"]) - cast(int, slot["output_start_ticks"]) for slot in slots if slot["classification"] == "uncertain")
         conflict = sum(cast(int, slot["output_end_ticks"]) - cast(int, slot["output_start_ticks"]) for slot in slots if slot["classification"] == "conflict")
-        cameras.append(
-            {
-                "camera_id": camera_id,
-                "alignment_status": camera.status,
-                "coverage_status": "complete" if mapped == total_ticks else "partial",
-                "render_status": "planned",
-                "mapped_ticks": mapped,
-                "missing_ticks": missing,
-                "uncertain_ticks": uncertain,
-                "conflict_ticks": conflict,
-                "black_silence_ticks": missing + uncertain + conflict,
-                "planned_output": {
-                    "filename": f"camera_{camera_id}.mp4",
-                    "relative_path": f"camera_{camera_id}.mp4",
-                },
-                "slots": slots,
-            }
-        )
+        placeholder = sum(cast(int, slot["output_end_ticks"]) - cast(int, slot["output_start_ticks"]) for slot in slots if slot["classification"] == "narration_placeholder")
+        camera_plan: dict[str, object] = {
+            "camera_id": camera_id,
+            "alignment_status": camera.status,
+            "coverage_status": (
+                "complete" if mapped + placeholder == total_ticks else "partial"
+            ),
+            "render_status": "planned",
+            "mapped_ticks": mapped,
+            "missing_ticks": missing,
+            "uncertain_ticks": uncertain,
+            "conflict_ticks": conflict,
+            "black_silence_ticks": missing + uncertain + conflict,
+            "planned_output": {
+                "filename": f"camera_{camera_id}.mp4",
+                "relative_path": f"camera_{camera_id}.mp4",
+            },
+            "slots": slots,
+        }
+        if placeholder > 0:
+            # Keep pre-feature camera plans byte-identical by omitting the zero.
+            camera_plan["placeholder_ticks"] = placeholder
+        cameras.append(camera_plan)
     frame_quota = frame_boundary(
         total_ticks,
         frame_rate_numerator,
@@ -299,9 +319,27 @@ def start_multicam_parallel_render(
         raise
     runtime = _load_runtime_for_parallel()
     source_by_id = {source.source_id: source for source in project.sources}
-    mapped_source_ids = _mapped_source_ids(cast(list[dict[str, object]], prepared.summary["cameras"]))
-    source_paths = _source_paths(root, source_by_id, mapped_source_ids)
-    input_hash = _parallel_input_hash(prepared.basis, project, source_by_id, mapped_source_ids, runtime)
+    adopted_decision, _decision_ref, _adoption = _read_adopted_decision(
+        root,
+        project,
+        cast(
+            str,
+            cast(dict[str, object], prepare_value["decision_ref"])["edit_version_id"],
+        ),
+    )
+    generated_sources = _ensure_placeholder_sources(
+        root, project, tuple(adopted_decision.proposal_snapshot.clips)
+    )
+    for source_id, source in generated_sources.items():
+        if source_id in source_by_id:
+            raise ParallelRenderError(
+                "parallel_render_source_stale",
+                "generated placeholder media collides with a Source identity",
+            )
+        source_by_id[source_id] = source
+    input_ids = _input_source_ids(cast(list[dict[str, object]], prepared.summary["cameras"]))
+    source_paths = _source_paths(root, source_by_id, input_ids)
+    input_hash = _parallel_input_hash(prepared.basis, project, source_by_id, input_ids, runtime)
     parallel_store = MulticamParallelStore(root)
     with store.writer(operation_id, create=True) as acquired:
         if not acquired:
@@ -452,7 +490,7 @@ def start_multicam_parallel_render(
                     initial_runtime=runtime,
                     current_runtime=current_runtime,
                     sources=source_by_id,
-                    mapped_ids=mapped_source_ids,
+                    mapped_ids=input_ids,
                 )
             except ParallelRenderError as error:
                 _cleanup_worker_staging(parallel_store, operation_id)
@@ -882,7 +920,7 @@ def _camera(artifact: MulticamAlignmentArtifact, camera_id: str) -> AlignmentCam
 def _project_camera_slots(
     camera: AlignmentCamera,
     all_intervals: tuple[AlignmentInterval, ...],
-    clips: tuple[EditClip, ...],
+    clips: tuple[EditClipLike, ...],
     settings: dict[str, object],
 ) -> list[dict[str, object]]:
     frame_rate = cast(dict[str, object], settings["frame_rate"])
@@ -892,6 +930,32 @@ def _project_camera_slots(
     output_cursor = 0
     slots: list[dict[str, object]] = []
     for ordinal, clip in enumerate(clips):
+        if isinstance(clip, NarrationPlaceholderClip):
+            slots.append(
+                _slot(
+                    clip_id=clip.clip_id,
+                    clip_ordinal=ordinal,
+                    source_id=clip.media_id,
+                    source_start_ticks=clip.source_in_ticks,
+                    source_end_ticks=clip.source_out_ticks,
+                    classification="narration_placeholder",
+                    auxiliary=None,
+                    placeholder={
+                        "media_id": clip.media_id,
+                        "media_version": clip.media_version,
+                        "source_start_ticks": clip.source_in_ticks,
+                        "source_end_ticks": clip.source_out_ticks,
+                    },
+                    output_start_ticks=output_cursor,
+                    output_end_ticks=output_cursor + clip.duration_ticks,
+                    slot_index=len(slots),
+                    frame_rate_numerator=frame_rate_numerator,
+                    frame_rate_denominator=frame_rate_denominator,
+                    sample_rate=sample_rate,
+                )
+            )
+            output_cursor += clip.duration_ticks
+            continue
         try:
             projected = project_alignment_intervals(
                 camera_id=camera.camera_id,
@@ -917,39 +981,23 @@ def _project_camera_slots(
                     "source_start_ticks": segment.auxiliary_start_ticks,
                     "source_end_ticks": segment.auxiliary_end_ticks,
                 }
-            frame_start = frame_boundary(
-                segment.timeline_start_ticks,
-                frame_rate_numerator,
-                frame_rate_denominator,
-            )
-            frame_end = frame_boundary(
-                segment.timeline_end_ticks,
-                frame_rate_numerator,
-                frame_rate_denominator,
-            )
-            sample_start = sample_boundary(segment.timeline_start_ticks, sample_rate)
-            sample_end = sample_boundary(segment.timeline_end_ticks, sample_rate)
             slots.append(
-                {
-                    "slot_id": f"slot_{len(slots):06d}",
-                    "decision_clip_ref": {
-                        "clip_id": clip.clip_id,
-                        "clip_ordinal": ordinal,
-                        "source_id": clip.source_id,
-                        "source_start_ticks": segment.main_start_ticks,
-                        "source_end_ticks": segment.main_end_ticks,
-                    },
-                    "classification": segment.classification,
-                    "auxiliary_ref": auxiliary,
-                    "output_start_ticks": segment.timeline_start_ticks,
-                    "output_end_ticks": segment.timeline_end_ticks,
-                    "video_frame_start": frame_start,
-                    "video_frame_end": frame_end,
-                    "video_frame_quota": frame_end - frame_start,
-                    "audio_sample_start": sample_start,
-                    "audio_sample_end": sample_end,
-                    "audio_sample_quota": sample_end - sample_start,
-                }
+                _slot(
+                    clip_id=clip.clip_id,
+                    clip_ordinal=ordinal,
+                    source_id=clip.source_id,
+                    source_start_ticks=segment.main_start_ticks,
+                    source_end_ticks=segment.main_end_ticks,
+                    classification=segment.classification,
+                    auxiliary=auxiliary,
+                    placeholder=None,
+                    output_start_ticks=segment.timeline_start_ticks,
+                    output_end_ticks=segment.timeline_end_ticks,
+                    slot_index=len(slots),
+                    frame_rate_numerator=frame_rate_numerator,
+                    frame_rate_denominator=frame_rate_denominator,
+                    sample_rate=sample_rate,
+                )
             )
         output_cursor += clip.duration_ticks
     if not slots or cast(int, slots[-1]["output_end_ticks"]) != output_cursor:
@@ -958,6 +1006,61 @@ def _project_camera_slots(
             "camera slot plan does not cover the Decision output",
         )
     return slots
+
+
+def _slot(
+    *,
+    clip_id: str,
+    clip_ordinal: int,
+    source_id: str,
+    source_start_ticks: int,
+    source_end_ticks: int,
+    classification: str,
+    auxiliary: dict[str, object] | None,
+    placeholder: dict[str, object] | None,
+    output_start_ticks: int,
+    output_end_ticks: int,
+    slot_index: int,
+    frame_rate_numerator: int,
+    frame_rate_denominator: int,
+    sample_rate: int,
+) -> dict[str, object]:
+    frame_start = frame_boundary(
+        output_start_ticks,
+        frame_rate_numerator,
+        frame_rate_denominator,
+    )
+    frame_end = frame_boundary(
+        output_end_ticks,
+        frame_rate_numerator,
+        frame_rate_denominator,
+    )
+    sample_start = sample_boundary(output_start_ticks, sample_rate)
+    sample_end = sample_boundary(output_end_ticks, sample_rate)
+    slot: dict[str, object] = {
+        "slot_id": f"slot_{slot_index:06d}",
+        "decision_clip_ref": {
+            "clip_id": clip_id,
+            "clip_ordinal": clip_ordinal,
+            "source_id": source_id,
+            "source_start_ticks": source_start_ticks,
+            "source_end_ticks": source_end_ticks,
+        },
+        "classification": classification,
+        "auxiliary_ref": auxiliary,
+        "output_start_ticks": output_start_ticks,
+        "output_end_ticks": output_end_ticks,
+        "video_frame_start": frame_start,
+        "video_frame_end": frame_end,
+        "video_frame_quota": frame_end - frame_start,
+        "audio_sample_start": sample_start,
+        "audio_sample_end": sample_end,
+        "audio_sample_quota": sample_end - sample_start,
+    }
+    if placeholder is not None:
+        # Keep pre-feature slot bases byte-identical by omitting the default.
+        slot["placeholder_ref"] = placeholder
+    return slot
 
 
 def _assert_selected_sources_current(root: Path, sources: dict[str, SourceAsset], camera: AlignmentCamera, slots: list[dict[str, object]]) -> None:
@@ -973,6 +1076,47 @@ def _assert_selected_sources_current(root: Path, sources: dict[str, SourceAsset]
     del camera
 
 
+def _ensure_placeholder_sources(
+    root: Path,
+    project: Project,
+    clips: tuple[EditClipLike, ...],
+) -> dict[str, SourceAsset]:
+    """Ensure and fingerprint-verify every managed placeholder media in a Decision."""
+    from roughcut.domain.render import OutputSettings
+
+    output_settings = OutputSettings.from_dict(project.settings)
+    required_ticks: dict[str, int] = {}
+    frames: dict[str, int] = {}
+    for clip in clips:
+        if not isinstance(clip, NarrationPlaceholderClip):
+            continue
+        required_ticks[clip.media_id] = max(
+            required_ticks.get(clip.media_id, 0), clip.duration_ticks
+        )
+        frames[clip.media_id] = clip.media_frames
+    result: dict[str, SourceAsset] = {}
+    for media_id, frame_count in frames.items():
+        try:
+            media = ensure_narration_placeholder_media(
+                root,
+                output_settings=output_settings,
+                video_frames=frame_count,
+                required_duration_ticks=required_ticks[media_id],
+            )
+        except NarrationPlaceholderMediaError as error:
+            raise ParallelRenderError(
+                "parallel_render_source_stale",
+                "narration placeholder media is missing or changed",
+            ) from error
+        if media.media_id != media_id:
+            raise ParallelRenderError(
+                "parallel_render_source_stale",
+                "narration placeholder media identity changed",
+            )
+        result[media_id] = placeholder_source_asset(media)
+    return result
+
+
 def _mapped_source_ids(cameras: list[dict[str, object]]) -> tuple[str, ...]:
     result: list[str] = []
     for camera in cameras:
@@ -983,6 +1127,20 @@ def _mapped_source_ids(cameras: list[dict[str, object]]) -> tuple[str, ...]:
                 source_id = cast(str, aux["source_id"])
                 if source_id not in result:
                     result.append(source_id)
+    return tuple(result)
+
+
+def _input_source_ids(cameras: list[dict[str, object]]) -> tuple[str, ...]:
+    result = list(_mapped_source_ids(cameras))
+    for camera in cameras:
+        for slot in cast(list[dict[str, object]], camera["slots"]):
+            if slot["classification"] != "narration_placeholder":
+                continue
+            ref = slot["placeholder_ref"]
+            assert isinstance(ref, dict)
+            media_id = cast(str, ref["media_id"])
+            if media_id not in result:
+                result.append(media_id)
     return tuple(result)
 
 

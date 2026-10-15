@@ -419,6 +419,35 @@ def verify_parallel_camera(
     )
 
 
+@dataclass(frozen=True)
+class _SlotInput:
+    source_id: str
+    start_ticks: int
+    end_ticks: int
+
+
+def _slot_input(slot: dict[str, object]) -> _SlotInput | None:
+    """Return the source reference for an input slot, or None for gap slots."""
+    assert isinstance(slot["classification"], str)
+    if slot["classification"] == "mapped":
+        auxiliary = slot["auxiliary_ref"]
+        assert isinstance(auxiliary, dict)
+        return _SlotInput(
+            str(auxiliary["source_id"]),
+            cast(int, auxiliary["source_start_ticks"]),
+            cast(int, auxiliary["source_end_ticks"]),
+        )
+    if slot["classification"] == "narration_placeholder":
+        placeholder = slot["placeholder_ref"]
+        assert isinstance(placeholder, dict)
+        return _SlotInput(
+            str(placeholder["media_id"]),
+            cast(int, placeholder["source_start_ticks"]),
+            cast(int, placeholder["source_end_ticks"]),
+        )
+    return None
+
+
 def _build_command(
     slots: list[dict[str, object]],
     *,
@@ -434,14 +463,12 @@ def _build_command(
     command = [ffmpeg.resolved_path, "-hide_banner", "-loglevel", "error", "-nostdin"]
     input_index = 0
     for slot in slots:
-        if slot["classification"] != "mapped":
+        prepared = _slot_input(slot)
+        if prepared is None:
             continue
-        auxiliary = slot["auxiliary_ref"]
-        assert isinstance(auxiliary, dict)
-        source_id = str(auxiliary["source_id"])
-        source = sources[source_id]
-        source_path = source_paths[source_id]
-        command.extend(["-ss", ticks_to_seconds_text(int(auxiliary["source_start_ticks"])), "-t", ticks_to_seconds_text(int(auxiliary["source_end_ticks"]) - int(auxiliary["source_start_ticks"]))])
+        source = sources[prepared.source_id]
+        source_path = source_paths[prepared.source_id]
+        command.extend(["-ss", ticks_to_seconds_text(prepared.start_ticks), "-t", ticks_to_seconds_text(prepared.end_ticks - prepared.start_ticks)])
         if source.probe.video_codec is not None:
             command.append("-noautorotate")
         command.extend(["-i", str(source_path)])
@@ -469,10 +496,9 @@ def _build_filter_script(
     for slot_index, slot in enumerate(slots):
         frames = cast(int, slot["video_frame_quota"])
         samples = cast(int, slot["audio_sample_quota"])
-        if slot["classification"] == "mapped":
-            auxiliary = slot["auxiliary_ref"]
-            assert isinstance(auxiliary, dict)
-            source_id = str(auxiliary["source_id"])
+        prepared = _slot_input(slot)
+        if prepared is not None:
+            source_id = prepared.source_id
             source = sources[source_id]
             if frames > 0 and source.probe.video_codec is not None:
                 rotation_filters = _rotation_filters(source.probe.rotation_degrees)

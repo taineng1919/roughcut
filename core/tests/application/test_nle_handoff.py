@@ -1006,6 +1006,12 @@ def _assert_unpaired_main_gap_export(
         "src_a",
         "src_n",
     ]
+    # Projects without unrecorded narration keep the pre-feature request
+    # projection (and therefore request hash) byte-identical.
+    assert "placeholder_media" not in prepared.request
+    from roughcut.domain.nle_handoff import nle_export_request_hash
+
+    assert nle_export_request_hash(dict(prepared.request)) == prepared.request_hash
     aux = prepared.timeline.auxiliary_tracks[0]
     assert [
         (clip.source_id, clip.timeline_in_ticks, clip.timeline_out_ticks)
@@ -1026,6 +1032,7 @@ def _assert_unpaired_main_gap_export(
         alignment_artifact_id=alignment_id,
     )
     assert outcome.receipt.alignment_artifact_id == alignment_id
+    assert outcome.receipt.placeholder_media == ()
     assert outcome.timeline_summary is not None
     assert outcome.timeline_summary["tracks"][1]["gap_count"] == 1
 

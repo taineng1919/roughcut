@@ -141,6 +141,43 @@ class NleExportStore:
             )
         if details.st_size != receipt.output_bytes or self._sha256(path) != receipt.output_sha256:
             raise _error("nle_export_integrity_error", "receipt output hash or size changed")
+        self._validate_placeholder_companion(receipt)
+
+    def _validate_placeholder_companion(self, receipt: NleExportReceipt) -> None:
+        if not receipt.placeholder_media:
+            return
+        from roughcut.domain.nle_handoff import placeholder_companion_directory
+        from roughcut.domain.workflow import canonical_sha256_v1
+
+        companion = placeholder_companion_directory(receipt.destination)
+        for binding in receipt.placeholder_media:
+            path = companion / f"{binding.media_id}.mp4"
+            if binding.locator_hash != canonical_sha256_v1({"locator": str(path)}):
+                raise _error(
+                    "nle_export_integrity_error",
+                    "receipt placeholder media locator changed",
+                )
+            try:
+                details = os.lstat(path)
+            except OSError as error:
+                raise _error(
+                    "nle_export_integrity_error",
+                    "receipt placeholder media is missing",
+                ) from error
+            if (
+                stat.S_ISLNK(details.st_mode)
+                or not stat.S_ISREG(details.st_mode)
+                or details.st_nlink != 1
+            ):
+                raise _error(
+                    "nle_export_integrity_error",
+                    "receipt placeholder media is not a single-link regular file",
+                )
+            if self._sha256(path) != binding.content_sha256:
+                raise _error(
+                    "nle_export_integrity_error",
+                    "receipt placeholder media content changed",
+                )
 
     def _receipt_path(self, action_id: str) -> Path:
         self._validate_action_id(action_id)

@@ -318,3 +318,26 @@ def test_schedule_rejects_a_nonempty_clip_that_quantizes_to_no_output_frame() ->
 
     with pytest.raises(ProjectError, match="empty output frame range"):
         derive_render_schedule(plan)
+
+
+def test_pre_feature_render_plans_roundtrip_without_generated_sources_key() -> None:
+    """Plans written before generated sources existed must not drift.
+
+    ``generated_sources`` is a place-only addition; parsing an old plan dict and
+    re-serializing it must reproduce the original mapping exactly so the stored
+    plan and its hashes stay valid.
+    """
+
+    for plan in (_plan(), _multi_plan()):
+        legacy = {
+            key: value
+            for key, value in plan.to_dict().items()
+            if key != "generated_sources"
+        }
+        assert "generated_sources" not in legacy
+        parsed = parse_render_plan(legacy)
+        assert parsed.to_dict() == legacy
+        assert parsed.generated_sources == ()
+        assert plan.to_dict() == legacy
+        direct = type(plan).from_dict(legacy)
+        assert direct.to_dict() == legacy

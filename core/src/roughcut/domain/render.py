@@ -145,6 +145,7 @@ class RenderPlan:
     output_relative_path: str
     manifest_relative_path: str
     schema_version: int = 1
+    generated_sources: tuple[SourceAsset, ...] = ()
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -164,14 +165,20 @@ class RenderPlan:
             raise ProjectError("unsupported render plan schema version")
         if not self.clips:
             raise ProjectError("render plan requires at least one clip")
+        sources_by_id = {self.source.source_id: self.source}
+        for source in self.generated_sources:
+            if source.source_id in sources_by_id:
+                raise ProjectError("render plan generated source IDs must be unique")
+            sources_by_id[source.source_id] = source
         seen: set[str] = set()
         for clip in self.clips:
             if clip.clip_id in seen:
                 raise ProjectError("render clip IDs must be unique")
             seen.add(clip.clip_id)
-            if clip.source_id != self.source.source_id:
+            resolved = sources_by_id.get(clip.source_id)
+            if resolved is None:
                 raise ProjectError("render plan may reference only its frozen source")
-            if clip.source_out_ticks > self.source.probe.duration_ticks:
+            if clip.source_out_ticks > resolved.probe.duration_ticks:
                 raise ProjectError("render clip is outside source bounds")
         for relative_path in (
             self.plan_relative_path,
@@ -196,7 +203,7 @@ class RenderPlan:
         return sum(clip.duration_ticks for clip in self.clips)
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "schema_version": self.schema_version,
             "render_id": self.render_id,
             "project_id": self.project_id,
@@ -212,6 +219,13 @@ class RenderPlan:
             "output_relative_path": self.output_relative_path,
             "manifest_relative_path": self.manifest_relative_path,
         }
+        if self.generated_sources:
+            # Omitting the empty default keeps pre-feature render plans
+            # byte- and hash-identical.
+            payload["generated_sources"] = [
+                source.to_dict() for source in self.generated_sources
+            ]
+        return payload
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> RenderPlan:
@@ -237,6 +251,7 @@ class RenderPlan:
             project_revision=_integer(data, "project_revision"),
             edit_version_id=_string(data, "edit_version_id"),
             source=SourceAsset.from_dict(source),
+            generated_sources=_generated_sources(data.get("generated_sources", [])),
             clips=tuple(
                 RenderClip.from_dict(clip) if isinstance(clip, dict) else _invalid_clip()
                 for clip in clips
@@ -269,6 +284,7 @@ class MultiSourceRenderPlan:
     output_relative_path: str
     manifest_relative_path: str
     schema_version: int = 2
+    generated_sources: tuple[SourceAsset, ...] = ()
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -297,17 +313,21 @@ class MultiSourceRenderPlan:
         if not self.clips:
             raise ProjectError("render plan requires at least one clip")
         sources_by_id = {source.source_id: source for source in self.sources}
+        for source in self.generated_sources:
+            if source.source_id in sources_by_id:
+                raise ProjectError("render plan generated source IDs must be unique")
+            sources_by_id[source.source_id] = source
         seen_clips: set[str] = set()
         for clip in self.clips:
             if clip.clip_id in seen_clips:
                 raise ProjectError("render clip IDs must be unique")
             seen_clips.add(clip.clip_id)
-            source = sources_by_id.get(clip.source_id)
-            if source is None:
+            resolved = sources_by_id.get(clip.source_id)
+            if resolved is None:
                 raise ProjectError("render clip is outside its source bindings")
-            if source.probe.video_codec is None and source.probe.audio_codec is None:
+            if resolved.probe.video_codec is None and resolved.probe.audio_codec is None:
                 raise ProjectError("render source has no usable media stream")
-            if clip.source_out_ticks > source.probe.duration_ticks:
+            if clip.source_out_ticks > resolved.probe.duration_ticks:
                 raise ProjectError("render clip is outside source bounds")
         for relative_path in (
             self.plan_relative_path,
@@ -332,7 +352,7 @@ class MultiSourceRenderPlan:
         return sum(clip.duration_ticks for clip in self.clips)
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "schema_version": self.schema_version,
             "render_id": self.render_id,
             "project_id": self.project_id,
@@ -349,6 +369,13 @@ class MultiSourceRenderPlan:
             "output_relative_path": self.output_relative_path,
             "manifest_relative_path": self.manifest_relative_path,
         }
+        if self.generated_sources:
+            # Omitting the empty default keeps pre-feature render plans
+            # byte- and hash-identical.
+            payload["generated_sources"] = [
+                source.to_dict() for source in self.generated_sources
+            ]
+        return payload
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> MultiSourceRenderPlan:
@@ -380,6 +407,7 @@ class MultiSourceRenderPlan:
             edit_version_id=_string(data, "edit_version_id"),
             source_bindings=parse_source_bindings(data.get("source_bindings")),
             sources=tuple(parsed_sources),
+            generated_sources=_generated_sources(data.get("generated_sources", [])),
             clips=tuple(
                 RenderClip.from_dict(clip) if isinstance(clip, dict) else _invalid_clip()
                 for clip in clips
@@ -579,8 +607,8 @@ def derive_render_schedule(plan: RenderPlanLike) -> RenderSchedule:
 
 def render_sources(plan: RenderPlanLike) -> tuple[SourceAsset, ...]:
     if isinstance(plan, RenderPlan):
-        return (plan.source,)
-    return plan.sources
+        return (plan.source, *plan.generated_sources)
+    return (*plan.sources, *plan.generated_sources)
 
 
 def source_for_render_clip(plan: RenderPlanLike, clip: RenderClip) -> SourceAsset:
@@ -609,6 +637,17 @@ def _validate_relative_path(value: str) -> None:
     path = PurePosixPath(value)
     if not value or path.is_absolute() or ".." in path.parts or path.as_posix() != value:
         raise ProjectError("render artifact path must be project-relative")
+
+
+def _generated_sources(value: object) -> tuple[SourceAsset, ...]:
+    if not isinstance(value, list):
+        raise ProjectError("render plan generated sources must be an array")
+    parsed: list[SourceAsset] = []
+    for source in value:
+        if not isinstance(source, dict):
+            raise ProjectError("render plan generated source must be an object")
+        parsed.append(SourceAsset.from_dict(source))
+    return tuple(parsed)
 
 
 def _invalid_clip() -> RenderClip:

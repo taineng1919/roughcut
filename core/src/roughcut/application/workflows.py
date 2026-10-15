@@ -52,7 +52,6 @@ from roughcut.domain.brief import EditBrief
 from roughcut.domain.content_draft import (
     ContentDraft,
     ContentDraftBlock,
-    NarrationBlock,
     project_schema1_to_schema2,
 )
 from roughcut.domain.edit import (
@@ -60,6 +59,7 @@ from roughcut.domain.edit import (
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
 )
 from roughcut.domain.errors import WorkflowError
 from roughcut.domain.project import Project, SourceAsset
@@ -1061,33 +1061,60 @@ def _export_snapshot(
 ) -> dict[str, object]:
     proposal = decision.proposal_snapshot
     used_source_ids: list[str] = []
+    clip_entries: list[dict[str, object]] = []
+    fingerprint_entries: list[dict[str, object]] = []
     for clip in proposal.clips:
-        if clip.source_id not in used_source_ids:
-            used_source_ids.append(clip.source_id)
-    total_duration = sum(clip.duration_ticks for clip in proposal.clips)
-    snapshot_basis = {
-        "active_decision_ref": _artifact_ref("decision", decision).to_dict(),
-        "ordered_clips": [
-            {
+        if isinstance(clip, NarrationPlaceholderClip):
+            clip_entry: dict[str, object] = {
+                "clip_id": clip.clip_id,
+                "source_id": clip.media_id,
+                "source_in_ticks": clip.source_in_ticks,
+                "source_out_ticks": clip.source_out_ticks,
+                "kind": clip.kind,
+                "narration_block_id": clip.narration_block_id,
+                "media_version": clip.media_version,
+            }
+            if clip.media_id not in used_source_ids:
+                used_source_ids.append(clip.media_id)
+                fingerprint_entries.append(
+                    {
+                        "source_id": clip.media_id,
+                        "fingerprint_hash": canonical_sha256_v1(
+                            {
+                                "generated_media": {
+                                    "media_id": clip.media_id,
+                                    "media_version": clip.media_version,
+                                }
+                            }
+                        ),
+                    }
+                )
+        else:
+            clip_entry = {
                 "clip_id": clip.clip_id,
                 "source_id": clip.source_id,
                 "source_in_ticks": clip.source_in_ticks,
                 "source_out_ticks": clip.source_out_ticks,
             }
-            for clip in proposal.clips
-        ],
+            if clip.source_id not in used_source_ids:
+                used_source_ids.append(clip.source_id)
+                fingerprint_entries.append(
+                    {
+                        "source_id": clip.source_id,
+                        "fingerprint_hash": canonical_sha256_v1(
+                            _source_by_id(project, clip.source_id).fingerprint.to_dict()
+                        ),
+                    }
+                )
+        clip_entries.append(clip_entry)
+    total_duration = sum(clip.duration_ticks for clip in proposal.clips)
+    snapshot_basis = {
+        "active_decision_ref": _artifact_ref("decision", decision).to_dict(),
+        "ordered_clips": clip_entries,
         "clip_count": len(proposal.clips),
         "total_duration_ticks": total_duration,
         "output_settings": _output_settings(project),
-        "ordered_source_fingerprint_hashes": [
-            {
-                "source_id": source_id,
-                "fingerprint_hash": canonical_sha256_v1(
-                    _source_by_id(project, source_id).fingerprint.to_dict()
-                ),
-            }
-            for source_id in used_source_ids
-        ],
+        "ordered_source_fingerprint_hashes": fingerprint_entries,
     }
     render_id = f"render_{canonical_sha256_v1(snapshot_basis)[:32]}"
     return {
@@ -3175,14 +3202,6 @@ def prepare_confirmed_draft_and_proposal(
     if candidate.confirmed_by_user:
         raise _facade_error(
             "workflow_subject_mismatch", "approve_draft subject must be unconfirmed"
-        )
-    if any(
-        isinstance(block, NarrationBlock) and block.status != "recorded"
-        for block in candidate.blocks
-    ):
-        raise _facade_error(
-            "workflow_not_ready",
-            "approve_draft requires recorded refs for every narration block",
         )
     now = _timestamp()
     project_after, confirmed = prepare_confirmed_content_draft(

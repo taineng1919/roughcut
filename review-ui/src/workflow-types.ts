@@ -199,6 +199,14 @@ export interface DraftEditorSourceRun {
   source_end_offset: number;
   text: string;
   refs: ContentDraftRef[];
+  byline_key: string | null;
+  byline_text: string | null;
+}
+
+export interface DraftEditorByline {
+  start_offset: number;
+  end_offset: number;
+  text: string;
 }
 
 export interface DraftEditorParagraph {
@@ -213,8 +221,11 @@ export interface DraftEditorParagraph {
   text: string;
   section_title: string | null;
   narration_status: "draft" | "approved" | "recorded" | null;
+  narration_duration_seconds?: number | null;
+  narration_estimated_seconds?: number;
   block_id?: string;
   source_runs: DraftEditorSourceRun[];
+  bylines: DraftEditorByline[];
   exact_refs: ContentDraftRef[];
 }
 

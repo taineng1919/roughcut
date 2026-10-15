@@ -20,15 +20,31 @@ from roughcut.adapters.workflow_candidates import (
 )
 from roughcut.adapters.workflow_store import WorkflowStore
 from roughcut.application.multicam_continuation import multicam_alignment_status
+from roughcut.application.multicam_parallel import _read_adopted_decision
+from roughcut.application.narration_media import (
+    NarrationPlaceholderMediaError,
+    ensure_narration_placeholder_media,
+    placeholder_media_path,
+)
 from roughcut.application.renders import _resolve_source_path
 from roughcut.application.sources import fingerprint_file
-from roughcut.application.multicam_parallel import _read_adopted_decision
 from roughcut.domain.alignment import (
     AlignmentSourceFingerprint,
     MulticamAlignmentArtifact,
     project_alignment_intervals,
 )
-from roughcut.domain.edit import EditClip, EditDecision, MultiSourceEditDecision
+from roughcut.domain.edit import (
+    EditClip,
+    EditClipLike,
+    EditDecision,
+    MultiSourceEditDecision,
+    NarrationPlaceholderClip,
+)
+from roughcut.domain.errors import ProjectError
+from roughcut.domain.narration_placeholder import (
+    NarrationPlaceholderMedia,
+    placeholder_source_asset,
+)
 from roughcut.domain.nle_handoff import (
     NLE_EXPORT_PROFILES,
     NLE_EXPORT_SCHEMA_VERSION,
@@ -39,12 +55,14 @@ from roughcut.domain.nle_handoff import (
     NleHandoffGap,
     NleHandoffTimeline,
     NleHandoffTrack,
+    NlePlaceholderMediaBinding,
     NleSourceSnapshot,
     nle_export_request_hash,
+    placeholder_companion_directory,
     source_snapshot_hash,
 )
-from roughcut.domain.errors import ProjectError
 from roughcut.domain.project import Project, SourceAsset
+from roughcut.domain.render import OutputSettings
 from roughcut.domain.time import RationalRate
 from roughcut.domain.workflow import (
     ArtifactRef,
@@ -54,6 +72,16 @@ from roughcut.domain.workflow import (
 )
 
 DecisionLike: TypeAlias = EditDecision | MultiSourceEditDecision
+
+
+@dataclass(frozen=True)
+class NlePlaceholderDelivery:
+    """One managed placeholder media and its delivery-side companion file."""
+
+    media: NarrationPlaceholderMedia
+    source: SourceAsset
+    source_path: Path
+    delivered_path: Path
 
 
 @dataclass(frozen=True)
@@ -72,6 +100,8 @@ class NlePreparedExport:
     exporter_profile: str
     request: dict[str, object]
     request_hash: str
+    placeholder_deliveries: tuple[NlePlaceholderDelivery, ...] = ()
+    placeholder_bindings: tuple[NlePlaceholderMediaBinding, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -107,6 +137,7 @@ def project_handoff_timeline(
     decision: DecisionLike,
     source_paths: dict[str, Path],
     alignment: MulticamAlignmentArtifact | None = None,
+    placeholder_deliveries: tuple[NlePlaceholderDelivery, ...] = (),
 ) -> NleHandoffTimeline:
     """Project one adopted Decision and optional exact Alignment into one timeline."""
 
@@ -120,7 +151,7 @@ def project_handoff_timeline(
     if not isinstance(rate_data, dict):
         raise _error("nle_export_integrity_error", "the Project frame rate is invalid")
     try:
-        from roughcut.domain.time import RationalRate, TICKS_PER_SECOND
+        from roughcut.domain.time import TICKS_PER_SECOND, RationalRate
 
         frame_rate = RationalRate(
             _required_int(rate_data.get("numerator"), "frame-rate numerator"),
@@ -138,12 +169,44 @@ def project_handoff_timeline(
         raise _error("nle_export_integrity_error", "the Project timebase is not canonical")
 
     source_by_id = {source.source_id: source for source in project.sources}
+    deliveries_by_id = {
+        delivery.media.media_id: delivery for delivery in placeholder_deliveries
+    }
     clips = tuple(decision.proposal_snapshot.clips)
     if not clips:
         raise _error("nle_export_decision_stale", "the adopted Decision has no clips")
     main_items: list[NleHandoffClip] = []
     timeline_cursor = 0
     for clip in clips:
+        if isinstance(clip, NarrationPlaceholderClip):
+            delivery = deliveries_by_id.get(clip.media_id)
+            if delivery is None:
+                raise _error(
+                    "nle_export_source_stale",
+                    f"placeholder media {clip.media_id!r} is not prepared for delivery",
+                )
+            if clip.source_out_ticks > delivery.media.probe.duration_ticks:
+                raise _error(
+                    "nle_export_source_stale",
+                    f"placeholder clip {clip.clip_id!r} exceeds its media duration",
+                )
+            timeline_end = timeline_cursor + clip.duration_ticks
+            main_items.append(
+                _make_handoff_clip(
+                    clip_id=clip.clip_id,
+                    source=delivery.source,
+                    source_path=delivery.delivered_path,
+                    source_in=clip.source_in_ticks,
+                    source_out=clip.source_out_ticks,
+                    timeline_in=timeline_cursor,
+                    timeline_out=timeline_end,
+                    camera_id="main",
+                    track_id="main",
+                    av_link_id=_stable_id("link", clip.clip_id),
+                )
+            )
+            timeline_cursor = timeline_end
+            continue
         source = source_by_id.get(clip.source_id)
         if source is None or clip.source_id not in source_paths:
             raise _error(
@@ -190,6 +253,7 @@ def project_handoff_timeline(
                 source_by_id,
                 source_paths,
                 timeline_duration=timeline_cursor,
+                deliveries_by_id=deliveries_by_id,
             )
             tracks.append(
                 NleHandoffTrack(
@@ -296,7 +360,12 @@ def prepare_nle_export(
         alignment_artifact_id,
     )
     source_paths = _validate_current_sources(project, decision, run, alignment, store.project_path)
-    timeline = project_handoff_timeline(project, decision, source_paths, alignment)
+    deliveries, bindings = _prepare_placeholder_deliveries(
+        store.project_path, project, decision, destination_path
+    )
+    timeline = project_handoff_timeline(
+        project, decision, source_paths, alignment, deliveries
+    )
     snapshots = _source_snapshots(project, decision, run, alignment)
     request = _request_projection(
         project=project,
@@ -308,6 +377,7 @@ def prepare_nle_export(
         destination=destination_path,
         snapshots=snapshots,
         alignment=alignment,
+        placeholder_bindings=bindings,
     )
     return NlePreparedExport(
         project=project,
@@ -322,6 +392,8 @@ def prepare_nle_export(
         exporter_profile=NLE_EXPORT_PROFILES[route],
         request=request,
         request_hash=nle_export_request_hash(request),
+        placeholder_deliveries=deliveries,
+        placeholder_bindings=bindings,
     )
 
 
@@ -435,7 +507,12 @@ def _approve_nle_export_locked(
     temporary: Path | None = None
     staged_identity: tuple[int, int] | None = None
     published_receipt: NleExportReceipt | None = None
+    published_companion: list[_OwnedCompanionFile] = []
+    created_companion_directory: Path | None = None
     try:
+        published_companion, created_companion_directory = _publish_placeholder_companion(
+            prepared.placeholder_deliveries
+        )
         with tempfile.NamedTemporaryFile(
             mode="wb",
             dir=prepared.destination.parent,
@@ -485,6 +562,7 @@ def _approve_nle_export_locked(
             output_sha256=output_hash,
             output_bytes=len(payload),
             created_at=_timestamp(),
+            placeholder_media=prepared.placeholder_bindings,
         )
         published_receipt = receipt
         stored = receipt_store.write(receipt)
@@ -510,6 +588,10 @@ def _approve_nle_export_locked(
             )
         elif temporary is not None:
             _remove_temp(temporary)
+        _remove_owned_companion(
+            published_companion,
+            directory=created_companion_directory,
+        )
         raise
 
 
@@ -665,7 +747,11 @@ def _validate_current_sources(
     alignment: MulticamAlignmentArtifact | None,
     project_path: Path,
 ) -> dict[str, Path]:
-    required_ids = {clip.source_id for clip in decision.proposal_snapshot.clips}
+    required_ids = {
+        clip.source_id
+        for clip in decision.proposal_snapshot.clips
+        if not isinstance(clip, NarrationPlaceholderClip)
+    }
     if alignment is not None:
         required_ids.update(alignment.main_camera.ordered_source_ids)
         for camera in alignment.auxiliary_cameras:
@@ -674,7 +760,8 @@ def _validate_current_sources(
         if setup is None:
             raise _error("nle_export_alignment_not_deliverable", "multicam setup is missing")
         if any(
-            clip.source_id not in set(setup.main_camera.ordered_source_ids)
+            not isinstance(clip, NarrationPlaceholderClip)
+            and clip.source_id not in set(setup.main_camera.ordered_source_ids)
             for clip in decision.proposal_snapshot.clips
         ):
             raise _error(
@@ -756,7 +843,11 @@ def _source_snapshots(
     run: WorkflowRun,
     alignment: MulticamAlignmentArtifact | None,
 ) -> tuple[NleSourceSnapshot, ...]:
-    ids = {clip.source_id for clip in decision.proposal_snapshot.clips}
+    ids = {
+        clip.source_id
+        for clip in decision.proposal_snapshot.clips
+        if not isinstance(clip, NarrationPlaceholderClip)
+    }
     if alignment is not None:
         ids.update(alignment.main_camera.ordered_source_ids)
         for camera in alignment.auxiliary_cameras:
@@ -782,6 +873,73 @@ def _source_snapshots(
     return tuple(result)
 
 
+def _prepare_placeholder_deliveries(
+    project_path: Path,
+    project: Project,
+    decision: DecisionLike,
+    destination: Path,
+) -> tuple[tuple[NlePlaceholderDelivery, ...], tuple[NlePlaceholderMediaBinding, ...]]:
+    """Ensure managed placeholder media and bind its delivered companion identity."""
+    requested: dict[str, tuple[int, int]] = {}
+    for clip in decision.proposal_snapshot.clips:
+        if not isinstance(clip, NarrationPlaceholderClip):
+            continue
+        frames, required = requested.get(clip.media_id, (clip.media_frames, 0))
+        if frames != clip.media_frames:
+            raise _error(
+                "nle_export_integrity_error",
+                "placeholder media frames disagree inside one Decision",
+            )
+        requested[clip.media_id] = (frames, max(required, clip.duration_ticks))
+    if not requested:
+        return (), ()
+    try:
+        settings = OutputSettings.from_dict(project.settings)
+    except ProjectError as error:
+        raise _error("nle_export_integrity_error", "the Project settings are invalid") from error
+    companion = placeholder_companion_directory(destination)
+    deliveries: list[NlePlaceholderDelivery] = []
+    bindings: list[NlePlaceholderMediaBinding] = []
+    for media_id in sorted(requested):
+        frames, required = requested[media_id]
+        try:
+            media = ensure_narration_placeholder_media(
+                project_path,
+                output_settings=settings,
+                video_frames=frames,
+                required_duration_ticks=required,
+            )
+        except NarrationPlaceholderMediaError as error:
+            raise _error(
+                "nle_export_source_stale",
+                "narration placeholder media is missing or changed",
+            ) from error
+        if media.media_id != media_id:
+            raise _error(
+                "nle_export_source_stale",
+                "narration placeholder media identity changed",
+            )
+        delivered = companion / f"{media_id}.mp4"
+        bindings.append(
+            NlePlaceholderMediaBinding(
+                media_id=media.media_id,
+                media_version=media.media_version,
+                content_sha256=media.content_sha256,
+                locator_hash=canonical_sha256_v1({"locator": str(delivered)}),
+                duration_ticks=media.probe.duration_ticks,
+            )
+        )
+        deliveries.append(
+            NlePlaceholderDelivery(
+                media=media,
+                source=placeholder_source_asset(media),
+                source_path=placeholder_media_path(project_path, media.media_id),
+                delivered_path=delivered,
+            )
+        )
+    return tuple(deliveries), tuple(bindings)
+
+
 def _request_projection(
     *,
     project: Project,
@@ -793,8 +951,9 @@ def _request_projection(
     destination: Path,
     snapshots: tuple[NleSourceSnapshot, ...],
     alignment: MulticamAlignmentArtifact | None,
+    placeholder_bindings: tuple[NlePlaceholderMediaBinding, ...],
 ) -> dict[str, object]:
-    return {
+    request: dict[str, object] = {
         "schema_version": NLE_EXPORT_SCHEMA_VERSION,
         "action": "approve_nle_export",
         "action_id": action_id,
@@ -820,6 +979,13 @@ def _request_projection(
             }
         ),
     }
+    if placeholder_bindings:
+        # Placing-only addition when placeholder media really exists keeps the
+        # request hash of projects without unrecorded narration unchanged.
+        request["placeholder_media"] = [
+            binding.to_dict() for binding in placeholder_bindings
+        ]
+    return request
 
 
 def _validate_existing_receipt_request(
@@ -907,11 +1073,12 @@ def _project_auxiliary_track(
     track_id: str,
     source_ids: tuple[str, ...],
     alignment: MulticamAlignmentArtifact,
-    decision_clips: tuple[EditClip, ...],
+    decision_clips: tuple[EditClipLike, ...],
     sources: dict[str, SourceAsset],
     source_paths: dict[str, Path],
     *,
     timeline_duration: int,
+    deliveries_by_id: dict[str, NlePlaceholderDelivery] | None = None,
 ) -> tuple[list[NleHandoffClip | NleHandoffGap], tuple[str, ...]]:
     items: list[NleHandoffClip | NleHandoffGap] = []
     gap_ranges: list[tuple[int, int]] = []
@@ -919,6 +1086,29 @@ def _project_auxiliary_track(
     source_id_set = set(source_ids)
     alignment_main_source_ids = set(alignment.main_camera.ordered_source_ids)
     for clip in decision_clips:
+        if isinstance(clip, NarrationPlaceholderClip):
+            delivery = (deliveries_by_id or {}).get(clip.media_id)
+            if delivery is None:
+                raise _error(
+                    "nle_export_source_stale",
+                    f"placeholder media {clip.media_id!r} is not prepared for delivery",
+                )
+            items.append(
+                _make_handoff_clip(
+                    clip_id=_stable_id("auxclip", camera_id, clip.clip_id, "placeholder"),
+                    source=delivery.source,
+                    source_path=delivery.delivered_path,
+                    source_in=clip.source_in_ticks,
+                    source_out=clip.source_out_ticks,
+                    timeline_in=timeline_cursor,
+                    timeline_out=timeline_cursor + clip.duration_ticks,
+                    camera_id=camera_id,
+                    track_id=track_id,
+                    av_link_id=_stable_id("link", clip.clip_id),
+                )
+            )
+            timeline_cursor += clip.duration_ticks
+            continue
         if clip.source_id not in alignment_main_source_ids:
             # The exact Alignment only covers its own declared main Sources. A
             # Decision clip from an unpaired main Source has no mapping at all,
@@ -1259,6 +1449,211 @@ def _sync_directory(path: Path) -> None:
     finally:
         if descriptor is not None:
             os.close(descriptor)
+
+
+@dataclass(frozen=True)
+class _OwnedCompanionFile:
+    """Identity of one companion file this action published itself."""
+
+    path: Path
+    device: int
+    inode: int
+    content_sha256: str
+
+
+def _publish_placeholder_companion(
+    deliveries: tuple[NlePlaceholderDelivery, ...],
+) -> tuple[list[_OwnedCompanionFile], Path | None]:
+    """Copy managed placeholder media into the delivery companion directory.
+
+    Existing companion files are reused only when they are single-link regular
+    files whose content hash matches the frozen media identity; every other
+    conflict (symlink, hardlink, different bytes) fails closed. New files are
+    staged under unique names and published with an atomic no-replace move, so
+    concurrent exports can never overwrite each other. Returns the files this
+    call created (never pre-existing ones) and the directory it created.
+    """
+    if not deliveries:
+        return [], None
+    companion = deliveries[0].delivered_path.parent
+    created_directory: Path | None = None
+    owned: list[_OwnedCompanionFile] = []
+    try:
+        if os.path.lexists(companion):
+            details = os.lstat(companion)
+            if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
+                raise _error(
+                    "nle_export_destination_conflict",
+                    "placeholder companion path is not a plain directory",
+                )
+        else:
+            companion.mkdir(parents=True)
+            created_directory = companion
+            _sync_directory(companion.parent)
+        for delivery in sorted(deliveries, key=lambda item: item.media.media_id):
+            target = delivery.delivered_path
+            if os.path.lexists(target):
+                _validate_existing_companion(target, delivery.media.content_sha256)
+                continue
+            published = _publish_companion_file(delivery, companion=companion)
+            if published is not None:
+                owned.append(published)
+    except Exception:
+        _remove_owned_companion(owned, directory=created_directory)
+        raise
+    return owned, created_directory
+
+
+def _publish_companion_file(
+    delivery: NlePlaceholderDelivery,
+    *,
+    companion: Path,
+) -> _OwnedCompanionFile | None:
+    target = delivery.delivered_path
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=companion,
+        prefix=f".{target.name}.",
+        suffix=".staging",
+    )
+    os.close(descriptor)
+    staging = Path(temporary_name)
+    temporary: Path | None = staging
+    try:
+        try:
+            with staging.open("wb") as stream, delivery.source_path.open("rb") as source:
+                for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                    stream.write(chunk)
+                stream.flush()
+                os.fsync(stream.fileno())
+            if _file_sha256(staging) != delivery.media.content_sha256:
+                raise _error(
+                    "nle_export_integrity_error",
+                    "staged companion media readback changed",
+                )
+            try:
+                publish_workflow_candidate(
+                    target,
+                    delivery.media.media_id,
+                    StagedWorkflowFile(staging),
+                )
+                temporary = None
+            except FileExistsError:
+                # A concurrent export staged the same companion media first;
+                # reuse it only when the bytes match exactly.
+                _validate_existing_companion(target, delivery.media.content_sha256)
+                # Published by a concurrent writer: valid to reuse, never
+                # owned by this action and therefore never cleaned up here.
+                return None
+            details = os.lstat(target)
+            if (
+                stat.S_ISLNK(details.st_mode)
+                or not stat.S_ISREG(details.st_mode)
+                or details.st_nlink != 1
+                or _file_sha256(target) != delivery.media.content_sha256
+            ):
+                raise _error(
+                    "nle_export_integrity_error",
+                    "published companion media readback changed",
+                )
+            return _OwnedCompanionFile(
+                target,
+                details.st_dev,
+                details.st_ino,
+                delivery.media.content_sha256,
+            )
+        except OSError as error:
+            raise _error(
+                "nle_export_write_failed",
+                "companion media could not be published",
+            ) from error
+    finally:
+        if temporary is not None:
+            _remove_companion_temp(temporary)
+
+
+def _validate_existing_companion(path: Path, content_sha256: str) -> None:
+    try:
+        details = os.lstat(path)
+    except OSError as error:
+        raise _error(
+            "nle_export_destination_conflict",
+            "existing companion media is unreadable",
+        ) from error
+    if (
+        stat.S_ISLNK(details.st_mode)
+        or not stat.S_ISREG(details.st_mode)
+        or details.st_nlink != 1
+    ):
+        raise _error(
+            "nle_export_destination_conflict",
+            "existing companion media is not a single-link regular file",
+        )
+    try:
+        matches = _file_sha256(path) == content_sha256
+    except OSError as error:
+        raise _error(
+            "nle_export_destination_conflict",
+            "existing companion media is unreadable",
+        ) from error
+    if not matches:
+        raise _error(
+            "nle_export_destination_conflict",
+            "existing companion media does not match the frozen placeholder identity",
+        )
+
+
+def _remove_companion_temp(path: Path) -> None:
+    try:
+        if os.path.lexists(path):
+            details = os.lstat(path)
+            if stat.S_ISREG(details.st_mode) and not stat.S_ISLNK(details.st_mode):
+                path.unlink()
+    except OSError:
+        # The caller already reports the primary error; a leftover
+        # operation-owned temp file uses a dot-prefixed name that is never a
+        # delivered locator.
+        pass
+
+
+def _remove_owned_companion(
+    owned: list[_OwnedCompanionFile], *, directory: Path | None
+) -> None:
+    """Remove only companion files still owned by the failed action.
+
+    Ownership means the exact published inode with the exact published bytes.
+    A replaced file (different inode or content) is preserved and reported so a
+    changed delivery is never silently deleted.
+    """
+
+    for entry in owned:
+        try:
+            details = os.lstat(entry.path)
+        except FileNotFoundError:
+            continue
+        except OSError:
+            continue
+        if (
+            stat.S_ISLNK(details.st_mode)
+            or not stat.S_ISREG(details.st_mode)
+            or details.st_nlink != 1
+            or (details.st_dev, details.st_ino) != (entry.device, entry.inode)
+        ):
+            continue
+        try:
+            if _file_sha256(entry.path) != entry.content_sha256:
+                continue
+        except OSError:
+            continue
+        try:
+            entry.path.unlink()
+        except OSError:
+            continue
+    if directory is not None:
+        try:
+            if directory.is_dir() and not any(directory.iterdir()):
+                directory.rmdir()
+        except OSError:
+            pass
 
 
 def _timestamp() -> str:

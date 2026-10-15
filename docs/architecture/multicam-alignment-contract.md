@@ -773,10 +773,12 @@ audio_sample_quota/estimated_temporary_disk_bytes/manifest/cameras`。`summary.s
 
 summary/basis 的每个 camera plan 都是 closed object，字段恰好为
 `camera_id/alignment_status/coverage_status/render_status/mapped_ticks/missing_ticks/
-uncertain_ticks/conflict_ticks/black_silence_ticks/planned_output/slots`。`alignment_status` 只能为
-`complete|partial`；`coverage_status=complete` 当且仅当当前 Decision 的全部 ticks mapped，
-否则为 `partial`；`render_status` 在 prepare 中固定为 `planned`。四类 ticks 之和等于
-`total_ticks`，`mapped_ticks > 0`，`black_silence_ticks` 等于后三类之和。`planned_output`
+uncertain_ticks/conflict_ticks/placeholder_ticks/black_silence_ticks/planned_output/slots`。
+`alignment_status` 只能为
+`complete|partial`；`coverage_status=complete` 当且仅当当前 Decision 的全部 ticks 由 mapped
+与 narration placeholder 覆盖，否则为 `partial`；`render_status` 在 prepare 中固定为 `planned`。
+五类 ticks 之和等于 `total_ticks`，`mapped_ticks > 0`，`black_silence_ticks` 等于
+`missing+uncertain+conflict`（占位是显式的生成视频，不伪装成黑画/静音失败）。`planned_output`
 恰好为：
 
 ```json
@@ -791,8 +793,9 @@ clip 内 source ticks 递增；每项是拒绝未知字段的 closed object，�
 {
   "slot_id":"slot_000000",
   "decision_clip_ref":{"clip_id":"clip_safe-id","clip_ordinal":0,"source_id":"src_main_1","source_start_ticks":0,"source_end_ticks":120000},
-  "classification":"mapped|missing|uncertain|conflict",
+  "classification":"mapped|missing|uncertain|conflict|narration_placeholder",
   "auxiliary_ref":{"source_id":"src_aux_1","source_start_ticks":30000,"source_end_ticks":150000},
+  "placeholder_ref":null,
   "output_start_ticks":0,
   "output_end_ticks":120000,
   "video_frame_start":0,
@@ -808,8 +811,12 @@ clip 内 source ticks 递增；每项是拒绝未知字段的 closed object，�
 `slot_000001`……；`clip_ordinal` 是当前 Decision 顺序，不是 Source/import 顺序。
 `decision_clip_ref.clip_id/clip_ordinal` 必须引用 exact Decision clip，source ID 和 ticks 是该 slot
 在该 clip 内的 exact 子区间；同一 clip 的连续 slots 必须无洞、无重叠地覆盖原 Decision clip 的
-完整 source range。`mapped` 的 auxiliary ref 非空且与该 source 子区间等长；其余三类必须为
-null。source/output tick 必须 `end > start >= 0`；frame/sample 边界必须
+完整 source range。`mapped` 的 auxiliary ref 非空且与该 source 子区间等长；其余四类必须为
+null。`narration_placeholder` 只由 core 编译的未配音解说产生：`decision_clip_ref.source_id`
+等于生成媒体 ID，`placeholder_ref` 恰好为
+`{"media_id":..., "media_version":..., "source_start_ticks":..., "source_end_ticks":...}`，
+其 media ID 与区间必须与 decision clip 完全一致，`auxiliary_ref` 为 null。source/output tick
+必须 `end > start >= 0`；frame/sample 边界必须
 `end >= start >= 0`，quota 必须等于差且可为 0。所有 output tick 区间从 0 首尾相接并覆盖
 total ticks。
 
@@ -895,7 +902,9 @@ parallel_render_revalidating_basis/parallel_render_publishing`；terminal phase 
 `multicam_parallel_render`、schema version 固定为 1。
 
 mapped slot 使用对应 auxiliary Source 的原画面和原声；missing/uncertain/conflict 使用黑画面和
-数字静音。一个机位失败时，worker 先终止并 wait 该机位 child、删除该机位未验证的临时输出，
+数字静音；narration_placeholder slot 使用项目管理且已校验的生成占位视频（其自带数字静音
+音轨），主、副机位占位都占相同输出区间并引用同一不可变媒体。一个机位失败时，worker 先终止
+并 wait 该机位 child、删除该机位未验证的临时输出，
 再继续其他 selected cameras。**只有至少一个机位 succeeded** 才允许 OperationRecord succeeded
 和 final publish：所有 selected cameras succeeded 形成 complete final；成功子集加失败披露形成
 一次原子 partial final。若所有 selected cameras 都失败，record 必须 failed，terminal error code

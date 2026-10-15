@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypeAlias
 
 from roughcut.domain.bindings import SourceTranscriptBinding, parse_source_bindings
 from roughcut.domain.brief import EditBrief
@@ -12,6 +12,8 @@ from roughcut.domain.project import ProjectError
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+NARRATION_PLACEHOLDER_KIND = "narration_placeholder"
+PLACEHOLDER_MEDIA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,116 @@ class EditClip:
 
 
 @dataclass(frozen=True)
+class NarrationPlaceholderClip:
+    """One unrecorded narration segment expressed as a managed generated-media clip."""
+
+    clip_id: str
+    narration_block_id: str
+    media_version: int
+    media_id: str
+    media_frames: int
+    source_in_ticks: int
+    source_out_ticks: int
+    reason: str
+    display_text: str
+    kind: str = NARRATION_PLACEHOLDER_KIND
+
+    def __post_init__(self) -> None:
+        for name, value in (
+            ("clip_id", self.clip_id),
+            ("narration_block_id", self.narration_block_id),
+            ("media_id", self.media_id),
+        ):
+            if not isinstance(value, str) or _SAFE_ID.fullmatch(value) is None:
+                raise ProjectError(f"{name} is invalid")
+        if self.kind != NARRATION_PLACEHOLDER_KIND:
+            raise ProjectError("narration placeholder kind is invalid")
+        if (
+            isinstance(self.media_version, bool)
+            or not isinstance(self.media_version, int)
+            or self.media_version <= 0
+        ):
+            raise ProjectError("narration placeholder media version is invalid")
+        if (
+            isinstance(self.media_frames, bool)
+            or not isinstance(self.media_frames, int)
+            or self.media_frames <= 0
+        ):
+            raise ProjectError("narration placeholder media frames are invalid")
+        for tick_name, tick_value in (
+            ("source_in_ticks", self.source_in_ticks),
+            ("source_out_ticks", self.source_out_ticks),
+        ):
+            if isinstance(tick_value, bool) or not isinstance(tick_value, int):
+                raise ProjectError(f"{tick_name} must be an integer")
+        if self.source_in_ticks < 0 or self.source_out_ticks <= self.source_in_ticks:
+            raise ProjectError("narration placeholder range is invalid")
+        if not isinstance(self.reason, str) or not self.reason.strip():
+            raise ProjectError("clip reason is required")
+        if not isinstance(self.display_text, str) or not self.display_text.strip():
+            raise ProjectError("clip display_text is required")
+
+    @property
+    def duration_ticks(self) -> int:
+        return self.source_out_ticks - self.source_in_ticks
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "kind": self.kind,
+            "clip_id": self.clip_id,
+            "narration_block_id": self.narration_block_id,
+            "media_version": self.media_version,
+            "media_id": self.media_id,
+            "media_frames": self.media_frames,
+            "source_in_ticks": self.source_in_ticks,
+            "source_out_ticks": self.source_out_ticks,
+            "reason": self.reason,
+            "display_text": self.display_text,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> NarrationPlaceholderClip:
+        if set(data) != {
+            "kind",
+            "clip_id",
+            "narration_block_id",
+            "media_version",
+            "media_id",
+            "media_frames",
+            "source_in_ticks",
+            "source_out_ticks",
+            "reason",
+            "display_text",
+        }:
+            raise ProjectError("narration placeholder clip fields are invalid")
+        return cls(
+            clip_id=_string(data, "clip_id"),
+            narration_block_id=_string(data, "narration_block_id"),
+            media_version=_integer(data, "media_version"),
+            media_id=_string(data, "media_id"),
+            media_frames=_integer(data, "media_frames"),
+            source_in_ticks=_integer(data, "source_in_ticks"),
+            source_out_ticks=_integer(data, "source_out_ticks"),
+            reason=_string(data, "reason"),
+            display_text=_string(data, "display_text"),
+            kind=_string(data, "kind"),
+        )
+
+
+EditClipLike: TypeAlias = EditClip | NarrationPlaceholderClip
+
+
+def parse_edit_clip(data: dict[str, Any]) -> EditClipLike:
+    """Parse the ordered clip union while keeping legacy clips unchanged."""
+    kind = data.get("kind")
+    if kind == NARRATION_PLACEHOLDER_KIND:
+        return NarrationPlaceholderClip.from_dict(data)
+    if kind is not None and kind != "source":
+        raise ProjectError("proposal clip kind is invalid")
+    return EditClip.from_dict(data)
+
+
+@dataclass(frozen=True)
 class EditProposal:
     proposal_id: str
     base_project_revision: int
@@ -84,7 +196,7 @@ class EditProposal:
     transcript_version_id: str
     brief_snapshot: EditBrief
     context_hash: str
-    clips: tuple[EditClip, ...]
+    clips: tuple[EditClipLike, ...]
     total_duration_ticks: int
     created_at: str
     schema_version: int = 1
@@ -143,11 +255,11 @@ class EditProposal:
         clips = data.get("clips")
         if not isinstance(brief, dict) or not isinstance(clips, list):
             raise ProjectError("proposal brief and clips are required")
-        parsed_clips: list[EditClip] = []
+        parsed_clips: list[EditClipLike] = []
         for clip in clips:
             if not isinstance(clip, dict):
                 raise ProjectError("proposal clip must be an object")
-            parsed_clips.append(EditClip.from_dict(clip))
+            parsed_clips.append(parse_edit_clip(clip))
         return cls(
             schema_version=_integer(data, "schema_version"),
             proposal_id=_string(data, "proposal_id"),
@@ -171,7 +283,7 @@ class MultiSourceEditProposal:
     source_bindings: tuple[SourceTranscriptBinding, ...]
     brief_snapshot: EditBrief
     context_hash: str
-    clips: tuple[EditClip, ...]
+    clips: tuple[EditClipLike, ...]
     total_duration_ticks: int
     created_at: str
     schema_version: int = 2
@@ -199,7 +311,8 @@ class MultiSourceEditProposal:
             for binding in self.source_bindings
         }
         if any(
-            (clip.source_id, clip.transcript_version_id) not in binding_keys
+            isinstance(clip, EditClip)
+            and (clip.source_id, clip.transcript_version_id) not in binding_keys
             for clip in self.clips
         ):
             raise ProjectError("proposal clip is outside its source bindings")
@@ -238,11 +351,11 @@ class MultiSourceEditProposal:
         clips = data.get("clips")
         if not isinstance(brief, dict) or not isinstance(clips, list):
             raise ProjectError("proposal brief and clips are required")
-        parsed_clips: list[EditClip] = []
+        parsed_clips: list[EditClipLike] = []
         for clip in clips:
             if not isinstance(clip, dict):
                 raise ProjectError("proposal clip must be an object")
-            parsed_clips.append(EditClip.from_dict(clip))
+            parsed_clips.append(parse_edit_clip(clip))
         return cls(
             schema_version=_integer(data, "schema_version"),
             proposal_id=_string(data, "proposal_id"),

@@ -1121,7 +1121,8 @@ function paragraph(paragraphId: string, value: string, blockId: string): DraftEd
     section_title: null,
     narration_status: null,
     block_id: blockId,
-    source_runs: [{ block_id: blockId, source_id: "source_a", source_display_name: "素材", paragraph_id: paragraphId, start_ticks: 0, end_ticks: 1, start_offset: 0, end_offset: Array.from(value).length, source_start_offset: 0, source_end_offset: Array.from(value).length, text: value, refs: [ref()] }],
+    source_runs: [{ block_id: blockId, source_id: "source_a", source_display_name: "素材", paragraph_id: paragraphId, start_ticks: 0, end_ticks: 1, start_offset: 0, end_offset: Array.from(value).length, source_start_offset: 0, source_end_offset: Array.from(value).length, text: value, refs: [ref()], byline_key: null, byline_text: null }],
+    bylines: [],
     exact_refs: [ref()],
   };
 }

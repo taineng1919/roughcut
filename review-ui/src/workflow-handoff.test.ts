@@ -262,7 +262,7 @@ describe("workflow to Proposal handoff", () => {
     }, "draft_candidate")).toThrow(/确认结果/);
   });
 
-  it("offers the action only for the exact active current confirmed fully recorded draft", () => {
+  it("offers the action only for the exact active current confirmed ready draft", () => {
     expect(workflowProposalEligibility(workflow(), false, false)).toEqual({
       visible: true,
       contentDraftId: "draft_confirmed",
@@ -283,7 +283,16 @@ describe("workflow to Proposal handoff", () => {
       status: "approved",
       recorded_refs: [],
     }];
-    expect(workflowProposalEligibility(unrecorded, false, false).visible).toBe(false);
+    expect(workflowProposalEligibility(unrecorded, false, false).visible).toBe(true);
+    const stillDraft = workflow();
+    stillDraft.content_draft!.content_draft.blocks = [{
+      block_id: "narration_draft",
+      kind: "narration",
+      text: "仍是草稿",
+      status: "draft",
+      recorded_refs: [],
+    }];
+    expect(workflowProposalEligibility(stillDraft, false, false).visible).toBe(false);
   });
 
   it("hands off the exact server Review snapshot without rebuilding clips or IDs", () => {

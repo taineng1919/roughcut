@@ -28,6 +28,11 @@ export function endpointFromDom(
     }
   }
 
+  const annotation = element?.closest<HTMLElement>("[data-editor-annotation]");
+  if (annotation !== null && annotation !== undefined) {
+    return endpointForAnnotation(annotation, paragraph);
+  }
+
   const editorText = element?.closest<HTMLElement>("[data-editor-text]");
   if (editorText !== null && editorText !== undefined && node === editorText) {
     return endpointForEditorTextBoundary(editorText, domOffset, paragraph);
@@ -46,6 +51,31 @@ function isEditorParagraph(
     && paragraph !== undefined
     && paragraph.dataset.surface === surface
     && paragraph.dataset.editorParagraph !== undefined;
+}
+
+function endpointForAnnotation(
+  annotation: HTMLElement,
+  paragraph: HTMLElement,
+): DraftEditorRequestPoint | null {
+  // A display-only annotation owns no text. A caret that lands on it resolves
+  // to the nearest body boundary: the start of the run it introduces, or the
+  // end of the preceding run when it is the last annotation.
+  const editorText = annotation.closest<HTMLElement>("[data-editor-text]");
+  if (editorText === null) return null;
+  const children = [...editorText.childNodes].filter(
+    (child): child is Element => child.nodeType === ELEMENT_NODE,
+  );
+  const index = children.indexOf(annotation);
+  if (index < 0) return null;
+  for (let next = index + 1; next < children.length; next += 1) {
+    const start = fragmentStart(children[next]!);
+    if (start !== null) return endpoint(paragraph.dataset.editorParagraph, start);
+  }
+  for (let previous = index - 1; previous >= 0; previous -= 1) {
+    const end = fragmentEnd(children[previous]!);
+    if (end !== null) return endpoint(paragraph.dataset.editorParagraph, end);
+  }
+  return null;
 }
 
 function endpointForEditorTextBoundary(

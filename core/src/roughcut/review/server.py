@@ -56,6 +56,10 @@ from roughcut.application.edits import (
     undo_edit,
 )
 from roughcut.application.health import health
+from roughcut.application.narration_media import (
+    placeholder_media_path,
+    read_placeholder_media,
+)
 from roughcut.application.preview import ReviewSnapshot, load_review_snapshot
 from roughcut.application.proposals import read_proposal_diff
 from roughcut.application.proxies import resolve_frozen_proxy_path
@@ -86,8 +90,9 @@ from roughcut.application.workflows import (
 )
 from roughcut.domain.content_draft import NarrationBlock
 from roughcut.domain.draft_workspace import DraftWorkspaceCheckpointRef
-from roughcut.domain.edit import EditClip, MultiSourceEditProposal
+from roughcut.domain.edit import EditClipLike, MultiSourceEditProposal
 from roughcut.domain.errors import WorkflowError
+from roughcut.domain.narration_placeholder import NarrationPlaceholderMedia
 from roughcut.domain.project import ImportMode, Project, ProjectError, SourceAsset
 from roughcut.domain.readable_transcript import (
     canonical_text_for_range,
@@ -137,7 +142,7 @@ class _ReviewState:
     workflow_proposal_id: str | None = None
     roughcut_undo: list[tuple[str, str]] = field(default_factory=list)
     roughcut_redo: list[tuple[str, str]] = field(default_factory=list)
-    roughcut_restoration_clips: tuple[EditClip, ...] = ()
+    roughcut_restoration_clips: tuple[EditClipLike, ...] = ()
     roughcut_last_adopted_proposal_id: str | None = None
     workflow_action_requests: dict[
         str, tuple[str, dict[str, object]]
@@ -837,9 +842,17 @@ def _handler_factory(
                 return
             project = ProjectStore(state.snapshot.project_path).load()
             source = next((item for item in project.sources if item.source_id == source_id), None)
+            placeholder_media = None
             if source is None:
-                self._json_error(HTTPStatus.NOT_FOUND, "not_found", "source not found")
-                return
+                try:
+                    placeholder_media = read_placeholder_media(
+                        state.snapshot.project_path, source_id
+                    )
+                except ProjectError:
+                    placeholder_media = None
+                if placeholder_media is None:
+                    self._json_error(HTTPStatus.NOT_FOUND, "not_found", "source not found")
+                    return
             playback = state.snapshot.playback_for(source_id)
             try:
                 if playback.proxy is not None:
@@ -848,7 +861,14 @@ def _handler_factory(
                         playback.proxy,
                     )
                     content_type = "video/mp4"
+                elif placeholder_media is not None:
+                    media_path = _placeholder_media_path(
+                        state.snapshot.project_path,
+                        placeholder_media,
+                    )
+                    content_type = "video/mp4"
                 else:
+                    assert source is not None
                     media_path = _registered_media_path(
                         state.snapshot.project_path,
                         source,
@@ -2117,6 +2137,7 @@ def _handler_factory(
                     "block_id",
                     "text",
                 },
+                optional={"estimated_duration_seconds"},
             )
             operation_id, checkpoint_ref, current_ref = (
                 self._draft_workspace_envelope(payload)
@@ -2125,8 +2146,15 @@ def _handler_factory(
             self._require_displayed_candidate(editor, payload)
             block_id = payload["block_id"]
             text = payload["text"]
+            estimated_duration_seconds = payload.get("estimated_duration_seconds")
             if not isinstance(block_id, str) or not isinstance(text, str):
                 raise ProjectError("draft narration fields must be strings")
+            if estimated_duration_seconds is not None and (
+                isinstance(estimated_duration_seconds, bool)
+                or not isinstance(estimated_duration_seconds, int)
+                or estimated_duration_seconds <= 0
+            ):
+                raise ProjectError("draft narration duration must be a positive integer")
             workspace = edit_draft_workspace_narration(
                 editor.workflow.project_path,
                 run_id=self._cached_draft_workspace().checkpoint.workflow_run_id,
@@ -2135,6 +2163,7 @@ def _handler_factory(
                 expected_current_candidate_ref=current_ref,
                 block_id=block_id,
                 text=text,
+                estimated_duration_seconds=estimated_duration_seconds,
                 audit_review_session_id=state.review_session_id,
                 prepared_editor_snapshot=editor,
             )
@@ -3585,11 +3614,20 @@ def _snapshot_bindings_stale(
     project: Project | None = None,
 ) -> bool:
     current = project or ProjectStore(snapshot.project_path).load()
-    return any(
-        current.active_transcript_versions.get(str(source["source_id"]))
-        != source["transcript_version_id"]
-        for source in snapshot.sources
-    )
+    for source in snapshot.sources:
+        tags = source.get("tags")
+        if isinstance(tags, list) and "narration_placeholder" in tags:
+            # Managed generated media is not bound to a Transcript version.
+            continue
+        transcript_version_id = source.get("transcript_version_id")
+        if not isinstance(transcript_version_id, str) or not transcript_version_id:
+            continue
+        if (
+            current.active_transcript_versions.get(str(source["source_id"]))
+            != transcript_version_id
+        ):
+            return True
+    return False
 
 
 def _snapshot_active_edit_stale(
@@ -3606,10 +3644,10 @@ def _snapshot_active_edit_stale(
 
 
 def _remember_latest_clips(
-    latest: tuple[EditClip, ...],
-    existing: tuple[EditClip, ...],
-) -> tuple[EditClip, ...]:
-    remembered: dict[str, EditClip] = {}
+    latest: tuple[EditClipLike, ...],
+    existing: tuple[EditClipLike, ...],
+) -> tuple[EditClipLike, ...]:
+    remembered: dict[str, EditClipLike] = {}
     for clip in (*latest, *existing):
         remembered.setdefault(clip.clip_id, clip)
     return tuple(remembered.values())
@@ -3644,6 +3682,19 @@ def _validate_payload_keys(
         raise ProjectError("workflow request contains unknown fields")
     if required - set(payload):
         raise ProjectError("workflow request is missing required fields")
+
+
+def _placeholder_media_path(
+    project_path: Path, media: NarrationPlaceholderMedia
+) -> Path:
+    path = placeholder_media_path(project_path, media.media_id)
+    try:
+        resolved = path.resolve(strict=True)
+    except OSError as error:
+        raise ProjectError("generated media is unavailable") from error
+    if not resolved.is_relative_to(project_path) or not resolved.is_file():
+        raise ProjectError("generated media is unavailable")
+    return resolved
 
 
 def _registered_media_path(project_path: Path, source: SourceAsset) -> Path:

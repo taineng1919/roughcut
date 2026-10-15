@@ -26,8 +26,18 @@ from roughcut.adapters.ffmpeg.render import (
 )
 from roughcut.adapters.ffmpeg.verify import VerificationReport, verify_render_output
 from roughcut.adapters.project_store import ProjectStore
+from roughcut.application.narration_media import (
+    NarrationPlaceholderMediaError,
+    ensure_narration_placeholder_media,
+    read_placeholder_media,
+)
 from roughcut.application.sources import fingerprint_file
-from roughcut.domain.edit import EditDecision, MultiSourceEditDecision
+from roughcut.domain.edit import (
+    EditDecision,
+    MultiSourceEditDecision,
+    NarrationPlaceholderClip,
+)
+from roughcut.domain.narration_placeholder import placeholder_source_asset
 from roughcut.domain.project import ImportMode, Project, ProjectError, SourceAsset
 from roughcut.domain.render import (
     MultiSourceRenderPlan,
@@ -142,23 +152,30 @@ def prepare_render_plan(
             _source_for_decision(project, binding.source_id)
             for binding in decision.proposal_snapshot.source_bindings
         )
+    settings = OutputSettings.from_dict(project.settings)
+    generated_sources = _generated_sources_for_decision(
+        project_path, decision, settings
+    )
     source_paths = {
         source.source_id: _resolve_source_path(store.project_path, source)
-        for source in sources
+        for source in (*sources, *generated_sources)
     }
-    for source in sources:
+    for source in (*sources, *generated_sources):
         if fingerprint_file(source_paths[source.source_id]) != source.fingerprint:
             raise ProjectError("render source fingerprint has changed")
     clips = tuple(
         RenderClip(
             clip_id=clip.clip_id,
-            source_id=clip.source_id,
+            source_id=(
+                clip.media_id
+                if isinstance(clip, NarrationPlaceholderClip)
+                else clip.source_id
+            ),
             source_in_ticks=clip.source_in_ticks,
             source_out_ticks=clip.source_out_ticks,
         )
         for clip in decision.proposal_snapshot.clips
     )
-    settings = OutputSettings.from_dict(project.settings)
     ffmpeg, ffprobe = tools or resolve_render_tools()
     prepared_render_id = render_id or f"render_{uuid4().hex}"
     if isinstance(decision, EditDecision):
@@ -168,6 +185,7 @@ def prepare_render_plan(
             project_revision=project.revision,
             edit_version_id=decision.edit_version_id,
             source=sources[0],
+            generated_sources=generated_sources,
             clips=clips,
             output_settings=settings,
             ffmpeg=ffmpeg,
@@ -184,6 +202,7 @@ def prepare_render_plan(
             edit_version_id=decision.edit_version_id,
             source_bindings=decision.proposal_snapshot.source_bindings,
             sources=sources,
+            generated_sources=generated_sources,
             clips=clips,
             output_settings=settings,
             ffmpeg=ffmpeg,
@@ -194,6 +213,41 @@ def prepare_render_plan(
         )
     derive_render_schedule(plan)
     return plan
+
+
+def _generated_sources_for_decision(
+    project_path: Path,
+    decision: EditDecision | MultiSourceEditDecision,
+    settings: OutputSettings,
+) -> tuple[SourceAsset, ...]:
+    """Ensure and freeze managed placeholder media for one frozen Decision."""
+    generated: list[SourceAsset] = []
+    seen: set[str] = set()
+    required_ticks: dict[str, int] = {}
+    for clip in decision.proposal_snapshot.clips:
+        if isinstance(clip, NarrationPlaceholderClip):
+            required_ticks[clip.media_id] = max(
+                required_ticks.get(clip.media_id, 0), clip.duration_ticks
+            )
+    for clip in decision.proposal_snapshot.clips:
+        if not isinstance(clip, NarrationPlaceholderClip):
+            continue
+        if clip.media_id in seen:
+            continue
+        seen.add(clip.media_id)
+        try:
+            media = ensure_narration_placeholder_media(
+                project_path,
+                output_settings=settings,
+                video_frames=clip.media_frames,
+                required_duration_ticks=required_ticks[clip.media_id],
+            )
+        except NarrationPlaceholderMediaError as error:
+            raise ProjectError(str(error)) from error
+        if media.media_id != clip.media_id:
+            raise ProjectError("narration placeholder media identity changed")
+        generated.append(placeholder_source_asset(media))
+    return tuple(generated)
 
 
 def execute_render_plan(
@@ -478,7 +532,11 @@ def _validate_plan_snapshot(
     expected_clips = tuple(
         RenderClip(
             clip.clip_id,
-            clip.source_id,
+            (
+                clip.media_id
+                if isinstance(clip, NarrationPlaceholderClip)
+                else clip.source_id
+            ),
             clip.source_in_ticks,
             clip.source_out_ticks,
         )
@@ -486,11 +544,22 @@ def _validate_plan_snapshot(
     )
     if expected_clips != plan.clips:
         raise ProjectError("render plan clips do not match active Decision")
-    current_sources = tuple(
-        _source_for_decision(project, source.source_id) for source in frozen_sources
+    generated_ids = {source.source_id for source in plan.generated_sources}
+    user_sources = tuple(
+        source for source in frozen_sources if source.source_id not in generated_ids
     )
-    if current_sources != frozen_sources:
+    current_sources = tuple(
+        _source_for_decision(project, source.source_id) for source in user_sources
+    )
+    if current_sources != user_sources:
         raise ProjectError("render source snapshot is stale")
+    for source in plan.generated_sources:
+        record = read_placeholder_media(project_path, source.source_id)
+        if (
+            record is None
+            or placeholder_source_asset(record) != source
+        ):
+            raise ProjectError("render generated source snapshot is stale")
     for source in frozen_sources:
         source_path = source_paths.get(source.source_id)
         if source_path is None or fingerprint_file(source_path) != source.fingerprint:
@@ -585,6 +654,14 @@ def _render_manifest(
                 "fingerprint": plan.source.fingerprint.to_dict(),
                 "probe": plan.source.probe.to_dict(),
             },
+            "generated_sources": [
+                {
+                    "source_id": source.source_id,
+                    "fingerprint": source.fingerprint.to_dict(),
+                    "probe": source.probe.to_dict(),
+                }
+                for source in plan.generated_sources
+            ],
         }
     checks = _acceptance_checks(plan, report)
     common["acceptance"] = {"accepted": all(checks.values()), "checks": checks}
@@ -599,6 +676,14 @@ def _render_manifest(
                 "probe": source.probe.to_dict(),
             }
             for source in plan.sources
+        ],
+        "generated_sources": [
+            {
+                "source_id": source.source_id,
+                "fingerprint": source.fingerprint.to_dict(),
+                "probe": source.probe.to_dict(),
+            }
+            for source in plan.generated_sources
         ],
     }
 

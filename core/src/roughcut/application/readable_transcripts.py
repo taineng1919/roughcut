@@ -18,11 +18,12 @@ from roughcut.adapters.artifact_store import read_json_object
 from roughcut.adapters.project_store import ProjectStore
 from roughcut.domain.bindings import SourceTranscriptBinding
 from roughcut.domain.edit import (
-    EditClip,
+    EditClipLike,
     EditDecision,
     EditProposal,
     MultiSourceEditDecision,
     MultiSourceEditProposal,
+    NarrationPlaceholderClip,
 )
 from roughcut.domain.people import Person, SpeakerMap
 from roughcut.domain.project import Project, ProjectError, SourceAsset
@@ -86,7 +87,7 @@ class _Overlay:
     basis: str
     artifact_id: str
     artifact_hash: str
-    clips: tuple[EditClip, ...]
+    clips: tuple[EditClipLike, ...]
     bindings: tuple[SourceTranscriptBinding, ...]
     payload: dict[str, object]
 
@@ -780,6 +781,8 @@ def _adoption_by_segment(
     }
     ranges: dict[tuple[str, str, str], list[tuple[int, int]]] = {}
     for clip in overlay.clips:
+        if isinstance(clip, NarrationPlaceholderClip):
+            continue
         key = (clip.source_id, clip.transcript_version_id, clip.segment_id)
         segment = segments.get(key)
         if segment is None:
@@ -1625,8 +1628,34 @@ def _artifact_markdown(
     lines = [f"# {basis.title()} Script", "", f"Artifact hash: `{artifact_hash}`", ""]
     entries: list[dict[str, object]] = []
     for index, clip in enumerate(proposal.clips, start=1):
-        source = sources[clip.source_id]
         number = f"C{index:03d}"
+        if isinstance(clip, NarrationPlaceholderClip):
+            lines.extend(
+                [
+                    f"## {number} · 解说待配音",
+                    "",
+                    f"{_format_ticks(clip.source_in_ticks)}–{_format_ticks(clip.source_out_ticks)}",
+                    "",
+                    clip.display_text,
+                    "",
+                    f"Reason: {clip.reason}",
+                    "",
+                ]
+            )
+            entries.append(
+                {
+                    "clip_id": clip.clip_id,
+                    "display_number": number,
+                    "kind": "narration_placeholder",
+                    "narration_block_id": clip.narration_block_id,
+                    "media_id": clip.media_id,
+                    "start_ticks": clip.source_in_ticks,
+                    "end_ticks": clip.source_out_ticks,
+                    "refs": [],
+                }
+            )
+            continue
+        source = sources[clip.source_id]
         lines.extend(
             [
                 f"## {number} · {source.display_name}",

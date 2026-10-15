@@ -118,7 +118,25 @@ source excerpt 和 narration 字段沿用既有契约。
   `source_excerpt.section_title` 或 `narration.section_title`。
 
 该模型无需虚假正文、虚假解说占位、原地迁移、长期 preserve lock 或两套章节来源；若实现发现
-其中任一项变成必要条件，必须停止在架构评审。
+其中任一项变成必要条件，必须停止在架构评审。（这里的“虚假解说占位”指不得在 Draft 正文里
+伪造解说块或媒体；未配音解说在 Proposal 层编译为项目管理的占位媒体，不属于该禁令。）
+
+### 2.3 只读署名与解说时长
+
+Draft editor 快照额外携带两个只读展示事实，它们不进入正文、canonical text、exact refs、
+时间码或第二套编辑状态：
+
+- 每个 source excerpt 段落可携带 `bylines: [{start_offset, end_offset, text}]`（正文
+  UTF-16 偏移，纯展示）。显示规则：文档首个来源 run、人物切换、章节标题之后和解说之后
+  显示姓名与身份；连续同一身份不重复。映射人物以 `person:<person_id>` 判断身份，未映射
+  local speaker 以 `speaker:<source_id>:<transcript_version_id>:<local_speaker_id>` 判断，
+  不同素材的同名 local speaker 永不合并，未映射发言人的显示名是稳定临时编号；无 local
+  speaker 时保守使用既有 segment 身份。标注节点是正文容器外的独立 DOM，不带
+  `data-editor-text`/`data-text-fragment`，不进入文字选区、复制、搜索偏移、caret 或拖放
+  命中；局部 patch 必须以包含署名与时长在内的行签名判断是否需要重建。
+- narration 段落可携带可选 `estimated_duration_seconds`（正整数秒人工覆盖，null 表示按
+  文字自动估算）与只读的 `narration_estimated_seconds` 自动估算值；编辑解说时可在既有
+  解说卡片内修改人工时长，后端是唯一估算实现，前端不重复计算。
 
 ## 3. 正文模式的直接拖放
 

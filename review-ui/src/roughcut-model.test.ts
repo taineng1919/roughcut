@@ -130,6 +130,38 @@ describe("roughcut review time entry", () => {
 });
 
 describe("roughcut manuscript and change summary", () => {
+  it("presents placeholder clips as their own labelled run with original text", () => {
+    const mixed: Clip[] = [
+      clips[0]!,
+      {
+        clip_id: "clip_placeholder_1",
+        kind: "narration_placeholder",
+        narration_block_id: "block_narration",
+        media_id: "phm_fixture",
+        media_version: 1,
+        media_frames: 127,
+        source_in_ticks: 0,
+        source_out_ticks: 360_000,
+        reason: "未配音解说占位",
+        display_text: "这里的解说还没有配音。",
+      },
+      clips[1]!,
+    ];
+    const runs = manuscriptRuns(mixed, transcript);
+    expect(runs.map((run) => run.speakerLabel)).toEqual(["小严", "解说待配音", "小赵"]);
+    expect(runs[1]!.speakerKey).toBe("narration:block_narration");
+    expect(runs[1]!.clips).toEqual([
+      {
+        clip_id: "clip_placeholder_1",
+        source_id: "phm_fixture",
+        display_text: "这里的解说还没有配音。",
+      },
+    ]);
+    expect(changeSummary(mixed, mixed).totalDurationTicks).toBe(
+      240_000 + 360_000 + 240_000,
+    );
+  });
+
   it("keeps A→B→A clip identity while presenting continuous speaker runs", () => {
     const runs = manuscriptRuns(clips, transcript);
     expect(runs.map((run) => run.speakerLabel)).toEqual(["小严", "小赵", "小严"]);

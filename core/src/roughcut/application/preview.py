@@ -14,6 +14,10 @@ from roughcut.application.agent_context import (
     read_agent_context,
     read_multi_source_agent_context,
 )
+from roughcut.application.narration_media import (
+    NarrationPlaceholderMediaError,
+    ensure_narration_placeholder_media,
+)
 from roughcut.application.proposals import (
     read_edit_decision,
     read_edit_proposal,
@@ -21,9 +25,19 @@ from roughcut.application.proposals import (
     read_multi_source_edit_proposal,
 )
 from roughcut.application.proxies import FrozenProxyPlayback, freeze_ready_proxy
-from roughcut.domain.edit import EditProposal, MultiSourceEditProposal
+from roughcut.domain.edit import (
+    EditClipLike,
+    EditProposal,
+    MultiSourceEditProposal,
+    NarrationPlaceholderClip,
+)
+from roughcut.domain.narration_placeholder import (
+    NARRATION_PLACEHOLDER_LABEL,
+    placeholder_source_asset,
+)
 from roughcut.domain.people import Person, SpeakerMap
 from roughcut.domain.project import Project, ProjectError, SourceAsset
+from roughcut.domain.render import OutputSettings
 from roughcut.domain.timeline import VirtualTimeline
 from roughcut.domain.transcript import TimedTranscript, TranscriptSegment
 
@@ -220,6 +234,12 @@ def _load_single_source_snapshot(
         proposal.transcript_version_id,
         selections[0],
     )
+    placeholder_summaries, placeholder_selections = _placeholder_review_sources(
+        store.project_path,
+        project,
+        proposal.clips,
+        playback_selections,
+    )
     transcript = _transcript_entries(project, source, transcript_model)
     return ReviewSnapshot(
         project_path=store.project_path,
@@ -233,11 +253,11 @@ def _load_single_source_snapshot(
         allowed_operations=context.allowed_operations,
         transcript=transcript,
         source=source_summary,
-        sources=(source_summary,),
+        sources=(source_summary, *placeholder_summaries),
         timeline=VirtualTimeline.from_proposal(proposal),
         requires_new_proposal=requires_new_proposal,
         schema_version=1,
-        playback_selections=selections,
+        playback_selections=(*selections, *placeholder_selections),
     )
 
 
@@ -291,6 +311,13 @@ def _load_multi_source_snapshot(
         strict=True,
     ):
         sources.append(_source_summary(source, binding.transcript_version_id, selection))
+    placeholder_summaries, placeholder_selections = _placeholder_review_sources(
+        store.project_path,
+        project,
+        proposal.clips,
+        playback_selections,
+    )
+    sources.extend(placeholder_summaries)
     if basis_type == "decision":
         frozen_context_hash = _multi_source_context_hash(
             project=project,
@@ -321,7 +348,7 @@ def _load_multi_source_snapshot(
         timeline=VirtualTimeline.from_proposal(proposal),
         requires_new_proposal=requires_new_proposal,
         schema_version=2,
-        playback_selections=selections,
+        playback_selections=(*selections, *placeholder_selections),
     )
 
 
@@ -354,6 +381,64 @@ def safe_review_source_summary(
     """Return the existing path-free Review source summary."""
 
     return _source_summary(source, transcript_version_id, playback)
+
+
+def _placeholder_review_sources(
+    project_path: Path,
+    project: Project,
+    clips: tuple[EditClipLike, ...],
+    frozen: tuple[ReviewPlaybackSelection, ...] | None,
+) -> tuple[tuple[dict[str, object], ...], tuple[ReviewPlaybackSelection, ...]]:
+    """Ensure and authorize managed placeholder media for one review snapshot."""
+    summaries: list[dict[str, object]] = []
+    selections: list[ReviewPlaybackSelection] = []
+    seen: set[str] = set()
+    output_settings = OutputSettings.from_dict(project.settings)
+    required_ticks: dict[str, int] = {}
+    for clip in clips:
+        if isinstance(clip, NarrationPlaceholderClip):
+            required_ticks[clip.media_id] = max(
+                required_ticks.get(clip.media_id, 0), clip.duration_ticks
+            )
+    for clip in clips:
+        if not isinstance(clip, NarrationPlaceholderClip) or clip.media_id in seen:
+            continue
+        seen.add(clip.media_id)
+        try:
+            media = ensure_narration_placeholder_media(
+                project_path,
+                output_settings=output_settings,
+                video_frames=clip.media_frames,
+                required_duration_ticks=required_ticks[clip.media_id],
+            )
+        except NarrationPlaceholderMediaError as error:
+            raise ProjectError(str(error)) from error
+        asset = placeholder_source_asset(media)
+        selection = ReviewPlaybackSelection(
+            source_id=asset.source_id,
+            playback_kind="original",
+        )
+        if frozen is not None:
+            frozen_by_id = {item.source_id: item for item in frozen}
+            frozen_selection = frozen_by_id.get(asset.source_id)
+            if frozen_selection is not None and frozen_selection.playback_kind != "original":
+                raise ProjectError("review placeholder playback selection is invalid")
+        summaries.append(
+            {
+                "source_id": asset.source_id,
+                "transcript_version_id": "",
+                "display_name": NARRATION_PLACEHOLDER_LABEL,
+                "kind": "video",
+                "duration_ticks": asset.probe.duration_ticks,
+                "tags": list(asset.tags),
+                "note": asset.note,
+                "media_url": f"/media/{asset.source_id}",
+                "playback_kind": selection.playback_kind,
+                "proxy_profile": None,
+            }
+        )
+        selections.append(selection)
+    return tuple(summaries), tuple(selections)
 
 
 def _playback_selections(

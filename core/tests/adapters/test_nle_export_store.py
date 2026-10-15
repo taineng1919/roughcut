@@ -76,3 +76,36 @@ def test_nle_receipt_store_rejects_changed_output(tmp_path: Path) -> None:
     with pytest.raises(NleHandoffError) as error:
         store.validate_output(receipt)
     assert error.value.code == "nle_export_integrity_error"
+
+
+def test_pre_feature_receipt_bytes_stay_canonical_and_readable(tmp_path: Path) -> None:
+    """A receipt written before placeholder_media existed must stay readable.
+
+    The old JSON has no ``placeholder_media`` key at all; the store validates
+    canonical bytes, so the reader must reproduce that exact representation.
+    """
+
+    from roughcut.domain.workflow import canonical_json_v1
+
+    root = tmp_path / "project"
+    root.mkdir()
+    destination = tmp_path / "handoff.fcpxml"
+    payload = b'<fcpxml version="1.14" />\n'
+    destination.write_bytes(payload)
+    receipt = _receipt(destination)
+    legacy = {
+        key: value
+        for key, value in receipt.to_dict().items()
+        if key != "placeholder_media"
+    }
+    receipts = root / "exports" / "handoffs" / "receipts"
+    receipts.mkdir(parents=True)
+    path = receipts / "act_nle.json"
+    path.write_bytes(canonical_json_v1(legacy) + b"\n")
+
+    store = NleExportStore(root)
+    readback = store.read("act_nle")
+    assert readback is not None
+    assert readback.to_dict() == legacy
+    assert readback.placeholder_media == ()
+    assert canonical_json_v1(readback.to_dict()) + b"\n" == path.read_bytes()

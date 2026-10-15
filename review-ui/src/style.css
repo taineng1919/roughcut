@@ -165,6 +165,9 @@ video { width: 100%; min-height: 260px; max-height: 62vh; background: #111; bord
 .draft-section-title { margin: 1.5em 0 .55em; color: #30332f; font: 650 21px/1.35 ui-serif, "Songti SC", "STSong", serif; letter-spacing: -.01em; }
 .draft-copy-paragraph:first-of-type .draft-section-title { margin-top: 0; }
 .draft-byline { display: block; max-width: 100%; margin-bottom: 2px; overflow: hidden; color: #696964; font: 620 12px/1.45 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+/* Inline bylines sit at their exact source-run boundary inside the body
+   container but stay display-only: never selectable, copyable or a caret hit. */
+.draft-paragraph-text > .draft-byline { margin: 3px 0 0; padding-bottom: 1px; user-select: none; -webkit-user-select: none; }
 .draft-paragraph-text { position: relative; cursor: text; }
 .draft-text-fragment { border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .draft-text-fragment.is-search-match { background: var(--draft-search); color: inherit; }
@@ -189,6 +192,10 @@ video { width: 100%; min-height: 260px; max-height: 62vh; background: #111; bord
 .draft-editor-shell.is-business-dragging .draft-narration-drag-handle { cursor: grabbing; }
 .draft-narration-warning { grid-column: 2 / -1; margin: 0; color: #824a17; font-size: 12px; line-height: 1.5; }
 .draft-narration-card textarea { grid-column: 2 / -1; width: 100%; resize: vertical; border: 1px solid #d8d0eb; border-radius: 7px; background: #fff; color: #29272d; font: 400 16px/1.65 ui-serif, "Songti SC", "STSong", serif; }
+.draft-narration-duration { grid-column: 2 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; color: #7666a2; font-size: 12px; }
+.draft-narration-duration label { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+.draft-narration-duration input { width: 72px; padding: 3px 6px; border: 1px solid #d8d0eb; border-radius: 6px; background: #fff; color: #29272d; font: inherit; }
+.draft-narration-duration-help { color: #8b8b86; }
 .draft-narration-actions { grid-column: 2 / -1; display: flex; justify-content: end; gap: 6px; }
 .draft-narration-card button { grid-column: 2; justify-self: start; }
 .draft-narration-card button.primary { border-color: #7563ad; background: #7563ad; color: #fff; }

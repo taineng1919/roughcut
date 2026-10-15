@@ -136,8 +136,8 @@ export function workflowProposalEligibility(
   const briefMatches = draft !== undefined
     && snapshot.brief !== null
     && JSON.stringify(draft.brief_snapshot) === JSON.stringify(snapshot.brief);
-  const narrationRecorded = draft?.blocks.every(
-    (block) => block.kind !== "narration" || block.status === "recorded",
+  const narrationReady = draft?.blocks.every(
+    (block) => block.kind !== "narration" || block.status !== "draft",
   ) ?? false;
   const visible = !draftDirty
     && !requestInFlight
@@ -149,7 +149,7 @@ export function workflowProposalEligibility(
     && draft.context_hash === snapshot.context_hash
     && bindingsMatch
     && briefMatches
-    && narrationRecorded
+    && narrationReady
     && snapshot.allowed_operations.includes("content_draft_propose");
   return {
     visible,

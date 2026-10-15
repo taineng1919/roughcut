@@ -234,3 +234,137 @@ def test_schema1_payload_cannot_smuggle_display_text_and_schema2_run_capacity_co
 
     with pytest.raises(ProjectError, match="range must contain"):
         validate_punctuation_replacement("原话", "原话！", 1, 2, "。")
+
+
+def test_narration_duration_estimation_is_integer_frame_aligned_and_manual_override_wins() -> None:
+    from roughcut.domain.content_draft import (
+        estimated_narration_seconds,
+        narration_effective_duration_ticks,
+        narration_requested_seconds,
+        narration_text_unit_count,
+    )
+    from roughcut.domain.time import TICKS_PER_SECOND, RationalRate
+
+    # Whitespace and Unicode P* punctuation never count; every other code point
+    # counts as one unit, and the estimate is integer math only.
+    assert narration_text_unit_count("你 好，世 界。！😀") == 5
+    assert estimated_narration_seconds("你 好，世 界。！😀") == 2
+    assert estimated_narration_seconds("") == 1
+    assert estimated_narration_seconds("字" * 200) == 60
+    assert estimated_narration_seconds("字" * 201) == 61
+
+    automatic = NarrationBlock(
+        block_id="block_narration",
+        text="字" * 201,
+        status="approved",
+        recorded_refs=(),
+    )
+    assert narration_requested_seconds(automatic) == 61
+    at_integer = narration_effective_duration_ticks(automatic, RationalRate(25, 1))
+    assert at_integer == 61 * TICKS_PER_SECOND
+    assert at_integer % RationalRate(25, 1).ticks_per_frame == 0
+
+    fractional = RationalRate(30000, 1001)
+    for rate in (
+        RationalRate(24, 1), RationalRate(25, 1), RationalRate(30, 1),
+        RationalRate(50, 1), RationalRate(60, 1), RationalRate(24000, 1001),
+        fractional, RationalRate(60000, 1001),
+    ):
+        ticks_per_frame = rate.ticks_per_frame
+        duration = narration_effective_duration_ticks(automatic, rate)
+        assert isinstance(duration, int)
+        assert duration % ticks_per_frame == 0
+        assert duration >= 61 * TICKS_PER_SECOND
+        assert duration < 61 * TICKS_PER_SECOND + ticks_per_frame
+
+    manual = NarrationBlock(
+        block_id="block_manual",
+        text="字" * 201,
+        status="approved",
+        recorded_refs=(),
+        estimated_duration_seconds=5,
+    )
+    assert narration_requested_seconds(manual) == 5
+    assert narration_effective_duration_ticks(manual, RationalRate(25, 1)) == (
+        5 * TICKS_PER_SECOND
+    )
+
+    recorded = NarrationBlock(
+        block_id="block_recorded",
+        text="字" * 201,
+        status="recorded",
+        recorded_refs=(ContentDraftRef("src_a", "tr_a", "seg_a", 10, 500_010),),
+        estimated_duration_seconds=5,
+    )
+    # Recorded narration keeps its exact reference duration; the manual value
+    # never overrides a real recording.
+    assert narration_effective_duration_ticks(recorded, fractional) == 500_000
+
+
+def test_pre_feature_schema2_draft_dict_stays_byte_identical_after_roundtrip() -> None:
+    """Schema-1/2 artifacts written before the duration field must not drift.
+
+    ``estimated_duration_seconds`` is optional; parsing an old narration block
+    and re-serializing it must reproduce the original mapping exactly, so the
+    artifact content hash and Workflow refs stay valid.
+    """
+
+    legacy = {
+        "schema_version": 2,
+        "content_draft_id": "draft_legacy_roundtrip",
+        "parent_draft_id": None,
+        "base_project_revision": 3,
+        "confirmed_by_user": True,
+        "brief_snapshot": _brief().to_dict(),
+        "source_bindings": [
+            {"source_id": "src_a", "transcript_version_id": "tr_a"}
+        ],
+        "context_hash": "a" * 64,
+        "display_title": None,
+        "blocks": [
+            {
+                "block_id": "heading_legacy",
+                "kind": "section_title",
+                "title": "章节",
+            },
+            {
+                "block_id": "block_legacy",
+                "kind": "source_excerpt",
+                "refs": [
+                    {
+                        "source_id": "src_a",
+                        "transcript_version_id": "tr_a",
+                        "segment_id": "seg_a",
+                        "start_ticks": 0,
+                        "end_ticks": 120_000,
+                    }
+                ],
+                "canonical_text": "节目原话。",
+            },
+            {
+                "block_id": "narration_legacy",
+                "kind": "narration",
+                "text": "旧解说。",
+                "status": "approved",
+                "recorded_refs": [],
+            },
+        ],
+    }
+    draft = ContentDraft.from_dict(legacy)
+    assert draft.to_dict() == legacy
+    narration = next(
+        block for block in draft.blocks if isinstance(block, NarrationBlock)
+    )
+    assert narration.estimated_duration_seconds is None
+
+    with_override = {
+        **legacy,
+        "blocks": [
+            *legacy["blocks"][:2],
+            {
+                **legacy["blocks"][2],
+                "estimated_duration_seconds": 4,
+            },
+        ],
+    }
+    assert ContentDraft.from_dict(with_override).to_dict() == with_override
