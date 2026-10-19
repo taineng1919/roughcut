@@ -15,6 +15,7 @@ CANONICAL_SKILLS = {
         "create-roughcut",
         "revise-roughcut",
         "render-roughcut",
+        "handoff-roughcut",
     )
 }
 CANONICAL_CONTRACT = ROOT / "docs" / "agent-tool-contract.md"
@@ -59,6 +60,17 @@ def test_validator_generates_and_checks_a_traceable_workflow(tmp_path: Path) -> 
             encoding="utf-8"
         )
         assert generated_contract.read_bytes() == CANONICAL_CONTRACT.read_bytes()
+
+
+def test_validator_delivers_handoff_script_without_cache_files(tmp_path: Path) -> None:
+    generated_root = tmp_path / "host-package"
+    generated = run_validator("--output", str(generated_root))
+    assert generated.returncode == 0, generated.stderr
+    source = ROOT / "agent-skill" / "skills" / "handoff-roughcut" / "scripts" / "roughcut_handoff.py"
+    delivered = generated_root / "skills" / "handoff-roughcut" / "scripts" / "roughcut_handoff.py"
+    assert delivered.read_bytes() == source.read_bytes()
+    assert not any(path.suffix in {".pyc", ".pyo"} for path in generated_root.rglob("*"))
+    assert not any("__pycache__" in path.parts for path in generated_root.rglob("*"))
 
 
 def test_revise_skill_enforces_the_w4_e3_confirmation_workflow() -> None:

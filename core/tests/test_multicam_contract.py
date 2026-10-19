@@ -95,6 +95,10 @@ def test_tool_contract_mirrors_are_byte_identical_to_the_source() -> None:
     mirrors = sorted(
         (ROOT / "agent-skill/skills").glob("*/references/tool-contract.md")
     )
-    assert len(mirrors) == 5
+    skill_names = {
+        path.parent.name
+        for path in (ROOT / "agent-skill/skills").glob("*/SKILL.md")
+    }
+    assert {path.parents[1].name for path in mirrors} == skill_names
     source_bytes = source.read_bytes()
     assert all(path.read_bytes() == source_bytes for path in mirrors)

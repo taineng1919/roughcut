@@ -36,6 +36,7 @@ CANONICAL_SKILLS = {
         "create-roughcut",
         "revise-roughcut",
         "render-roughcut",
+        "handoff-roughcut",
     )
 }
 
@@ -386,16 +387,17 @@ def test_build_host_package_generates_the_canonical_skill(tmp_path: Path) -> Non
         assert (output / "skills" / name / "SKILL.md").read_text(
             encoding="utf-8"
         ) == canonical_skill.read_text(encoding="utf-8")
+    assert (output / "skills" / "handoff-roughcut" / "scripts" / "roughcut_handoff.py").is_file()
     assert_skill_references_exist(output)
 
 
-def test_codex_host_package_expects_mcp_and_five_skills() -> None:
+def test_codex_host_package_expects_mcp_and_six_skills() -> None:
     manifest = json.loads(
         (ROOT / "host-integrations" / "codex" / ".codex-plugin" / "plugin.json").read_text(
             encoding="utf-8"
         )
     )
-    # Codex declares both MCP and Skills: it is a full MCP + 5 Skills host, not MCP-only.
+    # Codex declares both MCP and Skills: it is a full MCP + 6 Skills host, not MCP-only.
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     mcp = json.loads(
@@ -408,6 +410,7 @@ def test_codex_host_package_expects_mcp_and_five_skills() -> None:
         "create-roughcut",
         "revise-roughcut",
         "render-roughcut",
+        "handoff-roughcut",
     ):
         assert (ROOT / "agent-skill" / "skills" / name / "SKILL.md").is_file()
 

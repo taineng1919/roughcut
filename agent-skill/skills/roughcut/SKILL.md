@@ -36,6 +36,7 @@ candidate ID 只放进“复制诊断信息”，不作为普通导航或确认�
 2. Existing initial draft or a request to continue drafting: route to `create-roughcut`.
 3. A request to adjust an initial draft or roughcut preview: route to `revise-roughcut`.
 4. A request to formally export an already adopted roughcut: route to `render-roughcut`. MP4 and editable NLE handoff are separate actions; NLE must use `approve_nle_export` and never be inferred from `approve_export`.
+5. A request to export an authorized transcript for an external editor/model and import the returned final script: route to `handoff-roughcut`; its package is transcript-only and still passes the current Brief, Outline and Draft gates.
 
 For a user request involving auxiliary-camera grouping or parallel camera output, keep this
 router as the only entry point: route grouping and authorization collection to `create-roughcut`,

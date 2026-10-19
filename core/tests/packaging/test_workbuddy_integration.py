@@ -149,7 +149,7 @@ def test_workbuddy_source_and_generated_workflows_pass_drift_checks(tmp_path: Pa
     assert generated_check.returncode == 0, generated_check.stderr
 
 
-def test_workbuddy_host_package_expects_mcp_and_five_skills(tmp_path: Path) -> None:
+def test_workbuddy_host_package_expects_mcp_and_six_skills(tmp_path: Path) -> None:
     output = tmp_path / "roughcut-workbuddy"
     result = run(
         sys.executable,
@@ -170,6 +170,7 @@ def test_workbuddy_host_package_expects_mcp_and_five_skills(tmp_path: Path) -> N
         "create-roughcut",
         "revise-roughcut",
         "render-roughcut",
+        "handoff-roughcut",
     ):
         assert (output / "skills" / name / "SKILL.md").is_file()
     readme = (WORKBUDDY_INTEGRATION / "README.md").read_text(encoding="utf-8")
@@ -178,7 +179,7 @@ def test_workbuddy_host_package_expects_mcp_and_five_skills(tmp_path: Path) -> N
     # is a copy of the source).
     assert generated_readme == readme
     # Skills are an automatic standard item, not an optional user choice.
-    assert "5" in readme or "five" in readme.lower()
+    assert "6" in readme or "six" in readme.lower()
     for forbidden in (
         "Skills 是 WorkBuddy optional",
         "必须预装 Homebrew",

@@ -200,7 +200,8 @@ Draft 前或生成过程中报告缺口；不得删除/合并该章、虚构内�
 和采用；任何内容、顺序或剪点问题都返回初稿修改后重新生成预览。
 
 来源同期声原话不得改写、漏词或补写。解说必须明确标为解说；未录解说可以确认文字，
-但不能生成粗剪，必须作为新素材导入、转录、校正并绑定后才可播放。
+并由 Core 在粗剪候选中自动生成静音 placeholder，不伪造语音或转录；用户也可导入、
+转录、校正并绑定新素材后替换为已录解说。
 
 ## 仅供 Agent 执行的顺序
 
@@ -299,8 +300,9 @@ Gate 阻塞诊断遵循 `roughcut-basics` 总原则。
    `workflow_status` 并调用 `workflow_action(approve_draft)`。该固定 action 同时生成
    confirmed child 和待审阅粗剪候选；动作后只读取 receipt/status，不再调用
    `content_draft_confirm` 或 `content_draft_propose`。初稿页按钮必须走同一 façade。
-10. 未录解说时停止：不得省略、创建 placeholder 或调用低层 Proposal 写入口。只有
-   current、完全媒体化的初稿才能提交 `approve_draft`。
+10. 未录解说不阻塞：draft narration 经用户确认后由 Core 在粗剪候选中自动生成
+   placeholder；不得伪造语音、转录或 ticks，也不调用低层 Proposal 写入口。只有
+   current 初稿才能提交 `approve_draft`；source_excerpt 仍需 exact refs。
 11. 只能使用服务端返回的精确 Proposal/Review snapshot 打开“粗剪预览与采用”；不得由
    Agent 或浏览器重建 clips。可见总时长、进度、seek 和结束位置必须来自 Virtual
    Timeline，不能使用当前 Source 的原生时长。用户发现问题时返回初稿；返回动作本身不
