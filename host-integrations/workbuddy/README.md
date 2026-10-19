@@ -4,8 +4,8 @@ This directory contains only the WorkBuddy-specific MCP template and installatio
 The Host Package is generated from the canonical workflows in `agent-skill/skills/`; do not
 copy or maintain a second workflow source here.
 
-WorkBuddy uses MCP + all 5 canonical Roughcut Skills as one standard integration:
-`roughcut`, `roughcut-basics`, `create-roughcut`, `revise-roughcut`, `render-roughcut`.
+WorkBuddy uses MCP + all 6 canonical Roughcut Skills as one standard integration:
+`roughcut`, `roughcut-basics`, `create-roughcut`, `revise-roughcut`, `render-roughcut`, `handoff-roughcut`.
 Skills are an automatic standard item, installed together with the MCP server.
 
 Do not run Roughcut state-mutating CLI from a WorkBuddy Desktop shell that injects the
@@ -30,9 +30,9 @@ different component diagnosis. Host-specific environment variables are temporary
 overrides only and must not be used as installed component state.
 
 Merge the generated `.mcp.json` entry into WorkBuddy's existing MCP configuration; never
-replace unrelated user servers. Install all five generated `skills/` directories through the Skill
+replace unrelated user servers. Install all six generated `skills/` directories through the Skill
 discovery location confirmed by the running WorkBuddy version. Trust the local server, reload
-the WorkBuddy session, and verify native discovery of all five generated Skills plus the `health`,
+the WorkBuddy session, and verify native discovery of all six generated Skills plus the `health`,
 `fake_project_roundtrip`, and `media_operation_status` tools. Building the Host Package alone
 does not complete the installation. If a Host task ID disappears after a
 media operation ID was returned, retain that operation ID and call `media_operation_status` once;

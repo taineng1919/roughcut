@@ -15,6 +15,7 @@ CANONICAL_SKILL_NAMES = (
     "create-roughcut",
     "revise-roughcut",
     "render-roughcut",
+    "handoff-roughcut",
 )
 CANONICAL_SKILLS = {
     name: ROOT / "agent-skill" / "skills" / name / "SKILL.md"
@@ -25,6 +26,9 @@ SKILL_CONTRACTS = {
     name: path.parent / "references" / "tool-contract.md"
     for name, path in CANONICAL_SKILLS.items()
 }
+SKILL_RESOURCE_DIRECTORIES = ("scripts",)
+EXCLUDED_RESOURCE_NAMES = {"__pycache__"}
+EXCLUDED_RESOURCE_SUFFIXES = {".pyc", ".pyo"}
 SKILL_SOURCE_DIRECTORIES = (ROOT / "agent-skill", ROOT / "host-integrations")
 FORBIDDEN_MARKERS = (".codex-plugin", "${claude_", "claude code", "workbuddy")
 LOCAL_MARKDOWN_REFERENCE = re.compile(r"`([^`]+\.md)`")
@@ -86,6 +90,23 @@ def generated_contract_path(output: Path, name: str) -> Path:
     return generated_skill_path(output, name).parent / "references" / "tool-contract.md"
 
 
+def skill_resource_sources(name: str) -> list[tuple[Path, Path]]:
+    source_root = CANONICAL_SKILLS[name].parent
+    resources: list[tuple[Path, Path]] = []
+    for directory in SKILL_RESOURCE_DIRECTORIES:
+        source = source_root / directory
+        if not source.is_dir():
+            continue
+        for path in sorted(source.rglob("*")):
+            if (
+                path.is_file()
+                and not any(part in EXCLUDED_RESOURCE_NAMES for part in path.parts)
+                and path.suffix not in EXCLUDED_RESOURCE_SUFFIXES
+            ):
+                resources.append((path, path.relative_to(source_root)))
+    return resources
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path)
@@ -107,6 +128,32 @@ def main() -> None:
                     name
                 ].read_text(encoding="utf-8"):
                     fail(f"generated {name} contract has drifted from the canonical source")
+                expected_resources = {
+                    relative for _, relative in skill_resource_sources(name)
+                }
+                for source_resource, relative in skill_resource_sources(name):
+                    resource_destination = destination.parent / relative
+                    if (
+                        not resource_destination.is_file()
+                        or resource_destination.read_bytes() != source_resource.read_bytes()
+                    ):
+                        fail(
+                            f"generated {name} resource {relative.as_posix()} has drifted "
+                            "from the canonical source"
+                        )
+                for directory in SKILL_RESOURCE_DIRECTORIES:
+                    generated_directory = destination.parent / directory
+                    if not generated_directory.is_dir():
+                        continue
+                    for generated_resource in generated_directory.rglob("*"):
+                        if generated_resource.is_file() and (
+                            generated_resource.relative_to(destination.parent)
+                            not in expected_resources
+                        ):
+                            fail(
+                                f"generated {name} contains an unexpected resource "
+                                f"{generated_resource.relative_to(destination.parent).as_posix()}"
+                            )
                 validate_local_references(
                     destination.read_text(encoding="utf-8"), destination.parent
                 )
@@ -115,6 +162,10 @@ def main() -> None:
                 destination.write_text(content, encoding="utf-8")
                 contract_destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(SKILL_CONTRACTS[name], contract_destination)
+                for source_resource, relative in skill_resource_sources(name):
+                    resource_destination = destination.parent / relative
+                    resource_destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source_resource, resource_destination)
     print("agent skill validation passed")
 
 
