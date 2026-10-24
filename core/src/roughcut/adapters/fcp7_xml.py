@@ -126,7 +126,7 @@ def _add_track_items(
         )
         item_id = _item_id(media_type, clip.logical_clip_id)
         item = ET.SubElement(parent, "clipitem", {"id": item_id})
-        _text(item, "name", f"{clip.logical_clip_id} | {clip.camera_id} | {clip.source_id}")
+        _text(item, "name", clip.source_display_name)
         _text(item, "duration", frame_range.timeline_out - frame_range.timeline_in)
         _add_rate(item, rate_timebase, rate_ntsc)
         _text(item, "enabled", "TRUE")
@@ -136,6 +136,8 @@ def _add_track_items(
         _text(item, "end", frame_range.timeline_out)
         if frame_range.mixed_rates_offset is not None:
             _text(item, "mixedratesoffset", frame_range.mixed_rates_offset)
+        logginginfo = ET.SubElement(item, "logginginfo")
+        _text(logginginfo, "lognote", f"{clip.logical_clip_id} | {clip.camera_id} | {clip.source_id}")
         if clip.source_id not in source_definitions:
             _add_file_definition(
                 item,

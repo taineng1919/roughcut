@@ -454,6 +454,7 @@ jobs:
           python -m pytest -q `
             core/tests/adapters/test_fcp7_xml.py `
             core/tests/adapters/test_fcpxml.py `
+            core/tests/adapters/test_nle_display_names.py `
             core/tests/adapters/test_nle_export_store.py `
             core/tests/adapters/test_nle_time.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -41,7 +41,7 @@ def test_fcpxml_single_camera_uses_original_sources_and_decision_order(tmp_path:
     assert spine is not None
     assert spine.findall("spine") == []
     main = spine.findall("asset-clip")
-    assert [item.attrib["name"].split(" | ", 1)[0] for item in main] == [
+    assert [item.findtext("note", "").split(" | ", 1)[0] for item in main] == [
         "clip_1",
         "clip_2",
         "clip_3",
@@ -77,7 +77,7 @@ def test_fcpxml_multicam_uses_connected_lanes_and_gap_absence(tmp_path: Path) ->
 
     main = spine.findall("asset-clip")
     assert len(main) == 3
-    connected = [child for item in main for child in item]
+    connected = [child for item in main for child in item.findall("asset-clip")]
     assert len(connected) == 3
     assert all(child.tag == "asset-clip" for child in connected)
     assert all(child.attrib["lane"] == "1" for child in connected)
@@ -123,7 +123,7 @@ def test_fcpxml_and_fcp7_normalize_to_the_same_semantics(tmp_path: Path) -> None
     fcpxml_main: list[tuple[str, str, int, int, int, int]] = []
     fcpxml_auxiliary: list[tuple[str, str, int, int, int, int]] = []
     for main in fcpxml_spine.findall("asset-clip"):
-        main_name, _role, main_source_id = main.attrib["name"].split(" | ")
+        main_name, _role, main_source_id = main.findtext("note", "").split(" | ")
         main_source_start = _parse_seconds(main.attrib["start"])
         main_timeline_start = _parse_seconds(main.attrib["offset"])
         main_duration = _parse_seconds(main.attrib["duration"])
@@ -138,7 +138,7 @@ def test_fcpxml_and_fcp7_normalize_to_the_same_semantics(tmp_path: Path) -> None
             )
         )
         for auxiliary in main.findall("asset-clip"):
-            aux_name, _aux_role, aux_source_id = auxiliary.attrib["name"].split(" | ")
+            aux_name, _aux_role, aux_source_id = auxiliary.findtext("note", "").split(" | ")
             aux_source_start = _parse_seconds(auxiliary.attrib["start"])
             aux_timeline_start = (
                 main_timeline_start + _parse_seconds(auxiliary.attrib["offset"]) - main_source_start
@@ -159,7 +159,7 @@ def test_fcpxml_and_fcp7_normalize_to_the_same_semantics(tmp_path: Path) -> None
         items = fcp7_root.findall(f"./sequence/media/video/track[{track_index}]/clipitem")
         return [
             (
-                item.findtext("name", "").split(" | ", 1)[0],
+                item.findtext("./logginginfo/lognote", "").split(" | ", 1)[0],
                 item.find("file").attrib["id"].removeprefix("file-")
                 if item.find("file") is not None
                 else "",
