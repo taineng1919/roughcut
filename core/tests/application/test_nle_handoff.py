@@ -1045,7 +1045,7 @@ def _assert_unpaired_main_gap_export(
     assert spine is not None
     main_clips = spine.findall("asset-clip")
     assert [item.attrib["ref"] for item in main_clips] == ["asset-src_a", "asset-src_n"]
-    connected = [child for item in main_clips for child in item]
+    connected = [child for item in main_clips for child in item.findall("asset-clip")]
     assert len(connected) == 1
     assert connected[0].attrib["lane"] == "1"
     assert connected[0].attrib["ref"] == "asset-src_b"

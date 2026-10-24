@@ -79,6 +79,13 @@ duration_ticks`），request hash 与 receipt readback 都覆盖它。无解说�
 两条 writer 共享同一个 projection；writer 不读取 ProjectStore、WorkflowStore、
 AlignmentStore、Decision 文件或 ParallelRender artifact。
 
+两种格式的时间线片段显示名称均使用 handoff clip 的 `source_display_name`
+（来自 `SourceAsset.display_name`），与素材资源显示名称一致；同一素材的多次引用
+保留同一显示名称。原内部标识串
+`logical_clip_id | camera_id | source_id` 写入 FCPXML `asset-clip/note`（首个子元素）
+或 FCP7 `clipitem/logginginfo/lognote`，不再作为显示名称。原有 source ID、资源引用、
+clipitem ID 和 A/V links 保持不变。
+
 ### 3.1 FCPXML 1.14
 
 - 根元素为 `fcpxml version="1.14"`，资源通过 `asset` + `media-rep kind="original-media"`

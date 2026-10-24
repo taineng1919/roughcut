@@ -149,7 +149,7 @@ def _asset_clip(
     lane: int | None = None,
 ) -> ET.Element:
     attributes = {
-        "name": f"{clip.logical_clip_id} | {clip.camera_id} | {clip.source_id}",
+        "name": clip.source_display_name,
         "ref": f"asset-{clip.source_id}",
         "format": format_id,
         "offset": fcpxml_time(timing.offset_ticks),
@@ -162,7 +162,10 @@ def _asset_clip(
         attributes["lane"] = str(lane)
     if "audio" in clip.media_types:
         attributes["audioRole"] = "dialogue"
-    return ET.Element("asset-clip", attributes)
+    element = ET.Element("asset-clip", attributes)
+    note = ET.SubElement(element, "note")
+    note.text = f"{clip.logical_clip_id} | {clip.camera_id} | {clip.source_id}"
+    return element
 
 
 def _source_catalog(timeline: NleHandoffTimeline) -> dict[str, NleHandoffClip]:
