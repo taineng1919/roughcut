@@ -76,7 +76,7 @@ def write_fcpxml(timeline: NleHandoffTimeline) -> bytes:
             "id": f"asset-{source_id}",
             "name": clip.source_display_name,
             "uid": source_id,
-            "start": "0s",
+            "start": fcpxml_time(clip.source_timecode_origin_ticks),
             "duration": fcpxml_time(clip.source_duration_ticks),
             "hasVideo": "1" if "video" in media_types else "0",
             "hasAudio": "1" if "audio" in media_types else "0",
@@ -130,6 +130,7 @@ def write_fcpxml(timeline: NleHandoffTimeline) -> bytes:
                             format_id=_clip_format_id(auxiliary_clip, source_formats),
                             include_lane=True,
                             lane=lane,
+                            parent_origin_ticks=main_clip.source_timecode_origin_ticks,
                         )
                     )
 
@@ -147,13 +148,14 @@ def _asset_clip(
     format_id: str,
     include_lane: bool,
     lane: int | None = None,
+    parent_origin_ticks: int = 0,
 ) -> ET.Element:
     attributes = {
         "name": clip.source_display_name,
         "ref": f"asset-{clip.source_id}",
         "format": format_id,
-        "offset": fcpxml_time(timing.offset_ticks),
-        "start": fcpxml_time(timing.start_ticks),
+        "offset": fcpxml_time(timing.offset_ticks + parent_origin_ticks),
+        "start": fcpxml_time(timing.start_ticks + clip.source_timecode_origin_ticks),
         "duration": fcpxml_time(timing.duration_ticks),
     }
     if include_lane:

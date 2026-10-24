@@ -425,6 +425,9 @@ jobs:
             core/src/roughcut/application/nle_handoff.py `
             core/src/roughcut/adapters/fcp7_xml.py `
             core/src/roughcut/adapters/fcpxml.py `
+            core/src/roughcut/adapters/quicktime_timecode.py `
+            core/tests/adapters/test_quicktime_timecode.py `
+            core/tests/adapters/test_fcpxml_source_origin.py `
             core/src/roughcut/adapters/nle_export_store.py `
             core/src/roughcut/adapters/nle_time.py `
             core/src/roughcut/domain/nle_handoff.py `
@@ -455,6 +458,8 @@ jobs:
             core/tests/adapters/test_fcp7_xml.py `
             core/tests/adapters/test_fcpxml.py `
             core/tests/adapters/test_nle_display_names.py `
+            core/tests/adapters/test_quicktime_timecode.py `
+            core/tests/adapters/test_fcpxml_source_origin.py `
             core/tests/adapters/test_nle_export_store.py `
             core/tests/adapters/test_nle_time.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

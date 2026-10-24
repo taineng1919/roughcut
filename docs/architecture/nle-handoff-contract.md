@@ -90,6 +90,20 @@ clipitem ID 和 A/V links 保持不变。
 
 - 根元素为 `fcpxml version="1.14"`，资源通过 `asset` + `media-rep kind="original-media"`
   引用 SourceAsset locator。
+- 新 `approve_nle_export` 在验证源指纹、拒绝已有目标之后，以有界只读 QuickTime atom
+  adapter 读取标准 `tmcd` track 的起始计数，作为内存 handoff clip 的
+  `source_timecode_origin_ticks`（默认 0）。不使用文件名、私有 RTMD、format tags 或
+  container start 推断时间码；无标准 tmcd 的媒体保持 0，生成占位媒体也保持 0。
+  当前支持一个 tmcd track、一个 32-bit 非负计数样本、一个本地 chunk（stco/co64）、
+  一个 sample description，以及缺省或单项恒等 edit list；rate 必须与源 nominal rate
+  精确相等，origin 必须可精确表示为 ticks。损坏、歧义、移位 edit list、复杂映射或
+  不支持的标准时间码返回 `nle_export_source_timecode_unsupported`，不发布文件或 receipt。
+- 时间码 origin 不进入持久 Project/MediaProbe、request hash 或 receipt schema。旧 receipt
+  仍校验当前 truth、源指纹及原输出后幂等回读，不重新解析时间码或覆盖旧输出；需修复旧
+  文件时使用新的 action 和目标。FCP7 坐标语义保持不变。
+- FCPXML 最后序列化时，`asset@start` 使用自身 origin，`asset-clip@start` 在已投影的
+  文件局部源坐标上加自身 origin；connected child 的 `offset` 加其父 clip 的 origin。
+  主轨全局 `offset`、剪点、时长、target-grid 投影与同步误差计算不受 origin 影响。
 - sequence 的 project format 只来自 Project rate/width/height；每个 fixed-rate video
   SourceAsset 使用按 probe 的 nominal frame rate/width/height 建立或复用的 source format，
   并由 `asset@format` 引用。source format 不冒充 project format。

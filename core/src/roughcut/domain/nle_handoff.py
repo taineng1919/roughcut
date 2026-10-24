@@ -50,6 +50,7 @@ def _validate_repeated_source_metadata(tracks: tuple[NleHandoffTrack, ...]) -> N
                 clip.source_nominal_frame_rate,
                 clip.source_is_vfr,
                 clip.source_audio_sample_rate,
+                clip.source_timecode_origin_ticks,
                 clip.media_types,
             )
             previous = catalog.get(clip.source_id)
@@ -140,6 +141,7 @@ class NleHandoffClip:
     track_id: str
     media_types: tuple[str, ...]
     av_link_id: str
+    source_timecode_origin_ticks: int = 0
 
     def __post_init__(self) -> None:
         _safe_id(self.logical_clip_id, field="clip logical identity")
@@ -154,6 +156,7 @@ class NleHandoffClip:
             field="clip source_duration_ticks",
             minimum=1,
         )
+        _integer(self.source_timecode_origin_ticks, field="clip source_timecode_origin_ticks")
         _string(self.source_display_name, field="clip source_display_name")
         for name, value in (
             ("clip source_width", self.source_width),

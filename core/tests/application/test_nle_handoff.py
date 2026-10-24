@@ -15,6 +15,7 @@ from test_workflows import _advance_to_export_review, _workflow_project
 from roughcut import m2_7_public_capability
 from roughcut.adapters.alignment_store import AlignmentStore
 from roughcut.adapters.media_operation_store import MediaOperationStore
+from roughcut.adapters.nle_time import fcpxml_time
 from roughcut.adapters.project_store import ProjectStore
 from roughcut.adapters.workflow_store import WorkflowStore
 from roughcut.application import multicam_continuation as continuation_module
@@ -1742,3 +1743,95 @@ def test_writer_failure_does_not_leave_receipt_or_output(
         )
     assert not destination.exists()
     assert not (root / "exports/handoffs/receipts/nle_action_failed.json").exists()
+
+
+@pytest.fixture(autouse=True)
+def fake_source_timecode_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Application fixtures have fake media; container parsing is tested separately."""
+    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", lambda *_: 0)
+
+
+@pytest.mark.parametrize("route", ["fcpxml", "fcp7_xml"])
+def test_new_approval_reads_timecode_once_after_fingerprint_validation_and_preserves_readback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    route: str,
+) -> None:
+    root, edit_version_id, revision = _prepare_single_export(tmp_path)
+    source = ProjectStore(root).load().sources[0]
+    destination = tmp_path / ("origin.fcpxml" if route == "fcpxml" else "origin.xml")
+    calls: list[Path] = []
+
+    def read_origin(path: Path, rate: RationalRate) -> int:
+        assert fingerprint_file(path) == source.fingerprint
+        assert rate == RationalRate(25, 1)
+        calls.append(path)
+        return 120_000
+
+    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", read_origin)
+    kwargs = {
+        "run_id": "wfr_test",
+        "action_id": "nle_timecode",
+        "edit_version_id": edit_version_id,
+        "expected_revision": revision,
+        "route": route,
+        "destination": destination,
+        "alignment_artifact_id": None,
+    }
+    baseline = nle_handoff.prepare_nle_export(root, **kwargs)
+    first = approve_nle_export(root, **kwargs)
+    assert calls == (
+        [baseline.timeline.main_track.clips[0].source_locator]
+        if route == "fcpxml"
+        else []
+    )
+    assert first.receipt.request_hash == baseline.request_hash
+    payload = destination.read_bytes()
+    if route == "fcpxml":
+        xml = ET.fromstring(payload)
+        assert xml.find("./resources/asset").attrib["start"] == "1s"
+        serialized = xml.findall(".//asset-clip")
+        assert len(serialized) == len(baseline.timeline.main_track.clips)
+        for item, clip in zip(
+            serialized, baseline.timeline.main_track.clips, strict=True
+        ):
+            assert item.attrib["start"] == fcpxml_time(clip.source_in_ticks + 120_000)
+
+    def reject_read(*args: object) -> int:
+        raise AssertionError(
+            "receipt readback must not run new source timecode parsing"
+        )
+
+    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", reject_read)
+    second = approve_nle_export(root, **kwargs)
+    assert second.readback is True
+    assert second.receipt == first.receipt
+    assert destination.read_bytes() == payload
+
+
+def test_timecode_failure_does_not_publish_export_or_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, edit_version_id, revision = _prepare_single_export(tmp_path)
+    destination = tmp_path / "unsupported.fcpxml"
+
+    def unsupported(*args: object) -> int:
+        raise NleHandoffError(
+            "nle_export_source_timecode_unsupported", "ambiguous tmcd"
+        )
+
+    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", unsupported)
+    with pytest.raises(NleHandoffError, match="ambiguous tmcd"):
+        approve_nle_export(
+            root,
+            run_id="wfr_test",
+            action_id="nle_bad_timecode",
+            edit_version_id=edit_version_id,
+            expected_revision=revision,
+            route="fcpxml",
+            destination=destination,
+            alignment_artifact_id=None,
+        )
+    assert not destination.exists()
+    assert not (root / "exports/handoffs/receipts/nle_bad_timecode.json").exists()
