@@ -60,6 +60,7 @@ def test_standard_50fps_timecode_origin_is_exact(tmp_path: Path, co64: bool) -> 
         atom(b"ftyp", b"isom") + atom(b"moov", b""),
         atom(b"moov", atom(b"trak", atom(b"mdia", atom(b"hdlr", bytes(8) + b"rtmd")))),
     ],
+    ids=["other-container", "no-timecode-track", "private-rtmd-only"],
 )
 def test_absent_standard_timecode_is_zero(tmp_path: Path, payload: bytes) -> None:
     path = tmp_path / "source.mov"
@@ -80,6 +81,14 @@ def test_absent_standard_timecode_is_zero(tmp_path: Path, payload: bytes) -> Non
         timecode_movie().replace(
             b"tmcd\x00\x00\x00\x00\x00\x00\x00\x01", b"tmcd\x00\x00\x00\x00\x00\x00\x00\x02"
         ),
+    ],
+    ids=[
+        "negative-counter",
+        "shifted-edit",
+        "duplicate-timecode-track",
+        "truncated-movie",
+        "multiple-samples-per-chunk",
+        "external-sample-reference",
     ],
 )
 def test_invalid_or_ambiguous_timecode_fails_closed(tmp_path: Path, payload: bytes) -> None:
@@ -114,6 +123,7 @@ def test_25fps_timecode_has_no_filename_dependency(tmp_path: Path) -> None:
             struct.pack(">IIII", 0, 1, 1, 5_000_000), struct.pack(">IIII", 0, 1, 2, 5_000_000)
         ),
     ],
+    ids=["metadata-read-limit", "atom-count-limit", "multiple-sample-sizes", "multiple-sample-times"],
 )
 def test_excessive_metadata_and_multiple_samples_fail_closed(
     tmp_path: Path, payload: bytes
