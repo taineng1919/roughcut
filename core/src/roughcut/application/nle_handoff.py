@@ -6,7 +6,7 @@ import hashlib
 import os
 import stat
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeAlias, cast
@@ -14,6 +14,7 @@ from typing import TypeAlias, cast
 from roughcut.adapters.alignment_store import AlignmentStore
 from roughcut.adapters.project_lock import project_write_lock
 from roughcut.adapters.project_store import ProjectStore
+from roughcut.adapters.quicktime_timecode import read_quicktime_source_origin
 from roughcut.adapters.workflow_candidates import (
     StagedWorkflowFile,
     publish_workflow_candidate,
@@ -397,6 +398,43 @@ def prepare_nle_export(
     )
 
 
+def _with_source_timecodes(prepared: NlePreparedExport) -> NlePreparedExport:
+    """Enrich only a new FCPXML export after source fingerprint validation.
+
+    Origins are container facts, not changes to canonical edit ranges. Keeping
+    them outside the request projection preserves existing receipt readback.
+    Generated placeholder media has no source timecode and keeps origin zero.
+    """
+    source_ids = {source.source_id for source in prepared.project.sources}
+    origins: dict[str, int] = {}
+    for track in prepared.timeline.tracks:
+        for clip in track.clips:
+            if clip.source_id in origins or clip.source_id not in source_ids:
+                continue
+            if (
+                "video" in clip.media_types
+                and clip.source_nominal_frame_rate is not None
+            ):
+                origins[clip.source_id] = read_quicktime_source_origin(
+                    clip.source_locator, clip.source_nominal_frame_rate
+                )
+    tracks = tuple(
+        replace(
+            track,
+            items=tuple(
+                replace(
+                    item, source_timecode_origin_ticks=origins.get(item.source_id, 0)
+                )
+                if isinstance(item, NleHandoffClip)
+                else item
+                for item in track.items
+            ),
+        )
+        for track in prepared.timeline.tracks
+    )
+    return replace(prepared, timeline=replace(prepared.timeline, tracks=tracks))
+
+
 def write_nle_export(prepared: NlePreparedExport) -> bytes:
     """Serialize an already validated timeline with one fixed writer profile."""
 
@@ -500,6 +538,8 @@ def _approve_nle_export_locked(
             "nle_export_destination_conflict",
             "the destination already exists and will not be overwritten",
         )
+    if prepared.route == "fcpxml":
+        prepared = _with_source_timecodes(prepared)
     payload = write_nle_export(prepared)
     if not payload:
         raise _error("nle_export_write_failed", "the writer returned an empty file")
