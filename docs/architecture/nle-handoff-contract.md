@@ -90,14 +90,55 @@ clipitem ID 和 A/V links 保持不变。
 
 - 根元素为 `fcpxml version="1.14"`，资源通过 `asset` + `media-rep kind="original-media"`
   引用 SourceAsset locator。
-- 新 `approve_nle_export` 在验证源指纹、拒绝已有目标之后，以有界只读 QuickTime atom
-  adapter 读取标准 `tmcd` track 的起始计数，作为内存 handoff clip 的
-  `source_timecode_origin_ticks`（默认 0）。不使用文件名、私有 RTMD、format tags 或
-  container start 推断时间码；无标准 tmcd 的媒体保持 0，生成占位媒体也保持 0。
-  当前支持一个 tmcd track、一个 32-bit 非负计数样本、一个本地 chunk（stco/co64）、
-  一个 sample description，以及缺省或单项恒等 edit list；rate 必须与源 nominal rate
-  精确相等，origin 必须可精确表示为 ticks。损坏、歧义、移位 edit list、复杂映射或
-  不支持的标准时间码返回 `nle_export_source_timecode_unsupported`，不发布文件或 receipt。
+- 新 `approve_nle_export` 在验证源指纹、拒绝已有目标之后，对每个被引用的 original
+  source（包括 audio-only）执行一次有界、只读的结构探测。结果仅存在内存中：
+  `known_origin`（含标准时间码的已知零或非零起点）、`confirmed_absent`（支持的结构中
+  确认无标准时间码，显式零）、`unknown`（短文件或尚未识别的封装）、`unsupported`
+  （已识别但未支持、损坏或歧义的结构）。后两者不携带 ticks，也不能默认转为 0。
+  仅前两者写入 handoff clip 的 `source_timecode_origin_ticks`；由应用拥有和验证的生成
+  占位媒体单独保持显式 0。不使用文件名、扩展名、厂商品牌、私有 RTMD、ffprobe tags 或
+  container start 推断 Final Cut 时间码。探测直接读取文件，不启动外部媒体程序；若未来
+  采用外部工具，仍须通过现有 runtime binding，并有独立的 Final Cut 坐标证据。
+- 支持边界与失败行为见下表。这里的“支持”指安全的 origin 解析规则与合成回归，
+  不扩展本文开头的 target-NLE/version 实机验收声明。任何 unknown/unsupported 会在
+  发布 XML/receipt 前终止，错误码分别是 `nle_export_source_timecode_unknown` 与
+  `nle_export_source_timecode_unsupported`，消息含 source 显示名、ID、状态和精确原因。
+
+| source structure（按字节结构，不按扩展名） | 新 FCPXML origin 行为 | 边界 |
+|---|---|---|
+| 非 fragmented QuickTime / ISO BMFF，包含 vide/soun track 与有效 stsd，无标准时间码 | `confirmed_absent`, 0 | 每条 track 均须为支持的 handler/description 和已验证 self-contained data reference；实际 A/V 类型匹配 SourceAsset probe；支持的 A/V sample codes 由 adapter 的明确集合限定，未知 entry 不充当无时间码证据 |
+| 同上，额外有私有 RTMD metadata track | `confirmed_absent`, 0 | RTMD 不作为 Final Cut origin；单独 metadata track 不能冒充正常 A/V movie |
+| 一个 `tmcd` handler、一个 32-bit `tmcd` sample、单个本地 chunk | `known_origin`, exact ticks | 一个 sample description（data_reference_index=1）；minf/dinf/dref 恰好一个本地引用；stco/co64；非负计数；缺省或单项恒等 edit list；rate 精确等于源 nominal rate；ticks 必须精确可表示 |
+| `tc64` sample、多个 TC tracks/samples、移位 edits、外部引用、复杂 mapping、未知 handler/sample code、fragmented movie 或损坏 atom | `unsupported` | 正式 tc64 格式尚未实现；绝不能因缺少 tmcd sample 而判为 confirmed_absent |
+| audio-only QuickTime / MP4，无标准时间码 | `confirmed_absent`, 0 | 与 video 使用同一结构规则，支持常规 mp4a/lpcm 等明确 sample codes |
+| audio-only QuickTime / MP4，含标准 tmcd，但 SourceAsset 无 nominal frame rate | `unsupported` | 不从文本标签/项目 rate 补造 source rate |
+| 普通 RIFF/WAVE PCM 或 IEEE float | `confirmed_absent`, 0 | 一个 fmt（tag 1/3、16/18 字节）、一个非空 data；有效 RIFF/chunk extent；允许 JUNK/PAD/fact 与 LIST INFO；跳过音频 payload |
+| WAVE bext（含 BWF time reference，即使值为零）、iXML/axml 或其他未验证 metadata；RF64/BW64 | `unsupported` | 不把 sample reference 或其他 clock 直接当 Final Cut 源 origin；WAVE extensible/compressed fmt 本轮也未实现 |
+| 可识别 MXF/KLV signature | `unsupported` | 本轮没有实现 MXF 时间码 adapter，也没有证明其与 Final Cut origin 相同 |
+| 短文件、未识别结构（包括尚未支持的 MP3、ADTS AAC、AIFF、AVI、Matroska 等） | `unknown` | 不静默默认零；codec 字符串/扩展名不足以确认封装的时间码语义 |
+| 应用生成的解说占位媒体 | 显式 0 | 延用应用对内容、fingerprint、时长及 companion delivery 的独立验证 |
+| FCP7 XML，所有既有 source types | 不调用新探测 | 既有 FCP7 接受/拒绝规则及坐标语义完全不变 |
+
+此前 audio-only 与未知封装的宽泛接受来自未检查的默认零，并不是这些封装已通过 origin
+验收。此次收窄仅适用于新 FCPXML 正式批准；普通 WAVE 与无时间码的受支持 QuickTime/MP4
+保留。新格式需增加有证据的正规 adapter 和回归，不能用 ffprobe 任意 timecode 标签补零。
+QuickTime/ISO BMFF 的每条 A/V、metadata 与 timecode track 都必须提供 `minf/dinf/dref`。
+本轮只支持 dref version 0 / flags 0、恰好一个 entry，以及该 entry 为 `url ` 或 QuickTime
+`alis`、version 0 / self-contained flag 1、无附加 location/alias payload 的明确子集。
+所有 sample description 的 data_reference_index 必须为 1；缺失 dref、external URL/alias、
+多个引用、未知类型/flags/version 或复杂引用直接 unsupported。`stco/co64` 落在当前文件
+mdat 内不能替代 data-reference locality 证据；外部 offset 即使数值碰巧落在当前 mdat，
+也绝不作为 origin 读取。支持 alis 的 self-contained 形式不等于支持外部 QuickTime alias
+解析，也不会跟随引用打开任何其他文件。Data-reference 字段语义参见
+[Apple Data references](https://developer.apple.com/documentation/quicktime-file-format/media_data_reference_atom/data_references)。
+
+标准依据：[Apple TN2174](https://developer.apple.com/library/archive/technotes/tn2174/_index.html)
+说明 MP4/MOV 的标准 timecode handler 为 tmcd，而 sample description 可为 tmcd 或 tc64；
+[Apple TN2310](https://developer.apple.com/library/archive/technotes/tn2310/_index.html)
+区分播放坐标与外部 timecode，且说明单样本与多样本 edited media。当前只实现上述明确的
+单样本 32-bit 子集。读 metadata 总量不超过 4 MB、atom/chunk 数不超过 10,000，媒体 payload
+除四字节 tmcd sample 外只 seek 跳过；异常边界明确拒绝。
+
 - 时间码 origin 不进入持久 Project/MediaProbe、request hash 或 receipt schema。旧 receipt
   仍校验当前 truth、源指纹及原输出后幂等回读，不重新解析时间码或覆盖旧输出；需修复旧
   文件时使用新的 action 和目标。FCP7 坐标语义保持不变。

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import struct
 import xml.etree.ElementTree as ET
 from dataclasses import replace
 from pathlib import Path
@@ -17,6 +18,7 @@ from roughcut.adapters.alignment_store import AlignmentStore
 from roughcut.adapters.media_operation_store import MediaOperationStore
 from roughcut.adapters.nle_time import fcpxml_time
 from roughcut.adapters.project_store import ProjectStore
+from roughcut.adapters.quicktime_timecode import SourceTimecodeResolution
 from roughcut.adapters.workflow_store import WorkflowStore
 from roughcut.application import multicam_continuation as continuation_module
 from roughcut.application import nle_handoff
@@ -299,10 +301,12 @@ def _prepare_single_export(
     tmp_path: Path,
     *,
     is_vfr: bool = False,
+    media_payload: bytes = b"source bytes for nle export",
+    audio_only: bool = False,
 ) -> tuple[Path, str, int]:
     root = _workflow_project(tmp_path)
     media = tmp_path / "export source.mp4"
-    media.write_bytes(b"source bytes for nle export")
+    media.write_bytes(media_payload)
     project = ProjectStore(root).load()
     source = replace(
         project.sources[0],
@@ -323,6 +327,14 @@ def _prepare_single_export(
             rotation_degrees=0,
         ),
     )
+    if audio_only:
+        source = replace(
+            source, kind="audio",
+            probe=replace(
+                source.probe, video_codec=None, width=None, height=None,
+                nominal_frame_rate=None, audio_codec="pcm_s16le",
+            ),
+        )
     ProjectStore(root).save(
         replace(project, revision=project.revision + 1, sources=(source,)),
         expected_revision=project.revision,
@@ -1748,7 +1760,11 @@ def test_writer_failure_does_not_leave_receipt_or_output(
 @pytest.fixture(autouse=True)
 def fake_source_timecode_origin(monkeypatch: pytest.MonkeyPatch) -> None:
     """Application fixtures have fake media; container parsing is tested separately."""
-    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", lambda *_: 0)
+    monkeypatch.setattr(
+        nle_handoff,
+        "inspect_source_timecode",
+        lambda *_: SourceTimecodeResolution("confirmed_absent", 0, "fixture"),
+    )
 
 
 @pytest.mark.parametrize("route", ["fcpxml", "fcp7_xml"])
@@ -1762,13 +1778,17 @@ def test_new_approval_reads_timecode_once_after_fingerprint_validation_and_prese
     destination = tmp_path / ("origin.fcpxml" if route == "fcpxml" else "origin.xml")
     calls: list[Path] = []
 
-    def read_origin(path: Path, rate: RationalRate) -> int:
+    def read_origin(
+        path: Path,
+        rate: RationalRate | None,
+        media_types: tuple[str, ...],
+    ) -> SourceTimecodeResolution:
         assert fingerprint_file(path) == source.fingerprint
         assert rate == RationalRate(25, 1)
         calls.append(path)
-        return 120_000
+        return SourceTimecodeResolution("known_origin", 120_000, "fixture")
 
-    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", read_origin)
+    monkeypatch.setattr(nle_handoff, "inspect_source_timecode", read_origin)
     kwargs = {
         "run_id": "wfr_test",
         "action_id": "nle_timecode",
@@ -1781,9 +1801,7 @@ def test_new_approval_reads_timecode_once_after_fingerprint_validation_and_prese
     baseline = nle_handoff.prepare_nle_export(root, **kwargs)
     first = approve_nle_export(root, **kwargs)
     assert calls == (
-        [baseline.timeline.main_track.clips[0].source_locator]
-        if route == "fcpxml"
-        else []
+        [baseline.timeline.main_track.clips[0].source_locator] if route == "fcpxml" else []
     )
     assert first.receipt.request_hash == baseline.request_hash
     payload = destination.read_bytes()
@@ -1792,17 +1810,13 @@ def test_new_approval_reads_timecode_once_after_fingerprint_validation_and_prese
         assert xml.find("./resources/asset").attrib["start"] == "1s"
         serialized = xml.findall(".//asset-clip")
         assert len(serialized) == len(baseline.timeline.main_track.clips)
-        for item, clip in zip(
-            serialized, baseline.timeline.main_track.clips, strict=True
-        ):
+        for item, clip in zip(serialized, baseline.timeline.main_track.clips, strict=True):
             assert item.attrib["start"] == fcpxml_time(clip.source_in_ticks + 120_000)
 
     def reject_read(*args: object) -> int:
-        raise AssertionError(
-            "receipt readback must not run new source timecode parsing"
-        )
+        raise AssertionError("receipt readback must not run new source timecode parsing")
 
-    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", reject_read)
+    monkeypatch.setattr(nle_handoff, "inspect_source_timecode", reject_read)
     second = approve_nle_export(root, **kwargs)
     assert second.readback is True
     assert second.receipt == first.receipt
@@ -1817,11 +1831,9 @@ def test_timecode_failure_does_not_publish_export_or_receipt(
     destination = tmp_path / "unsupported.fcpxml"
 
     def unsupported(*args: object) -> int:
-        raise NleHandoffError(
-            "nle_export_source_timecode_unsupported", "ambiguous tmcd"
-        )
+        raise NleHandoffError("nle_export_source_timecode_unsupported", "ambiguous tmcd")
 
-    monkeypatch.setattr(nle_handoff, "read_quicktime_source_origin", unsupported)
+    monkeypatch.setattr(nle_handoff, "inspect_source_timecode", unsupported)
     with pytest.raises(NleHandoffError, match="ambiguous tmcd"):
         approve_nle_export(
             root,
@@ -1835,3 +1847,123 @@ def test_timecode_failure_does_not_publish_export_or_receipt(
         )
     assert not destination.exists()
     assert not (root / "exports/handoffs/receipts/nle_bad_timecode.json").exists()
+
+
+@pytest.mark.parametrize(
+    "payload,status,reason",
+    [
+        (b"source bytes", "unknown", "unrecognized"),
+        (b"\x06\x0e\x2b\x34" + bytes(24), "unsupported", "MXF/KLV"),
+        (b"", "unknown", "too short"),
+    ],
+    ids=["unrecognized", "mxf", "empty"],
+)
+@pytest.mark.parametrize("audio_only", [False, True], ids=["video", "audio"])
+def test_real_resolution_failure_has_source_context_and_publishes_nothing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    payload: bytes,
+    status: str,
+    reason: str,
+    audio_only: bool,
+) -> None:
+    from roughcut.adapters.source_timecode import inspect_source_timecode
+
+    root, edit_version_id, revision = _prepare_single_export(
+        tmp_path,
+        media_payload=payload,
+        audio_only=audio_only,
+    )
+    monkeypatch.setattr(nle_handoff, "inspect_source_timecode", inspect_source_timecode)
+    destination = tmp_path / "unverified.fcpxml"
+    source = ProjectStore(root).load().sources[0]
+    with pytest.raises(NleHandoffError) as failure:
+        approve_nle_export(
+            root,
+            run_id="wfr_test",
+            action_id="unverified_origin",
+            edit_version_id=edit_version_id,
+            expected_revision=revision,
+            route="fcpxml",
+            destination=destination,
+            alignment_artifact_id=None,
+        )
+    assert failure.value.code == f"nle_export_source_timecode_{status}"
+    assert source.source_id in str(failure.value)
+    assert source.display_name in str(failure.value)
+    assert reason in str(failure.value)
+    assert not destination.exists()
+    assert not (root / "exports/handoffs/receipts/unverified_origin.json").exists()
+
+
+def _plain_wave_payload() -> bytes:
+    fmt = b"fmt " + struct.pack("<IHHIIHH", 16, 1, 1, 48_000, 96_000, 2, 16)
+    body = b"WAVE" + fmt + b"data" + struct.pack("<I", 16) + bytes(16)
+    return b"RIFF" + struct.pack("<I", len(body)) + body
+
+
+@pytest.mark.parametrize("audio_only", [False, True], ids=["video-movie", "audio-wave"])
+def test_real_confirmed_absence_exports_zero_and_keeps_receipt_readback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    audio_only: bool,
+) -> None:
+    from roughcut.adapters.source_timecode import inspect_source_timecode
+
+    def atom(kind: bytes, body: bytes) -> bytes:
+        return struct.pack(">I4s", len(body) + 8, kind) + body
+
+    def track(handler: bytes, sample: bytes) -> bytes:
+        padding = 70 if handler == b"vide" else 20
+        stsd = atom(
+            b"stsd",
+            struct.pack(">II", 0, 1) + atom(sample, bytes(6) + b"\x00\x01" + bytes(padding)),
+        )
+        return atom(
+            b"trak",
+            atom(
+                b"mdia",
+                atom(b"hdlr", bytes(8) + handler)
+                + atom(
+                    b"minf",
+                    atom(
+                        b"dinf",
+                        atom(
+                            b"dref", struct.pack(">II", 0, 1) + atom(b"url ", struct.pack(">I", 1))
+                        ),
+                    )
+                    + atom(b"stbl", stsd),
+                ),
+            ),
+        )
+
+    payload = (
+        _plain_wave_payload()
+        if audio_only
+        else atom(b"moov", track(b"vide", b"avc1") + track(b"soun", b"mp4a"))
+    )
+    root, edit_version_id, revision = _prepare_single_export(
+        tmp_path,
+        media_payload=payload,
+        audio_only=audio_only,
+    )
+    monkeypatch.setattr(nle_handoff, "inspect_source_timecode", inspect_source_timecode)
+    destination = tmp_path / "plain.fcpxml"
+    kwargs = {
+        "run_id": "wfr_test",
+        "action_id": "plain_origin",
+        "edit_version_id": edit_version_id,
+        "expected_revision": revision,
+        "route": "fcpxml",
+        "destination": destination,
+        "alignment_artifact_id": None,
+    }
+    first = approve_nle_export(root, **kwargs)
+    xml = ET.fromstring(destination.read_bytes())
+    assert all(asset.attrib["start"] == "0s" for asset in xml.findall("./resources/asset"))
+
+    def reject_read(*args: object) -> SourceTimecodeResolution:
+        raise AssertionError("Existing receipt must bypass source-origin resolution")
+
+    monkeypatch.setattr(nle_handoff, "inspect_source_timecode", reject_read)
+    assert approve_nle_export(root, **kwargs).receipt == first.receipt

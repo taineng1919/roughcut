@@ -426,7 +426,9 @@ jobs:
             core/src/roughcut/adapters/fcp7_xml.py `
             core/src/roughcut/adapters/fcpxml.py `
             core/src/roughcut/adapters/quicktime_timecode.py `
+            core/src/roughcut/adapters/source_timecode.py `
             core/tests/adapters/test_quicktime_timecode.py `
+            core/tests/adapters/test_source_timecode.py `
             core/tests/adapters/test_fcpxml_source_origin.py `
             core/src/roughcut/adapters/nle_export_store.py `
             core/src/roughcut/adapters/nle_time.py `
@@ -459,6 +461,7 @@ jobs:
             core/tests/adapters/test_fcpxml.py `
             core/tests/adapters/test_nle_display_names.py `
             core/tests/adapters/test_quicktime_timecode.py `
+            core/tests/adapters/test_source_timecode.py `
             core/tests/adapters/test_fcpxml_source_origin.py `
             core/tests/adapters/test_nle_export_store.py `
             core/tests/adapters/test_nle_time.py

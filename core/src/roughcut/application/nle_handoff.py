@@ -14,7 +14,7 @@ from typing import TypeAlias, cast
 from roughcut.adapters.alignment_store import AlignmentStore
 from roughcut.adapters.project_lock import project_write_lock
 from roughcut.adapters.project_store import ProjectStore
-from roughcut.adapters.quicktime_timecode import read_quicktime_source_origin
+from roughcut.adapters.source_timecode import inspect_source_timecode
 from roughcut.adapters.workflow_candidates import (
     StagedWorkflowFile,
     publish_workflow_candidate,
@@ -411,19 +411,26 @@ def _with_source_timecodes(prepared: NlePreparedExport) -> NlePreparedExport:
         for clip in track.clips:
             if clip.source_id in origins or clip.source_id not in source_ids:
                 continue
-            if (
-                "video" in clip.media_types
-                and clip.source_nominal_frame_rate is not None
-            ):
-                origins[clip.source_id] = read_quicktime_source_origin(
-                    clip.source_locator, clip.source_nominal_frame_rate
-                )
+            resolution = inspect_source_timecode(
+                clip.source_locator, clip.source_nominal_frame_rate, clip.media_types
+            )
+            try:
+                origins[clip.source_id] = resolution.require_origin()
+            except NleHandoffError as error:
+                raise _error(
+                    error.code,
+                    f"Source {clip.source_display_name!r} ({clip.source_id!r}): "
+                    f"{resolution.status}: {resolution.reason}",
+                ) from error
     tracks = tuple(
         replace(
             track,
             items=tuple(
                 replace(
-                    item, source_timecode_origin_ticks=origins.get(item.source_id, 0)
+                    item,
+                    source_timecode_origin_ticks=(
+                        origins[item.source_id] if item.source_id in source_ids else 0
+                    ),
                 )
                 if isinstance(item, NleHandoffClip)
                 else item

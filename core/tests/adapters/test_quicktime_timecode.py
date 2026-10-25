@@ -14,6 +14,23 @@ def atom(kind: bytes, body: bytes) -> bytes:
     return struct.pack(">I4s", len(body) + 8, kind) + body
 
 
+def local_dinf(kind: bytes = b"url ") -> bytes:
+    return atom(b"dinf", atom(b"dref", struct.pack(">II", 0, 1) + atom(kind, struct.pack(">I", 1))))
+
+
+def media_track(handler: bytes = b"vide", sample: bytes = b"avc1") -> bytes:
+    padding = 70 if handler == b"vide" else 20 if handler == b"soun" else 0
+    description = atom(sample, bytes(6) + b"\x00\x01" + bytes(padding))
+    stsd = atom(b"stsd", struct.pack(">II", 0, 1) + description)
+    return atom(
+        b"trak",
+        atom(
+            b"mdia",
+            atom(b"hdlr", bytes(8) + handler) + atom(b"minf", local_dinf() + atom(b"stbl", stsd)),
+        ),
+    )
+
+
 def timecode_movie(
     *,
     counter: int = 2_297_222,
@@ -21,6 +38,7 @@ def timecode_movie(
     co64: bool = False,
     edit_time: int = 0,
     duplicate: bool = False,
+    audio_only: bool = False,
 ) -> bytes:
     """Synthetic standard tmcd metadata and a four-byte media sample; no video."""
     ftyp = atom(b"ftyp", b"isom\x00\x00\x00\x00isom")
@@ -38,10 +56,11 @@ def timecode_movie(
         struct.pack(">II", 0, 1) + sample_offset.to_bytes(8 if co64 else 4, "big"),
     )
     handler = atom(b"hdlr", struct.pack(">II4s", 0, 0, b"tmcd"))
-    media = atom(b"mdia", handler + atom(b"minf", atom(b"stbl", table)))
+    media = atom(b"mdia", handler + atom(b"minf", local_dinf() + atom(b"stbl", table)))
     edits = atom(b"edts", atom(b"elst", struct.pack(">IIIiI", 0, 1, 100, edit_time, 0x10000)))
     track = atom(b"trak", edits + media)
-    return ftyp + mdat + atom(b"moov", track + (track if duplicate else b""))
+    av = media_track(b"soun", b"mp4a") if audio_only else media_track()
+    return ftyp + mdat + atom(b"moov", av + track + (track if duplicate else b""))
 
 
 @pytest.mark.parametrize("co64", [False, True])
@@ -56,11 +75,10 @@ def test_standard_50fps_timecode_origin_is_exact(tmp_path: Path, co64: bool) -> 
 @pytest.mark.parametrize(
     "payload",
     [
-        b"other media",
-        atom(b"ftyp", b"isom") + atom(b"moov", b""),
-        atom(b"moov", atom(b"trak", atom(b"mdia", atom(b"hdlr", bytes(8) + b"rtmd")))),
+        atom(b"moov", media_track()),
+        atom(b"moov", media_track() + media_track(b"meta", b"rtmd")),
     ],
-    ids=["other-container", "no-timecode-track", "private-rtmd-only"],
+    ids=["no-timecode-track", "private-rtmd-only"],
 )
 def test_absent_standard_timecode_is_zero(tmp_path: Path, payload: bytes) -> None:
     path = tmp_path / "source.mov"
@@ -123,7 +141,12 @@ def test_25fps_timecode_has_no_filename_dependency(tmp_path: Path) -> None:
             struct.pack(">IIII", 0, 1, 1, 5_000_000), struct.pack(">IIII", 0, 1, 2, 5_000_000)
         ),
     ],
-    ids=["metadata-read-limit", "atom-count-limit", "multiple-sample-sizes", "multiple-sample-times"],
+    ids=[
+        "metadata-read-limit",
+        "atom-count-limit",
+        "multiple-sample-sizes",
+        "multiple-sample-times",
+    ],
 )
 def test_excessive_metadata_and_multiple_samples_fail_closed(
     tmp_path: Path, payload: bytes
