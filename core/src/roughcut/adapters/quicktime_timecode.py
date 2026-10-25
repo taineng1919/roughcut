@@ -10,7 +10,7 @@ import struct
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Literal
 
 from roughcut.domain.nle_handoff import NleHandoffError
 from roughcut.domain.time import TICKS_PER_SECOND, RationalRate
@@ -81,48 +81,216 @@ def _one(atoms: list[_Atom], kind: bytes) -> _Atom:
     return matches[0]
 
 
-def read_quicktime_source_origin(path: Path, source_rate: RationalRate) -> int:
-    """Return exact origin ticks, or zero for a container without standard tmcd.
+@dataclass(frozen=True)
+class SourceTimecodeResolution:
+    """Transient evidence; an unresolved origin must never become an implicit zero."""
 
-    The caller validates the source fingerprint before calling. Metadata reads
-    are bounded; media payload is skipped except for the four-byte tmcd sample.
-    Unsupported/ambiguous standard timecode fails closed rather than guessing.
-    """
+    status: Literal["known_origin", "confirmed_absent", "unknown", "unsupported"]
+    origin_ticks: int | None
+    reason: str
+
+    def __post_init__(self) -> None:
+        if self.status not in {"known_origin", "confirmed_absent", "unknown", "unsupported"}:
+            raise ValueError("Invalid source timecode resolution status")
+        known = self.status in {"known_origin", "confirmed_absent"}
+        if known != (self.origin_ticks is not None):
+            raise ValueError("Only resolved timecode evidence may contain origin ticks")
+        if self.origin_ticks is not None and (
+            type(self.origin_ticks) is not int or self.origin_ticks < 0
+        ):
+            raise ValueError("Source timecode origin must be nonnegative")
+        if self.status == "confirmed_absent" and self.origin_ticks != 0:
+            raise ValueError("Absent timecode must have origin zero")
+
+    def require_origin(self) -> int:
+        if self.origin_ticks is None:
+            raise NleHandoffError(
+                f"nle_export_source_timecode_{self.status}",
+                f"Roughcut NLE source timecode: {self.reason}",
+            )
+        return self.origin_ticks
+
+
+def read_quicktime_source_origin(path: Path, source_rate: RationalRate) -> int:
+    """Compatibility wrapper; unknown and unsupported sources fail closed."""
+    return inspect_quicktime_source_origin(path, source_rate).require_origin()
+
+
+def inspect_quicktime_source_origin(
+    path: Path, source_rate: RationalRate | None
+) -> SourceTimecodeResolution:
+    """Read bounded standard tmcd evidence without guessing from tags or names."""
     try:
         with path.open("rb") as stream:
             stream.seek(0, 2)
             size = stream.tell()
             reader = _Reader(stream, size)
             if size < 8:
-                return 0
+                return SourceTimecodeResolution("unknown", None, "source header is too short")
             if reader.read(4, 4) not in {b"ftyp", b"moov", b"mdat", b"free", b"wide", b"skip"}:
-                return 0  # Other media containers have no standard QuickTime tmcd.
-            top = reader.atoms(0, size)
-            movies = [atom for atom in top if atom.kind == b"moov"]
-            if not movies:
-                raise _invalid("QuickTime movie metadata is missing")
-            movie = _one(top, b"moov")
-            tracks = []
-            for track in reader.children(movie):
-                if track.kind != b"trak":
-                    continue
-                children = reader.children(track)
-                media = reader.children(_one(children, b"mdia"))
-                handler = reader.body(_one(media, b"hdlr"))
-                if len(handler) < 12:
-                    raise _invalid("truncated media handler")
-                if handler[8:12] == b"tmcd":
-                    tracks.append((children, media))
-            if not tracks:
-                return 0
-            if len(tracks) != 1:
-                raise _invalid("multiple timecode tracks")
-            timecode_track, media = tracks[0]
-            _validate_edits(reader, timecode_track)
-            table = reader.children(_one(reader.children(_one(media, b"minf")), b"stbl"))
-            return _sample_origin(reader, table, top, source_rate)
-    except OSError as error:
-        raise _invalid("source is unreadable") from error
+                return SourceTimecodeResolution(
+                    "unknown", None, "unrecognized source container; no verified origin adapter"
+                )
+            return _inspect_quicktime(reader, source_rate)
+    except NleHandoffError as error:
+        return SourceTimecodeResolution(
+            "unsupported", None, str(error).removeprefix("Roughcut NLE source timecode: ")
+        )
+    except OSError:
+        return SourceTimecodeResolution("unsupported", None, "source is unreadable")
+
+
+def _inspect_quicktime(
+    reader: _Reader,
+    source_rate: RationalRate | None,
+    expected_media_types: tuple[str, ...] | None = None,
+) -> SourceTimecodeResolution:
+    top = reader.atoms(0, reader.size)
+    movies = [atom for atom in top if atom.kind == b"moov"]
+    if not movies:
+        raise _invalid("QuickTime movie metadata is missing")
+    movie = _one(top, b"moov")
+    movie_children = reader.children(movie)
+    if any(atom.kind in {b"moof", b"mfra"} for atom in top) or any(
+        atom.kind == b"mvex" for atom in movie_children
+    ):
+        raise _invalid("fragmented QuickTime/ISO BMFF is not supported")
+    tracks = []
+    media_types: set[str] = set()
+    for track in movie_children:
+        if track.kind != b"trak":
+            continue
+        children = reader.children(track)
+        media = reader.children(_one(children, b"mdia"))
+        handler = reader.body(_one(media, b"hdlr"))
+        if len(handler) < 12:
+            raise _invalid("truncated media handler")
+        kind = handler[8:12]
+        if kind not in {b"vide", b"soun", b"tmcd", b"meta", b"mdta"}:
+            raise _invalid(f"unsupported media handler {kind!r}")
+        if kind == b"tmcd":
+            tracks.append((children, media))
+        else:
+            _validate_non_timecode_descriptions(reader, media, kind)
+            if kind in {b"vide", b"soun"}:
+                media_types.add("video" if kind == b"vide" else "audio")
+    if not media_types:
+        raise _invalid("movie has no verified audio/video tracks")
+    if expected_media_types is not None and media_types != set(expected_media_types):
+        raise _invalid("container audio/video tracks differ from verified source media types")
+    if not tracks:
+        return SourceTimecodeResolution(
+            "confirmed_absent", 0, "QuickTime/ISO BMFF has no standard timecode track"
+        )
+    if len(tracks) != 1:
+        raise _invalid("multiple timecode tracks")
+    timecode_track, media = tracks[0]
+    _validate_edits(reader, timecode_track)
+    table = _local_sample_table(reader, media)
+    if source_rate is None:
+        raise _invalid("standard timecode requires a verified nominal source frame rate")
+    return SourceTimecodeResolution(
+        "known_origin",
+        _sample_origin(reader, table, top, source_rate),
+        "standard QuickTime tmcd sample",
+    )
+
+
+# Supported standard audio/video sample entries. Unknown descriptions are not
+# evidence that timecode is absent. This is container inspection, not a decoder.
+_VIDEO_ENTRIES = {
+    b"avc1",
+    b"avc3",
+    b"hvc1",
+    b"hev1",
+    b"mp4v",
+    b"apch",
+    b"apcn",
+    b"apcs",
+    b"apco",
+    b"ap4h",
+    b"ap4x",
+    b"jpeg",
+    b"mjpg",
+    b"mjpa",
+    b"mjpb",
+    b"raw ",
+    b"v210",
+    b"v308",
+    b"v408",
+    b"v410",
+    b"2vuy",
+    b"yuv2",
+    b"dvc ",
+    b"dvcp",
+    b"dvhp",
+    b"av01",
+}
+_AUDIO_ENTRIES = {
+    b"mp4a",
+    b"lpcm",
+    b"sowt",
+    b"twos",
+    b"fl32",
+    b"fl64",
+    b"in24",
+    b"in32",
+    b"alac",
+    b"ac-3",
+    b"ec-3",
+    b".mp3",
+    b"Opus",
+    b"ulaw",
+    b"alaw",
+    b"raw ",
+    b"NONE",
+}
+
+
+def _local_sample_table(reader: _Reader, media: list[_Atom]) -> list[_Atom]:
+    """Require the sample's index 1 to resolve to this file, not just exist.
+
+    Only one version-0 self-contained URL/QuickTime alias entry is supported.
+    An external offset can coincidentally point into our mdat; it is never local
+    evidence without its actual data-reference record.
+    """
+    info = reader.children(_one(media, b"minf"))
+    references = _one(reader.children(_one(info, b"dinf")), b"dref")
+    if references.end - references.payload < 8:
+        raise _invalid("truncated data reference table")
+    if reader.read(references.payload, 8) != struct.pack(">II", 0, 1):
+        raise _invalid("unsupported data reference version, flags or entry count")
+    entries = reader.atoms(references.payload + 8, references.end)
+    if len(entries) != 1:
+        raise _invalid("expected one local data reference entry")
+    entry = entries[0]
+    if entry.kind not in {b"url ", b"alis"}:
+        raise _invalid("unsupported data reference entry type")
+    if entry.end - entry.payload != 4 or reader.body(entry) != struct.pack(">I", 1):
+        raise _invalid("external or unsupported data reference; expected self-contained flag 1")
+    return reader.children(_one(info, b"stbl"))
+
+
+def _validate_non_timecode_descriptions(reader: _Reader, media: list[_Atom], kind: bytes) -> None:
+    table = _local_sample_table(reader, media)
+    stsd = _one(table, b"stsd")
+    if stsd.end - stsd.payload < 8:
+        raise _invalid("truncated sample descriptions")
+    version, count = struct.unpack(">II", reader.read(stsd.payload, 8))
+    entries = reader.atoms(stsd.payload + 8, stsd.end)
+    if version or not count or len(entries) != count:
+        raise _invalid("invalid sample description count or version")
+    for entry in entries:
+        if entry.kind in {b"tmcd", b"tc64"}:
+            raise _invalid("timecode sample description has a non-timecode handler")
+        supported = _VIDEO_ENTRIES if kind == b"vide" else _AUDIO_ENTRIES
+        if kind in {b"vide", b"soun"} and entry.kind not in supported:
+            raise _invalid(f"unverified audio/video sample description {entry.kind!r}")
+        minimum = 78 if kind == b"vide" else 28 if kind == b"soun" else 8
+        if entry.end - entry.payload < minimum:
+            raise _invalid("truncated audio/video or metadata sample description")
+        if reader.read(entry.payload, 8) != bytes(6) + b"\x00\x01":
+            raise _invalid("invalid or external sample description reference")
 
 
 def _validate_edits(reader: _Reader, track: list[_Atom]) -> None:
