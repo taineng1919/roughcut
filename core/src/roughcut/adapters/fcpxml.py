@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Iterable
 from typing import cast
 
+from roughcut.adapters.nle_clip_organization import coalesce_nle_clips
 from roughcut.adapters.nle_time import (
     FcpxmlClipTiming,
     fcpxml_time,
@@ -29,6 +30,7 @@ def write_fcpxml(timeline: NleHandoffTimeline) -> bytes:
 
     if FCPXML_EXPORT_PROFILE != "roughcut_fcpxml_1_14":
         raise ValueError("FCPXML export profile identity changed")
+    timeline, clip_members = coalesce_nle_clips(timeline, route="fcpxml")
     sources = _source_catalog(timeline)
     timing = project_fcpxml_timing(timeline)
     project_format_id = _project_format_id(timeline)
@@ -118,6 +120,7 @@ def write_fcpxml(timeline: NleHandoffTimeline) -> bytes:
             timing=timing.for_clip(main_clip),
             format_id=_clip_format_id(main_clip, source_formats),
             include_lane=False,
+            logical_clip_ids=clip_members[main_clip.logical_clip_id],
         )
         spine.append(main_element)
         for lane, track in enumerate(timeline.auxiliary_tracks, start=1):
@@ -131,6 +134,7 @@ def write_fcpxml(timeline: NleHandoffTimeline) -> bytes:
                             include_lane=True,
                             lane=lane,
                             parent_origin_ticks=main_clip.source_timecode_origin_ticks,
+                            logical_clip_ids=clip_members[auxiliary_clip.logical_clip_id],
                         )
                     )
 
@@ -147,6 +151,7 @@ def _asset_clip(
     timing: FcpxmlClipTiming,
     format_id: str,
     include_lane: bool,
+    logical_clip_ids: tuple[str, ...],
     lane: int | None = None,
     parent_origin_ticks: int = 0,
 ) -> ET.Element:
@@ -166,7 +171,7 @@ def _asset_clip(
         attributes["audioRole"] = "dialogue"
     element = ET.Element("asset-clip", attributes)
     note = ET.SubElement(element, "note")
-    note.text = f"{clip.logical_clip_id} | {clip.camera_id} | {clip.source_id}"
+    note.text = f"{','.join(logical_clip_ids)} | {clip.camera_id} | {clip.source_id}"
     return element
 
 

@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Iterable
 from typing import cast
 
+from roughcut.adapters.nle_clip_organization import coalesce_nle_clips
 from roughcut.adapters.nle_time import (
     fcp7_frame_range,
     fcp7_rate,
@@ -30,6 +31,7 @@ def write_fcp7_xml(timeline: NleHandoffTimeline) -> bytes:
 
     if FCP7_XML_EXPORT_PROFILE != "roughcut_fcp7_xml_xmeml_v5":
         raise ValueError("FCP7 XML export profile identity changed")
+    timeline, clip_members = coalesce_nle_clips(timeline, route="fcp7_xml")
     rate = fcp7_rate(timeline.frame_rate)
     sources = _source_catalog(timeline)
     root = ET.Element("xmeml", {"version": FCP7_XML_VERSION})
@@ -75,6 +77,7 @@ def write_fcp7_xml(timeline: NleHandoffTimeline) -> bytes:
                 group_indexes=group_indexes,
                 track_indexes=track_indexes,
                 clip_indexes=clip_indexes,
+                clip_members=clip_members,
             )
     if audio is not None:
         for track in audio_tracks:
@@ -91,6 +94,7 @@ def write_fcp7_xml(timeline: NleHandoffTimeline) -> bytes:
                 group_indexes=group_indexes,
                 track_indexes=track_indexes,
                 clip_indexes=clip_indexes,
+                clip_members=clip_members,
             )
 
     ET.indent(root, space="  ")
@@ -111,6 +115,7 @@ def _add_track_items(
     group_indexes: dict[str, int],
     track_indexes: dict[str, dict[str, int]],
     clip_indexes: dict[tuple[str, str, str], int],
+    clip_members: dict[str, tuple[str, ...]],
 ) -> None:
     for clip in track.clips:
         if media_type not in clip.media_types:
@@ -137,7 +142,10 @@ def _add_track_items(
         if frame_range.mixed_rates_offset is not None:
             _text(item, "mixedratesoffset", frame_range.mixed_rates_offset)
         logginginfo = ET.SubElement(item, "logginginfo")
-        _text(logginginfo, "lognote", f"{clip.logical_clip_id} | {clip.camera_id} | {clip.source_id}")
+        _text(
+            logginginfo, "lognote",
+            f"{','.join(clip_members[clip.logical_clip_id])} | {clip.camera_id} | {clip.source_id}",
+        )
         if clip.source_id not in source_definitions:
             _add_file_definition(
                 item,

@@ -1000,6 +1000,8 @@ def _request_projection(
     alignment: MulticamAlignmentArtifact | None,
     placeholder_bindings: tuple[NlePlaceholderMediaBinding, ...],
 ) -> dict[str, object]:
+    from roughcut.adapters.nle_clip_organization import NLE_CLIP_ORGANIZATION_POLICY
+
     request: dict[str, object] = {
         "schema_version": NLE_EXPORT_SCHEMA_VERSION,
         "action": "approve_nle_export",
@@ -1014,6 +1016,7 @@ def _request_projection(
         },
         "route": route,
         "exporter_profile": NLE_EXPORT_PROFILES[route],
+        "clip_organization_policy": NLE_CLIP_ORGANIZATION_POLICY,
         "destination": str(destination),
         "source_snapshots": [snapshot.to_dict() for snapshot in snapshots],
         "alignment": (

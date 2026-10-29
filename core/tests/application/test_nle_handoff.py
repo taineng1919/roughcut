@@ -1405,6 +1405,40 @@ def test_approved_nle_export_is_atomic_and_idempotent(tmp_path: Path) -> None:
     assert (root / "exports/handoffs/receipts/nle_action_1.json").is_file()
 
 
+@pytest.mark.parametrize("route", ["fcpxml", "fcp7_xml"])
+def test_clip_organization_policy_prevents_reusing_a_legacy_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, route: str
+) -> None:
+    from roughcut.adapters.nle_clip_organization import NLE_CLIP_ORGANIZATION_POLICY
+    from roughcut.adapters.nle_export_store import NleExportStore
+    from roughcut.domain.nle_handoff import nle_export_request_hash
+
+    root, edit_version_id, revision = _prepare_single_export(tmp_path)
+    destination = tmp_path / ("legacy.fcpxml" if route == "fcpxml" else "legacy.xml")
+    kwargs = dict(
+        run_id="wfr_test", action_id="legacy_policy", edit_version_id=edit_version_id,
+        expected_revision=revision, route=route, destination=destination,
+        alignment_artifact_id=None,
+    )
+    prepared = nle_handoff.prepare_nle_export(root, **kwargs)
+    assert prepared.request["clip_organization_policy"] == NLE_CLIP_ORGANIZATION_POLICY
+    legacy_request = dict(prepared.request)
+    legacy_request.pop("clip_organization_policy")
+    assert nle_export_request_hash(legacy_request) != prepared.request_hash
+    with monkeypatch.context() as patch:
+        patch.setattr(nle_handoff, "_request_projection", lambda **_kwargs: legacy_request)
+        legacy = approve_nle_export(root, **kwargs).receipt
+    output_before = destination.read_bytes()
+    receipt_path = root / "exports/handoffs/receipts/legacy_policy.json"
+    receipt_before = receipt_path.read_bytes()
+    assert NleExportStore(root).read("legacy_policy") == legacy
+    with pytest.raises(NleHandoffError) as caught:
+        approve_nle_export(root, **kwargs)
+    assert caught.value.code == "nle_export_action_conflict"
+    assert destination.read_bytes() == output_before
+    assert receipt_path.read_bytes() == receipt_before
+
+
 def test_nle_action_id_cannot_change_route_or_destination(tmp_path: Path) -> None:
     root, edit_version_id, revision = _prepare_single_export(tmp_path)
     destination = tmp_path / "handoff.fcpxml"

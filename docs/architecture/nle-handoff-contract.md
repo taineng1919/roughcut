@@ -48,6 +48,24 @@ canonical Project JSON、Timeline artifact 或 vendor-neutral 文件。它不是
 主轨每个 Decision clip 恰好生成一个 handoff clip，顺序完全一致，timeline 从 0
 按整数 duration 累计。单机位保留每个 SourceAsset 原有 video/audio relationship。
 
+这条 1:1 规则继续适用于 canonical handoff projection。两个 writer 在序列化前另做
+瞬时片段组织（`contiguous_source_mapping_v1`），不回写 Decision、handoff 输入或
+preview/render：只消除同素材、源区间严格相接且所有播放属性兼容的冗余切点。每条
+auxiliary track 在切点两侧必须各有一个完整覆盖对应主片的兼容 clip；缺失、局部覆盖、
+映射变化或媒体能力变化均保留主副轨切点。不会跨越已跳过的源间隙，不做停顿或重说
+识别，也不推断段落边界；即使片段源于不同文字选段，完全连续的播放映射也可以合并。
+
+组织前先按各格式既有规则验证所有原片。FCPXML 比较源起点量化、绝对 timeline 边界
+和 connected offset 实际挂接后的播放区间；FCP7 比较 sequence frame 边界与 exact
+source-frame 坐标。只有候选重新投影后，各轨道所有原子区间的源素材、源播放映射和
+实际输出范围均完全不变，才消除切点。canonical 零间隙但导出量化产生 gap/overlap 的
+切点保留。副轨重挂接不改变 source origin 或同步。合并块保留首个原片 ID 和 A/V link
+identity，全部原片 ID 按顺序以逗号分隔写入 note/lognote 的首字段。
+
+批准 request hash 包含 `clip_organization_policy`。旧 receipt 仍可读取，旧输出保持
+不可变；旧 action 的 request hash 不再匹配新组织规则时拒绝复用，需使用新的 action
+和目标文件。Receipt schema 与 frozen exporter profile 名称保持不变。
+
 多机位主轨仍完全来自 Decision；每个 auxiliary track 只把 Alignment 的 `mapped`
 interval 投影为 original-source clip。`missing`、`uncertain`、`conflict` 及其余未映射
 补集均生成 gap。不能可靠映射时不猜测、不插值、不自动补齐、不生成黑色视频或数字静音。
