@@ -116,14 +116,15 @@ def _assert_same_playback(before: bytes, after: bytes, route: str) -> None:
     # both existing writers express slope-one source playback within a span.
     points = {point for span in (*old, *new) for point in (span[3], span[4] - 1)}
     points.update(range(0, 3 * TICKS_PER_SECOND, TICKS_PER_SECOND // 50))
+    def at(spans: tuple[Span, ...], output: int) -> list[tuple[int, str, str, int]]:
+        return sorted(
+            (track, media, source, source_in + output - start)
+            for track, media, source, start, end, source_in in spans
+            if start <= output < end
+        )
+
     for output in points:
-        def at(spans: tuple[Span, ...]) -> list[tuple[int, str, str, int]]:
-            return sorted(
-                (track, media, source, source_in + output - start)
-                for track, media, source, start, end, source_in in spans
-                if start <= output < end
-            )
-        assert at(old) == at(new), output
+        assert at(old, output) == at(new, output), output
     assert ET.fromstring(before).find(".//sequence").attrib.get("duration") == (
         ET.fromstring(after).find(".//sequence").attrib.get("duration")
     )
@@ -191,7 +192,7 @@ def test_real_edits_never_coalesce(
     tmp_path: Path, route: str, change: str
 ) -> None:
     base = _timeline(tmp_path)
-    first, second, third = base.main_track.clips
+    first, second, _unused = base.main_track.clips
     shift = {"gap": 4_800, "overlap": -4_800, "repeat": -120_000,
              "reorder": -240_000, "source": 0}[change]
     second = replace(second, source_in_ticks=second.source_in_ticks + shift,
