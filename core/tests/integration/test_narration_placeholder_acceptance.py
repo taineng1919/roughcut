@@ -1049,7 +1049,17 @@ def _checks() -> list[tuple[str, str]]:
     main_clips = [
         element for element in spines[0] if element.tag == "asset-clip"
     ]
-    assert len(main_clips) == 5
+    # The two contiguous original-media excerpts share a continuous auxiliary
+    # mapping and export as one clip; canonical Decision still has five clips.
+    assert len(main_clips) == 4
+    merged_excerpt = main_clips[2]
+    assert _fcpxml_seconds(merged_excerpt.get("start")) == 2 * TICKS
+    assert _fcpxml_seconds(merged_excerpt.get("duration")) == 4 * TICKS
+    assert len(merged_excerpt.findtext("note", "").split(" | ")[0].split(",")) == 2
+    merged_aux = merged_excerpt.find("asset-clip")
+    assert merged_aux is not None
+    assert _fcpxml_seconds(merged_aux.get("start")) == 2 * TICKS
+    assert _fcpxml_seconds(merged_aux.get("duration")) == 4 * TICKS
     cursor = 0
     for clip in main_clips:
         offset = _fcpxml_seconds(clip.get("offset"))
